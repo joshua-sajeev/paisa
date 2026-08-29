@@ -1,0 +1,13 @@
+*.out
+*.test
+.env
+.env.*
+!.env.example
+
+/bin/
+/tmp/
+
+*.log
+
+*.swp
+/backend/.envrc
