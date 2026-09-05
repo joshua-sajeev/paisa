@@ -1,5 +1,3 @@
-// Package config provides typed application configuration loaded from
-// environment variables.
 package config
 
 import (
@@ -14,11 +12,14 @@ type Config struct {
 	Database DatabaseConfig
 
 	AppLock  AppLockConfig
-	PINHash  string // Argon2 hash of the master PIN
-	DemoMode bool   // Bypass authentication if true
+	// Session store (redis url, e.g. redis://localhost:6379)
+	SessionStoreURL string
+	// Session TTL hours
+	SessionTTLHours int
 }
+
 type AppLockConfig struct {
-	PINHash  string // Argon2 hash of the master PIN
+	PINHash  string // Argon2id PHC encoded hash of the master PIN
 	DemoMode bool   // Bypass authentication if true
 }
 
@@ -53,6 +54,8 @@ func Load() (*Config, error) {
 			Database: getEnv("DB_NAME", "paisa"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},
+		SessionStoreURL: getEnv("SESSION_STORE_URL", "redis://localhost:6379"),
+		SessionTTLHours: getEnvInt("SESSION_TTL_HOURS", 24),
 	}
 
 	if cfg.Database.Password == "" {
@@ -63,8 +66,9 @@ func Load() (*Config, error) {
 
 	// Validate PIN hash is set (if not in DEMO_MODE)
 	if !cfg.AppLock.DemoMode && cfg.AppLock.PINHash == "" {
-		return nil, errors.New("APP_PIN_HASH must be set in .env (or enable DEMO_MODE=true)")
+		return nil, errors.New("APP_PIN_HASH must be set in environment (or enable DEMO_MODE=true)")
 	}
+
 	return cfg, nil
 }
 
@@ -74,6 +78,19 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func getEnvInt(key string, defaultValue int) int {
+	val := os.Getenv(key)
+	if val == "" {
+		return defaultValue
+	}
+	var v int
+	_, _ = fmt.Sscanf(val, "%d", &v)
+	if v == 0 {
+		return defaultValue
+	}
+	return v
 }
 
 // GetDatabaseURL returns PostgreSQL connection string

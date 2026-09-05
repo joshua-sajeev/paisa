@@ -37,6 +37,9 @@ func main() {
 
 	r := router.NewRouter(&router.HandlerRegistry{
 		AccountHandler: container.AccountHandler,
+		AuthHandler:    container.AuthHandler,
+		Config:         cfg,
+		SessionStore:   container.SessionStore(),
 	}, container.Logger())
 
 	server := &http.Server{
@@ -50,13 +53,18 @@ func main() {
 	go func() {
 		log.Printf("Server started on %s", server.Addr)
 
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := server.ListenAndServe(); err != nil &&
+			err != http.ErrServerClosed {
 			log.Fatalf("server error: %v", err)
 		}
 	}()
 
 	shutdownChan := make(chan os.Signal, 1)
-	signal.Notify(shutdownChan, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(
+		shutdownChan,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+	)
 
 	<-shutdownChan
 	log.Println("Shutting down server...")

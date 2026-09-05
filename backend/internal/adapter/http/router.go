@@ -1,4 +1,3 @@
-// Package http provides HTTP adapters for the application.
 package http
 
 import (
@@ -9,11 +8,16 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/joshu-sajeev/paisa/internal/adapter/http/handler"
+	"github.com/joshu-sajeev/paisa/internal/config"
+	"github.com/joshu-sajeev/paisa/internal/session"
 )
 
 // HandlerRegistry holds all HTTP handlers needed by the router.
 type HandlerRegistry struct {
 	AccountHandler *handler.AccountHandler
+	AuthHandler    *handler.AuthHandler
+	Config         *config.Config
+	SessionStore   session.SessionStore
 }
 
 func NewRouter(h *HandlerRegistry, logger *slog.Logger) http.Handler {
@@ -33,7 +37,19 @@ func NewRouter(h *HandlerRegistry, logger *slog.Logger) http.Handler {
 		_, _ = w.Write([]byte("OK"))
 	})
 
+	// Public auth endpoints
+	r.Route("/", func(r chi.Router) {
+		registerAuthRoutes(r, h.AuthHandler)
+	})
+
+	// Protected API
 	r.Route("/api/v1", func(r chi.Router) {
+		r.Use(AuthMiddleware(
+			h.Config,
+			h.SessionStore,
+			logger,
+		))
+
 		registerAccountRoutes(r, h.AccountHandler)
 	})
 
