@@ -11,3 +11,4 @@
 
 *.swp
 /backend/.envrc
+/backend/tmp
