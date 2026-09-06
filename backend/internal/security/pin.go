@@ -61,10 +61,14 @@ func ValidatePIN(pin string) error {
 	isSeqDec := true
 
 	for i := 1; i < len(pin); i++ {
-		if pin[i] != pin[i-1]+1 {
+		prev := pin[i-1]
+		curr := pin[i]
+
+		if curr != prev+1 && (prev != '9' || curr != '0') {
 			isSeqInc = false
 		}
-		if pin[i] != pin[i-1]-1 {
+
+		if curr != prev-1 && (prev != '0' || curr != '9') {
 			isSeqDec = false
 		}
 	}

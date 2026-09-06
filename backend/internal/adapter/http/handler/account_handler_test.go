@@ -10,11 +10,14 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/joshu-sajeev/paisa/internal/adapter/http/handler"
 	"github.com/joshu-sajeev/paisa/internal/domain/account"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type mockAccountService struct {
@@ -143,17 +146,12 @@ func TestAccountHandler_Create(t *testing.T) {
 				"/accounts",
 				strings.NewReader(tt.body),
 			)
+
 			rec := httptest.NewRecorder()
 
 			h.Create(rec, req)
 
-			if rec.Code != tt.wantStatus {
-				t.Fatalf(
-					"status = %d, want %d",
-					rec.Code,
-					tt.wantStatus,
-				)
-			}
+			assert.Equal(t, tt.wantStatus, rec.Code)
 
 			if tt.wantName == "" {
 				return
@@ -161,17 +159,12 @@ func TestAccountHandler_Create(t *testing.T) {
 
 			var response handler.AccountResponse
 
-			if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
-				t.Fatalf("decode response: %v", err)
-			}
+			require.NoError(
+				t,
+				json.NewDecoder(rec.Body).Decode(&response),
+			)
 
-			if response.Name != tt.wantName {
-				t.Errorf(
-					"name = %q, want %q",
-					response.Name,
-					tt.wantName,
-				)
-			}
+			assert.Equal(t, tt.wantName, response.Name)
 		})
 	}
 }
@@ -197,16 +190,171 @@ func TestAccountHandler_Create_InvalidJSON(t *testing.T) {
 		"/accounts",
 		strings.NewReader(`{"name":`),
 	)
+
 	rec := httptest.NewRecorder()
 
 	h.Create(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf(
-			"status = %d, want %d",
-			rec.Code,
-			http.StatusBadRequest,
-		)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+}
+
+func TestAccountHandler_List(t *testing.T) {
+	repoErr := errors.New("repository error")
+
+	id1 := uuid.New()
+	id2 := uuid.New()
+
+	now := time.Now().Round(0)
+
+	tests := []struct {
+		name         string
+		listFn       func(context.Context) ([]*account.Account, error)
+		wantStatus   int
+		wantAccounts []handler.AccountResponse
+		wantError    *handler.ErrorResponse
+	}{
+		{
+			name: "success with accounts",
+			listFn: func(
+				_ context.Context,
+			) ([]*account.Account, error) {
+				return []*account.Account{
+					{
+						ID:         id1,
+						Name:       "Savings",
+						IsArchived: false,
+						UpdatedAt:  now,
+					},
+					{
+						ID:         id2,
+						Name:       "Emergency",
+						IsArchived: true,
+						UpdatedAt:  now,
+					},
+				}, nil
+			},
+			wantStatus: http.StatusOK,
+			wantAccounts: []handler.AccountResponse{
+				{
+					ID:         id1,
+					Name:       "Savings",
+					IsArchived: false,
+					UpdatedAt:  now,
+				},
+				{
+					ID:         id2,
+					Name:       "Emergency",
+					IsArchived: true,
+					UpdatedAt:  now,
+				},
+			},
+		},
+		{
+			name: "success with no accounts",
+			listFn: func(
+				_ context.Context,
+			) ([]*account.Account, error) {
+				return []*account.Account{}, nil
+			},
+			wantStatus:   http.StatusOK,
+			wantAccounts: []handler.AccountResponse{},
+		},
+		{
+			name: "service error",
+			listFn: func(
+				_ context.Context,
+			) ([]*account.Account, error) {
+				return nil, repoErr
+			},
+			wantStatus: http.StatusInternalServerError,
+			wantError: &handler.ErrorResponse{
+				Error:   "INTERNAL_ERROR",
+				Message: "Failed to list accounts",
+				Code:    "ERR_INTERNAL_SERVER",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service := &mockAccountService{
+				listFn: tt.listFn,
+			}
+
+			h := handler.NewAccountHandler(
+				service,
+				newTestLogger(),
+			)
+
+			req := httptest.NewRequest(
+				http.MethodGet,
+				"/accounts",
+				nil,
+			)
+
+			rec := httptest.NewRecorder()
+
+			h.List(rec, req)
+
+			assert.Equal(t, tt.wantStatus, rec.Code)
+
+			if tt.wantError != nil {
+				var response handler.ErrorResponse
+
+				require.NoError(
+					t,
+					json.NewDecoder(rec.Body).Decode(&response),
+				)
+
+				assert.Equal(
+					t,
+					tt.wantError.Error,
+					response.Error,
+				)
+
+				assert.Equal(
+					t,
+					tt.wantError.Message,
+					response.Message,
+				)
+
+				assert.Equal(
+					t,
+					tt.wantError.Code,
+					response.Code,
+				)
+
+				return
+			}
+
+			var response []handler.AccountResponse
+
+			require.NoError(
+				t,
+				json.NewDecoder(rec.Body).Decode(&response),
+			)
+
+			require.Len(
+				t,
+				response,
+				len(tt.wantAccounts),
+			)
+
+			for i, want := range tt.wantAccounts {
+				assert.Equal(t, want.ID, response[i].ID)
+				assert.Equal(t, want.Name, response[i].Name)
+				assert.Equal(
+					t,
+					want.IsArchived,
+					response[i].IsArchived,
+				)
+				assert.Equal(
+					t,
+					want.UpdatedAt,
+					response[i].UpdatedAt,
+				)
+			}
+		})
 	}
 }
 
@@ -231,29 +379,9 @@ func TestAccountHandler_Patch(t *testing.T) {
 				name *string,
 				isArchived *bool,
 			) error {
-				if id != testID {
-					t.Errorf(
-						"id = %v, want %v",
-						id,
-						testID,
-					)
-				}
-
-				if name == nil || *name != "Updated Savings" {
-					t.Errorf(
-						"name = %v, want %q",
-						stringPtrValue(name),
-						"Updated Savings",
-					)
-				}
-
-				if isArchived != nil {
-					t.Errorf(
-						"isArchived = %v, want nil",
-						boolPtrValue(isArchived),
-					)
-				}
-
+				assert.Equal(t, testID, id)
+				assert.Equal(t, "Updated Savings", stringPtrValue(name))
+				assert.Equal(t, "<nil>", boolPtrValue(isArchived))
 				return nil
 			},
 			wantStatus: http.StatusOK,
@@ -267,28 +395,9 @@ func TestAccountHandler_Patch(t *testing.T) {
 				name *string,
 				isArchived *bool,
 			) error {
-				if id != testID {
-					t.Errorf(
-						"id = %v, want %v",
-						id,
-						testID,
-					)
-				}
-
-				if name != nil {
-					t.Errorf(
-						"name = %v, want nil",
-						stringPtrValue(name),
-					)
-				}
-
-				if isArchived == nil || !*isArchived {
-					t.Errorf(
-						"isArchived = %v, want true",
-						boolPtrValue(isArchived),
-					)
-				}
-
+				assert.Equal(t, testID, id)
+				assert.Equal(t, "<nil>", stringPtrValue(name))
+				assert.Equal(t, "true", boolPtrValue(isArchived))
 				return nil
 			},
 			wantStatus: http.StatusOK,
@@ -302,20 +411,8 @@ func TestAccountHandler_Patch(t *testing.T) {
 				name *string,
 				isArchived *bool,
 			) error {
-				if name != nil {
-					t.Errorf(
-						"name = %v, want nil",
-						stringPtrValue(name),
-					)
-				}
-
-				if isArchived == nil || *isArchived {
-					t.Errorf(
-						"isArchived = %v, want false",
-						boolPtrValue(isArchived),
-					)
-				}
-
+				assert.Equal(t, "<nil>", stringPtrValue(name))
+				assert.Equal(t, "false", boolPtrValue(isArchived))
 				return nil
 			},
 			wantStatus: http.StatusOK,
@@ -329,29 +426,9 @@ func TestAccountHandler_Patch(t *testing.T) {
 				name *string,
 				isArchived *bool,
 			) error {
-				if id != testID {
-					t.Errorf(
-						"id = %v, want %v",
-						id,
-						testID,
-					)
-				}
-
-				if name == nil || *name != "Archived Savings" {
-					t.Errorf(
-						"name = %v, want %q",
-						stringPtrValue(name),
-						"Archived Savings",
-					)
-				}
-
-				if isArchived == nil || !*isArchived {
-					t.Errorf(
-						"isArchived = %v, want true",
-						boolPtrValue(isArchived),
-					)
-				}
-
+				assert.Equal(t, testID, id)
+				assert.Equal(t, "Archived Savings", stringPtrValue(name))
+				assert.Equal(t, "true", boolPtrValue(isArchived))
 				return nil
 			},
 			wantStatus: http.StatusOK,
@@ -434,13 +511,7 @@ func TestAccountHandler_Patch(t *testing.T) {
 
 			h.Patch(rec, req)
 
-			if rec.Code != tt.wantStatus {
-				t.Fatalf(
-					"status = %d, want %d",
-					rec.Code,
-					tt.wantStatus,
-				)
-			}
+			assert.Equal(t, tt.wantStatus, rec.Code)
 		})
 	}
 }
@@ -484,13 +555,7 @@ func TestAccountHandler_Patch_InvalidID(t *testing.T) {
 
 	h.Patch(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf(
-			"status = %d, want %d",
-			rec.Code,
-			http.StatusBadRequest,
-		)
-	}
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }
 
 func TestAccountHandler_Patch_NoFields(t *testing.T) {
@@ -525,13 +590,7 @@ func TestAccountHandler_Patch_NoFields(t *testing.T) {
 
 	h.Patch(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf(
-			"status = %d, want %d",
-			rec.Code,
-			http.StatusBadRequest,
-		)
-	}
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }
 
 func TestAccountHandler_Patch_InvalidJSON(t *testing.T) {
@@ -566,13 +625,7 @@ func TestAccountHandler_Patch_InvalidJSON(t *testing.T) {
 
 	h.Patch(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf(
-			"status = %d, want %d",
-			rec.Code,
-			http.StatusBadRequest,
-		)
-	}
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }
 
 func TestAccountHandler_Patch_UnknownField(t *testing.T) {
@@ -607,13 +660,7 @@ func TestAccountHandler_Patch_UnknownField(t *testing.T) {
 
 	h.Patch(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf(
-			"status = %d, want %d",
-			rec.Code,
-			http.StatusBadRequest,
-		)
-	}
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }
 
 func stringPtrValue(value *string) string {

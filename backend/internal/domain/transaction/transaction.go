@@ -102,6 +102,7 @@ func NewTransaction(
 		ID:             uuid.New(),
 		Name:           name,
 		Type:           transactionType,
+		Category:       category,
 		FromAccountID:  fromAccountID,
 		ToAccountID:    toAccountID,
 		JarID:          jarID,

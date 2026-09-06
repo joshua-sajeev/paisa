@@ -41,6 +41,10 @@ var _ handler.AccountService = (*application.AccountService)(nil)
 
 // New creates and initializes the dependency container
 func New(ctx context.Context, cfg *config.Config) (*Container, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("config is nil")
+	}
+
 	c := &Container{
 		cfg: cfg,
 		logger: slog.New(slog.NewTextHandler(
