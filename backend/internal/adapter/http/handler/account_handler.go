@@ -15,6 +15,9 @@ import (
 	"github.com/joshu-sajeev/paisa/internal/domain/account"
 )
 
+// Limit request body size to 1MB to prevent memory exhaustion (DoS)
+const maxBodyBytes = 1_048_576
+
 type AccountService interface {
 	Create(ctx context.Context, name string) (*account.Account, error)
 	List(ctx context.Context) ([]*account.Account, error)
@@ -40,7 +43,7 @@ type CreateAccountRequest struct {
 }
 
 type PatchAccountRequest struct {
-	Name       *string `json:"name" validate:"omitempty,min=1,max=100"`
+	Name       *string `json:"name"        validate:"omitempty,min=1,max=100"`
 	IsArchived *bool   `json:"is_archived"`
 }
 
@@ -55,11 +58,9 @@ func NewAccountResponse(a *account.Account) AccountResponse {
 
 // Create handles POST /accounts.
 func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
-	h.logger.InfoContext(
-		r.Context(),
-		"account create request received",
-	)
+	h.logger.InfoContext(r.Context(), "account create request received")
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
 	var req CreateAccountRequest
 
 	decoder := json.NewDecoder(r.Body)
@@ -72,11 +73,13 @@ func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 			slog.String("error", err.Error()),
 		)
 
-		writeJSON(w, http.StatusBadRequest, ErrorResponse{
-			Error:   "INVALID_REQUEST",
-			Message: "Request body is invalid",
-			Code:    "ERR_BAD_REQUEST",
-		})
+		writeErrorJSON(
+			w,
+			http.StatusBadRequest,
+			"INVALID_REQUEST",
+			"Request body is invalid or too large",
+			"ERR_BAD_REQUEST",
+		)
 		return
 	}
 
@@ -89,11 +92,13 @@ func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 			slog.String("error", err.Error()),
 		)
 
-		writeJSON(w, http.StatusBadRequest, ErrorResponse{
-			Error:   "VALIDATION_ERROR",
-			Message: "Invalid account name",
-			Code:    "ERR_INVALID_NAME",
-		})
+		writeErrorJSON(
+			w,
+			http.StatusBadRequest,
+			"VALIDATION_ERROR",
+			"Invalid account name",
+			"ERR_INVALID_NAME",
+		)
 		return
 	}
 
@@ -107,11 +112,13 @@ func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 				slog.String("name", req.Name),
 			)
 
-			writeJSON(w, http.StatusConflict, ErrorResponse{
-				Error:   "CONFLICT",
-				Message: "Account name already exists",
-				Code:    "ERR_ACCOUNT_EXISTS",
-			})
+			writeErrorJSON(
+				w,
+				http.StatusConflict,
+				"CONFLICT",
+				"Account name already exists",
+				"ERR_ACCOUNT_EXISTS",
+			)
 
 		case errors.Is(err, account.ErrInvalidName):
 			h.logger.WarnContext(
@@ -120,11 +127,13 @@ func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 				slog.String("error", err.Error()),
 			)
 
-			writeJSON(w, http.StatusBadRequest, ErrorResponse{
-				Error:   "VALIDATION_ERROR",
-				Message: "Invalid account name",
-				Code:    "ERR_INVALID_NAME",
-			})
+			writeErrorJSON(
+				w,
+				http.StatusBadRequest,
+				"VALIDATION_ERROR",
+				"Invalid account name",
+				"ERR_INVALID_NAME",
+			)
 
 		default:
 			h.logger.ErrorContext(
@@ -133,11 +142,13 @@ func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 				slog.String("error", err.Error()),
 			)
 
-			writeJSON(w, http.StatusInternalServerError, ErrorResponse{
-				Error:   "INTERNAL_ERROR",
-				Message: "Failed to create account",
-				Code:    "ERR_INTERNAL_SERVER",
-			})
+			writeErrorJSON(
+				w,
+				http.StatusInternalServerError,
+				"INTERNAL_ERROR",
+				"Failed to create account",
+				"ERR_INTERNAL_SERVER",
+			)
 		}
 
 		return
@@ -162,11 +173,13 @@ func (h *AccountHandler) List(w http.ResponseWriter, r *http.Request) {
 			slog.String("error", err.Error()),
 		)
 
-		writeJSON(w, http.StatusInternalServerError, ErrorResponse{
-			Error:   "INTERNAL_ERROR",
-			Message: "Failed to list accounts",
-			Code:    "ERR_INTERNAL_SERVER",
-		})
+		writeErrorJSON(
+			w,
+			http.StatusInternalServerError,
+			"INTERNAL_ERROR",
+			"Failed to list accounts",
+			"ERR_INTERNAL_SERVER",
+		)
 		return
 	}
 
@@ -191,14 +204,17 @@ func (h *AccountHandler) Patch(w http.ResponseWriter, r *http.Request) {
 			slog.String("raw_id", rawID),
 		)
 
-		writeJSON(w, http.StatusBadRequest, ErrorResponse{
-			Error:   "INVALID_REQUEST",
-			Message: "Invalid account ID format",
-			Code:    "ERR_INVALID_ID",
-		})
+		writeErrorJSON(
+			w,
+			http.StatusBadRequest,
+			"INVALID_REQUEST",
+			"Invalid account ID format",
+			"ERR_INVALID_ID",
+		)
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
 	var req PatchAccountRequest
 
 	decoder := json.NewDecoder(r.Body)
@@ -211,20 +227,24 @@ func (h *AccountHandler) Patch(w http.ResponseWriter, r *http.Request) {
 			slog.String("error", err.Error()),
 		)
 
-		writeJSON(w, http.StatusBadRequest, ErrorResponse{
-			Error:   "INVALID_REQUEST",
-			Message: "Request body is invalid",
-			Code:    "ERR_BAD_REQUEST",
-		})
+		writeErrorJSON(
+			w,
+			http.StatusBadRequest,
+			"INVALID_REQUEST",
+			"Request body is invalid or too large",
+			"ERR_BAD_REQUEST",
+		)
 		return
 	}
 
 	if req.Name == nil && req.IsArchived == nil {
-		writeJSON(w, http.StatusBadRequest, ErrorResponse{
-			Error:   "VALIDATION_ERROR",
-			Message: "At least one field must be provided",
-			Code:    "ERR_NO_FIELDS",
-		})
+		writeErrorJSON(
+			w,
+			http.StatusBadRequest,
+			"VALIDATION_ERROR",
+			"At least one field must be provided",
+			"ERR_NO_FIELDS",
+		)
 		return
 	}
 
@@ -240,11 +260,13 @@ func (h *AccountHandler) Patch(w http.ResponseWriter, r *http.Request) {
 			slog.String("error", err.Error()),
 		)
 
-		writeJSON(w, http.StatusBadRequest, ErrorResponse{
-			Error:   "VALIDATION_ERROR",
-			Message: "Invalid patch format inputs",
-			Code:    "ERR_INVALID_INPUT",
-		})
+		writeErrorJSON(
+			w,
+			http.StatusBadRequest,
+			"VALIDATION_ERROR",
+			"Invalid patch format inputs",
+			"ERR_INVALID_INPUT",
+		)
 		return
 	}
 
@@ -256,25 +278,31 @@ func (h *AccountHandler) Patch(w http.ResponseWriter, r *http.Request) {
 	); err != nil {
 		switch {
 		case errors.Is(err, account.ErrAccountNotFound):
-			writeJSON(w, http.StatusNotFound, ErrorResponse{
-				Error:   "NOT_FOUND",
-				Message: "Account not found",
-				Code:    "ERR_ACCOUNT_NOT_FOUND",
-			})
+			writeErrorJSON(
+				w,
+				http.StatusNotFound,
+				"NOT_FOUND",
+				"Account not found",
+				"ERR_ACCOUNT_NOT_FOUND",
+			)
 
 		case errors.Is(err, account.ErrAccountNameExists):
-			writeJSON(w, http.StatusConflict, ErrorResponse{
-				Error:   "CONFLICT",
-				Message: "Account name already exists",
-				Code:    "ERR_ACCOUNT_EXISTS",
-			})
+			writeErrorJSON(
+				w,
+				http.StatusConflict,
+				"CONFLICT",
+				"Account name already exists",
+				"ERR_ACCOUNT_EXISTS",
+			)
 
 		case errors.Is(err, account.ErrInvalidName):
-			writeJSON(w, http.StatusBadRequest, ErrorResponse{
-				Error:   "VALIDATION_ERROR",
-				Message: "Invalid account name",
-				Code:    "ERR_INVALID_NAME",
-			})
+			writeErrorJSON(
+				w,
+				http.StatusBadRequest,
+				"VALIDATION_ERROR",
+				"Invalid account name",
+				"ERR_INVALID_NAME",
+			)
 
 		default:
 			h.logger.ErrorContext(
@@ -284,11 +312,13 @@ func (h *AccountHandler) Patch(w http.ResponseWriter, r *http.Request) {
 				slog.String("error", err.Error()),
 			)
 
-			writeJSON(w, http.StatusInternalServerError, ErrorResponse{
-				Error:   "INTERNAL_ERROR",
-				Message: "Failed to update account",
-				Code:    "ERR_INTERNAL_SERVER",
-			})
+			writeErrorJSON(
+				w,
+				http.StatusInternalServerError,
+				"INTERNAL_ERROR",
+				"Failed to update account",
+				"ERR_INTERNAL_SERVER",
+			)
 		}
 
 		return
