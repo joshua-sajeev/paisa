@@ -22,7 +22,8 @@ type HandlerRegistry struct {
 // NewRouter creates and configures the application HTTP router.
 func NewRouter(h *HandlerRegistry, logger *slog.Logger) http.Handler {
 	r := chi.NewRouter()
-
+	// Create the login rate limiter once for the lifetime of the server.
+	loginLimiter := newLoginRateLimiter(1, 5)
 	// Global middleware.
 	r.Use(
 		middleware.RequestID,
@@ -39,7 +40,11 @@ func NewRouter(h *HandlerRegistry, logger *slog.Logger) http.Handler {
 
 	// Authentication routes.
 	r.Route("/auth", func(r chi.Router) {
-		registerAuthRoutes(r, h.AuthHandler)
+		r.With(
+			LoginRateLimitMiddleware(loginLimiter, logger),
+		).Post("/login", h.AuthHandler.Login)
+
+		r.Post("/logout", h.AuthHandler.Logout)
 	})
 
 	// Protected API routes.
