@@ -17,6 +17,7 @@ type Config struct {
 	Database          DatabaseConfig
 	AppLock           AppLockConfig
 	SessionTTLMinutes int
+	DemoMode          bool
 }
 
 // AppLockConfig holds application authentication configuration.
@@ -42,12 +43,16 @@ type DatabaseConfig struct {
 
 // Load reads configuration from environment variables.
 func Load() (*Config, error) {
+	demoMode, err := strconv.ParseBool(getEnv("DEMO_MODE", "false"))
+	if err != nil {
+		return nil, errors.New("DEMO_MODE must be true or false")
+	}
 	cfg := &Config{
 		Server: ServerConfig{
 			Host: getEnv("SERVER_HOST", "localhost"),
 			Port: getEnv("SERVER_PORT", "8080"),
 		},
-
+		DemoMode: demoMode,
 		Database: DatabaseConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
 			Port:     getEnv("DB_PORT", "5432"),

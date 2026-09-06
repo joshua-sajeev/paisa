@@ -23,6 +23,9 @@ func main() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 
+	if cfg.DemoMode {
+		log.Println("WARNING: application is running in DEMO MODE — authentication is disabled")
+	}
 	bootstrapCtx, bootstrapCancel := context.WithTimeout(
 		context.Background(),
 		30*time.Second,
@@ -39,6 +42,7 @@ func main() {
 		AccountHandler: container.AccountHandler,
 		AuthHandler:    container.AuthHandler,
 		SessionStore:   container.SessionStore,
+		DemoMode:       cfg.DemoMode,
 	}, container.Logger())
 	server := &http.Server{
 		Addr:         fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.Port),
