@@ -12,6 +12,7 @@ import (
 func TestNewTransaction(t *testing.T) {
 	fromAccountID := uuid.New()
 	toAccountID := uuid.New()
+	jarID := uuid.New()
 
 	occurredAt := time.Date(
 		2026,
@@ -31,8 +32,10 @@ func TestNewTransaction(t *testing.T) {
 		category        transaction.TransactionCategory
 		fromAccountID   uuid.UUID
 		toAccountID     uuid.UUID
+		jarID           uuid.UUID
 		amount          int64
 		occurredAt      time.Time
+		isMasterIncome  bool
 		wantName        string
 		wantErr         error
 	}{
@@ -63,6 +66,26 @@ func TestNewTransaction(t *testing.T) {
 			toAccountID:     toAccountID,
 			amount:          10000,
 			wantName:        "Savings Transfer",
+		},
+		{
+			name:            "valid master income",
+			inputName:       "Salary",
+			transactionType: transaction.TransactionTypeIncome,
+			category:        transaction.TransactionCategoryOther,
+			toAccountID:     toAccountID,
+			amount:          100000,
+			isMasterIncome:  true,
+			wantName:        "Salary",
+		},
+		{
+			name:            "valid transaction with jar",
+			inputName:       "Jar Allocation",
+			transactionType: transaction.TransactionTypeExpense,
+			category:        transaction.TransactionCategoryOther,
+			fromAccountID:   fromAccountID,
+			jarID:           jarID,
+			amount:          10000,
+			wantName:        "Jar Allocation",
 		},
 		{
 			name:            "trims whitespace",
@@ -181,10 +204,10 @@ func TestNewTransaction(t *testing.T) {
 				tt.category,
 				tt.fromAccountID,
 				tt.toAccountID,
-				uuid.Nil,
+				tt.jarID,
 				tt.amount,
 				tt.occurredAt,
-				false,
+				tt.isMasterIncome,
 			)
 
 			if !errors.Is(err, tt.wantErr) {
@@ -222,8 +245,40 @@ func TestNewTransaction(t *testing.T) {
 				)
 			}
 
+			if got.FromAccountID != tt.fromAccountID {
+				t.Errorf(
+					"FromAccountID = %v, want %v",
+					got.FromAccountID,
+					tt.fromAccountID,
+				)
+			}
+
+			if got.ToAccountID != tt.toAccountID {
+				t.Errorf(
+					"ToAccountID = %v, want %v",
+					got.ToAccountID,
+					tt.toAccountID,
+				)
+			}
+
+			if got.JarID != tt.jarID {
+				t.Errorf(
+					"JarID = %v, want %v",
+					got.JarID,
+					tt.jarID,
+				)
+			}
+
 			if got.Amount != tt.amount {
 				t.Errorf("Amount = %d, want %d", got.Amount, tt.amount)
+			}
+
+			if got.IsMasterIncome != tt.isMasterIncome {
+				t.Errorf(
+					"IsMasterIncome = %v, want %v",
+					got.IsMasterIncome,
+					tt.isMasterIncome,
+				)
 			}
 
 			if got.ID == uuid.Nil {

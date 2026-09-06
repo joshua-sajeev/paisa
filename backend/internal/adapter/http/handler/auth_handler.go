@@ -2,6 +2,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -10,20 +11,27 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/joshu-sajeev/paisa/internal/application"
+	"github.com/joshu-sajeev/paisa/internal/session"
 )
 
 const sessionCookieName = "session_id"
 
+// AuthService defines the authentication operations required by AuthHandler.
+type AuthService interface {
+	Login(context.Context, string) (*session.Session, error)
+	Logout(context.Context, string) error
+}
+
 // AuthHandler handles authentication-related HTTP endpoints.
 type AuthHandler struct {
-	authService *application.AuthService
+	authService AuthService
 	validate    *validator.Validate
 	logger      *slog.Logger
 }
 
 // NewAuthHandler creates a new instance of AuthHandler.
 func NewAuthHandler(
-	authService *application.AuthService,
+	authService AuthService,
 	logger *slog.Logger,
 ) *AuthHandler {
 	return &AuthHandler{
