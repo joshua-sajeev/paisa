@@ -13,22 +13,28 @@ import (
 	"github.com/joshu-sajeev/paisa/internal/application"
 	"github.com/joshu-sajeev/paisa/internal/config"
 	"github.com/joshu-sajeev/paisa/internal/ports"
+	"github.com/joshu-sajeev/paisa/internal/session"
 )
 
-// Container holds the application dependencies required by the HTTP layer.
 type Container struct {
 	// HTTP Handlers
 	AccountHandler *handler.AccountHandler
+	AuthHandler    *handler.AuthHandler
 
 	// Internal dependencies
 	logger *slog.Logger
 	db     *pgxpool.Pool
+	cfg    *config.Config
+
+	// Session
+	SessionStore session.SessionStore
 
 	// Repositories
 	accountRepository ports.AccountRepository
 
 	// Services
 	accountService *application.AccountService
+	authService    *application.AuthService
 }
 
 var _ handler.AccountService = (*application.AccountService)(nil)
@@ -36,12 +42,14 @@ var _ handler.AccountService = (*application.AccountService)(nil)
 // New creates and initializes the dependency container
 func New(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c := &Container{
+		cfg: cfg,
 		logger: slog.New(slog.NewTextHandler(
 			os.Stdout,
 			&slog.HandlerOptions{
 				Level: slog.LevelInfo,
 			},
 		)),
+		SessionStore: session.NewInMemoryStore(),
 	}
 
 	if err := c.initDatabase(ctx, cfg); err != nil {
@@ -87,12 +95,23 @@ func (c *Container) initServices() {
 		c.accountRepository,
 		c.logger,
 	)
+
+	c.authService = application.NewAuthService(
+		c.SessionStore,
+		c.cfg.AppLock.PINHash,
+		c.cfg.SessionTTLMinutes,
+	)
 }
 
 // initHandlers creates all handler instances with service dependencies.
 func (c *Container) initHandlers() {
 	c.AccountHandler = handler.NewAccountHandler(
 		c.accountService,
+		c.logger,
+	)
+
+	c.AuthHandler = handler.NewAuthHandler(
+		c.authService,
 		c.logger,
 	)
 }

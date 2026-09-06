@@ -3,27 +3,102 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"strconv"
 )
 
+const defaultSessionTTLMinutes = 10
+
+// Config holds all application configuration.
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
+	Server            ServerConfig
+	Database          DatabaseConfig
+	AppLock           AppLockConfig
+	SessionTTLMinutes int
 }
 
+// AppLockConfig holds application authentication configuration.
+type AppLockConfig struct {
+	PINHash string
+}
+
+// ServerConfig holds HTTP server configuration.
 type ServerConfig struct {
 	Host string
 	Port string
 }
 
+// DatabaseConfig holds database connection configuration.
 type DatabaseConfig struct {
 	Host     string
 	Port     string
 	User     string
 	Password string
-	DBName   string
+	Database string
 	SSLMode  string
+}
+
+// Load reads configuration from environment variables.
+func Load() (*Config, error) {
+	cfg := &Config{
+		Server: ServerConfig{
+			Host: getEnv("SERVER_HOST", "localhost"),
+			Port: getEnv("SERVER_PORT", "8080"),
+		},
+
+		Database: DatabaseConfig{
+			Host:     getEnv("DB_HOST", "localhost"),
+			Port:     getEnv("DB_PORT", "5432"),
+			User:     getEnv("DB_USER", "paisa"),
+			Password: os.Getenv("DB_PASSWORD"),
+			Database: getEnv("DB_NAME", "paisa"),
+			SSLMode:  getEnv("DB_SSLMODE", "disable"),
+		},
+
+		AppLock: AppLockConfig{
+			PINHash: os.Getenv("APP_PIN_HASH"),
+		},
+
+		SessionTTLMinutes: getEnvInt(
+			"SESSION_TTL_MINUTES",
+			defaultSessionTTLMinutes,
+		),
+	}
+
+	if cfg.Database.Password == "" {
+		return nil, errors.New("DB_PASSWORD environment variable is required")
+	}
+
+	if cfg.AppLock.PINHash == "" {
+		return nil, errors.New("APP_PIN_HASH environment variable is required")
+	}
+
+	return cfg, nil
+}
+
+// getEnv reads an environment variable with a default fallback.
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+
+	return defaultValue
+}
+
+func getEnvInt(key string, defaultValue int) int {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+
+	v, err := strconv.Atoi(value)
+	if err != nil || v <= 0 {
+		return defaultValue
+	}
+
+	return v
 }
 
 // ConnectionURL returns the PostgreSQL connection URL.
@@ -35,34 +110,7 @@ func (d *DatabaseConfig) ConnectionURL() string {
 		d.Password,
 		d.Host,
 		d.Port,
-		d.DBName,
+		d.Database,
 		d.SSLMode,
 	)
-}
-
-func Load() (*Config, error) {
-	cfg := &Config{
-		Server: ServerConfig{
-			Host: getEnv("SERVER_HOST", "localhost"),
-			Port: getEnv("SERVER_PORT", "8080"),
-		},
-		Database: DatabaseConfig{
-			Host:     getEnv("DB_HOST", "localhost"),
-			Port:     getEnv("DB_PORT", "5432"),
-			User:     getEnv("DB_USER", "paisa"),
-			Password: getEnv("DB_PASSWORD", ""),
-			DBName:   getEnv("DB_NAME", "paisa"),
-			SSLMode:  getEnv("DB_SSLMODE", "disable"),
-		},
-	}
-
-	return cfg, nil
-}
-
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-
-	return defaultValue
 }

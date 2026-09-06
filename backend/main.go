@@ -37,8 +37,9 @@ func main() {
 
 	r := router.NewRouter(&router.HandlerRegistry{
 		AccountHandler: container.AccountHandler,
+		AuthHandler:    container.AuthHandler,
+		SessionStore:   container.SessionStore,
 	}, container.Logger())
-
 	server := &http.Server{
 		Addr:         fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.Port),
 		Handler:      r,
