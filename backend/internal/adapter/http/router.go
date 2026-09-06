@@ -17,6 +17,7 @@ type HandlerRegistry struct {
 	AccountHandler *handler.AccountHandler
 	AuthHandler    *handler.AuthHandler
 	SessionStore   session.SessionStore
+	DemoMode       bool
 }
 
 // NewRouter creates and configures the application HTTP router.
@@ -49,10 +50,12 @@ func NewRouter(h *HandlerRegistry, logger *slog.Logger) http.Handler {
 
 	// Protected API routes.
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Use(AuthMiddleware(
-			h.SessionStore,
-			logger,
-		))
+		if !h.DemoMode {
+			r.Use(AuthMiddleware(
+				h.SessionStore,
+				logger,
+			))
+		}
 
 		registerAccountRoutes(r, h.AccountHandler)
 	})
