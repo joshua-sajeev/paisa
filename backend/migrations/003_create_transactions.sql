@@ -4,6 +4,7 @@ CREATE TABLE transactions (
     id UUID PRIMARY KEY,
     name TEXT NOT NULL,
     type TEXT NOT NULL,
+    category TEXT NOT NULL,
     from_account_id UUID,
     to_account_id UUID,
     jar_id UUID,
@@ -30,6 +31,13 @@ CREATE TABLE transactions (
 
     CONSTRAINT chk_transactions_type
         CHECK (type IN ('income', 'expense', 'transfer')),
+
+    CONSTRAINT chk_transactions_category
+        CHECK (category IN (
+            'food', 'transport', 'entertainment', 'groceries', 
+            'health', 'transfer', 'donation', 'investment', 
+            'housing', 'other'
+        )),
 
     CONSTRAINT chk_transactions_amount
         CHECK (amount > 0),
@@ -67,6 +75,7 @@ CREATE TABLE templates (
     id UUID PRIMARY KEY,
     name TEXT NOT NULL,
     type TEXT NOT NULL,
+    category TEXT NOT NULL,
     from_account_id UUID,
     to_account_id UUID,
     jar_id UUID,
@@ -92,6 +101,13 @@ CREATE TABLE templates (
 
     CONSTRAINT chk_templates_type
         CHECK (type IN ('income', 'expense', 'transfer')),
+
+    CONSTRAINT chk_templates_category
+        CHECK (category IN (
+            'food', 'transport', 'entertainment', 'groceries', 
+            'health', 'transfer', 'donation', 'investment', 
+            'housing', 'other'
+        )),
 
     CONSTRAINT chk_templates_amount
         CHECK (amount IS NULL OR amount > 0)
