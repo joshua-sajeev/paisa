@@ -30,9 +30,9 @@ func TestNewTransaction(t *testing.T) {
 		inputName       string
 		transactionType transaction.TransactionType
 		category        transaction.TransactionCategory
-		fromAccountID   uuid.UUID
-		toAccountID     uuid.UUID
-		jarID           uuid.UUID
+		fromAccountID   *uuid.UUID
+		toAccountID     *uuid.UUID
+		jarID           *uuid.UUID
 		amount          int64
 		occurredAt      time.Time
 		isMasterIncome  bool
@@ -44,7 +44,7 @@ func TestNewTransaction(t *testing.T) {
 			inputName:       "Salary",
 			transactionType: transaction.TransactionTypeIncome,
 			category:        transaction.TransactionCategoryOther,
-			toAccountID:     toAccountID,
+			toAccountID:     &toAccountID,
 			amount:          100000,
 			wantName:        "Salary",
 		},
@@ -53,7 +53,7 @@ func TestNewTransaction(t *testing.T) {
 			inputName:       "Rent",
 			transactionType: transaction.TransactionTypeExpense,
 			category:        transaction.TransactionCategoryHousing,
-			fromAccountID:   fromAccountID,
+			fromAccountID:   &fromAccountID,
 			amount:          25000,
 			wantName:        "Rent",
 		},
@@ -62,8 +62,8 @@ func TestNewTransaction(t *testing.T) {
 			inputName:       "Savings Transfer",
 			transactionType: transaction.TransactionTypeTransfer,
 			category:        transaction.TransactionCategoryTransfer,
-			fromAccountID:   fromAccountID,
-			toAccountID:     toAccountID,
+			fromAccountID:   &fromAccountID,
+			toAccountID:     &toAccountID,
 			amount:          10000,
 			wantName:        "Savings Transfer",
 		},
@@ -72,7 +72,7 @@ func TestNewTransaction(t *testing.T) {
 			inputName:       "Salary",
 			transactionType: transaction.TransactionTypeIncome,
 			category:        transaction.TransactionCategoryOther,
-			toAccountID:     toAccountID,
+			toAccountID:     &toAccountID,
 			amount:          100000,
 			isMasterIncome:  true,
 			wantName:        "Salary",
@@ -82,8 +82,8 @@ func TestNewTransaction(t *testing.T) {
 			inputName:       "Jar Allocation",
 			transactionType: transaction.TransactionTypeExpense,
 			category:        transaction.TransactionCategoryOther,
-			fromAccountID:   fromAccountID,
-			jarID:           jarID,
+			fromAccountID:   &fromAccountID,
+			jarID:           &jarID,
 			amount:          10000,
 			wantName:        "Jar Allocation",
 		},
@@ -92,7 +92,7 @@ func TestNewTransaction(t *testing.T) {
 			inputName:       "  Salary  ",
 			transactionType: transaction.TransactionTypeIncome,
 			category:        transaction.TransactionCategoryOther,
-			toAccountID:     toAccountID,
+			toAccountID:     &toAccountID,
 			amount:          100000,
 			wantName:        "Salary",
 		},
@@ -101,7 +101,7 @@ func TestNewTransaction(t *testing.T) {
 			inputName:       "",
 			transactionType: transaction.TransactionTypeIncome,
 			category:        transaction.TransactionCategoryOther,
-			toAccountID:     toAccountID,
+			toAccountID:     &toAccountID,
 			amount:          100000,
 			wantErr:         transaction.ErrInvalidName,
 		},
@@ -118,7 +118,7 @@ func TestNewTransaction(t *testing.T) {
 			inputName:       "Salary",
 			transactionType: transaction.TransactionTypeIncome,
 			category:        "invalid",
-			toAccountID:     toAccountID,
+			toAccountID:     &toAccountID,
 			amount:          100000,
 			wantErr:         transaction.ErrInvalidCategory,
 		},
@@ -127,7 +127,7 @@ func TestNewTransaction(t *testing.T) {
 			inputName:       "Salary",
 			transactionType: transaction.TransactionTypeIncome,
 			category:        transaction.TransactionCategoryOther,
-			toAccountID:     toAccountID,
+			toAccountID:     &toAccountID,
 			amount:          0,
 			wantErr:         transaction.ErrInvalidAmount,
 		},
@@ -136,7 +136,7 @@ func TestNewTransaction(t *testing.T) {
 			inputName:       "Salary",
 			transactionType: transaction.TransactionTypeIncome,
 			category:        transaction.TransactionCategoryOther,
-			toAccountID:     toAccountID,
+			toAccountID:     &toAccountID,
 			amount:          -1,
 			wantErr:         transaction.ErrInvalidAmount,
 		},
@@ -161,7 +161,7 @@ func TestNewTransaction(t *testing.T) {
 			inputName:       "Transfer",
 			transactionType: transaction.TransactionTypeTransfer,
 			category:        transaction.TransactionCategoryTransfer,
-			toAccountID:     toAccountID,
+			toAccountID:     &toAccountID,
 			amount:          10000,
 			wantErr:         transaction.ErrInvalidAccount,
 		},
@@ -170,7 +170,7 @@ func TestNewTransaction(t *testing.T) {
 			inputName:       "Transfer",
 			transactionType: transaction.TransactionTypeTransfer,
 			category:        transaction.TransactionCategoryTransfer,
-			fromAccountID:   fromAccountID,
+			fromAccountID:   &fromAccountID,
 			amount:          10000,
 			wantErr:         transaction.ErrInvalidAccount,
 		},
@@ -179,8 +179,8 @@ func TestNewTransaction(t *testing.T) {
 			inputName:       "Transfer",
 			transactionType: transaction.TransactionTypeTransfer,
 			category:        transaction.TransactionCategoryTransfer,
-			fromAccountID:   fromAccountID,
-			toAccountID:     fromAccountID,
+			fromAccountID:   &fromAccountID,
+			toAccountID:     &fromAccountID,
 			amount:          10000,
 			wantErr:         transaction.ErrInvalidTransfer,
 		},
@@ -189,7 +189,7 @@ func TestNewTransaction(t *testing.T) {
 			inputName:       "Salary",
 			transactionType: transaction.TransactionTypeIncome,
 			category:        transaction.TransactionCategoryOther,
-			toAccountID:     toAccountID,
+			toAccountID:     &toAccountID,
 			amount:          100000,
 			occurredAt:      occurredAt,
 			wantName:        "Salary",
@@ -230,11 +230,19 @@ func TestNewTransaction(t *testing.T) {
 			}
 
 			if got.Name != tt.wantName {
-				t.Errorf("Name = %q, want %q", got.Name, tt.wantName)
+				t.Errorf(
+					"Name = %q, want %q",
+					got.Name,
+					tt.wantName,
+				)
 			}
 
 			if got.Type != tt.transactionType {
-				t.Errorf("Type = %q, want %q", got.Type, tt.transactionType)
+				t.Errorf(
+					"Type = %q, want %q",
+					got.Type,
+					tt.transactionType,
+				)
 			}
 
 			if got.Category != tt.category {
@@ -245,7 +253,7 @@ func TestNewTransaction(t *testing.T) {
 				)
 			}
 
-			if got.FromAccountID != tt.fromAccountID {
+			if !uuidPtrEqual(got.FromAccountID, tt.fromAccountID) {
 				t.Errorf(
 					"FromAccountID = %v, want %v",
 					got.FromAccountID,
@@ -253,7 +261,7 @@ func TestNewTransaction(t *testing.T) {
 				)
 			}
 
-			if got.ToAccountID != tt.toAccountID {
+			if !uuidPtrEqual(got.ToAccountID, tt.toAccountID) {
 				t.Errorf(
 					"ToAccountID = %v, want %v",
 					got.ToAccountID,
@@ -261,7 +269,7 @@ func TestNewTransaction(t *testing.T) {
 				)
 			}
 
-			if got.JarID != tt.jarID {
+			if !uuidPtrEqual(got.JarID, tt.jarID) {
 				t.Errorf(
 					"JarID = %v, want %v",
 					got.JarID,
@@ -270,7 +278,11 @@ func TestNewTransaction(t *testing.T) {
 			}
 
 			if got.Amount != tt.amount {
-				t.Errorf("Amount = %d, want %d", got.Amount, tt.amount)
+				t.Errorf(
+					"Amount = %d, want %d",
+					got.Amount,
+					tt.amount,
+				)
 			}
 
 			if got.IsMasterIncome != tt.isMasterIncome {
@@ -298,7 +310,9 @@ func TestNewTransaction(t *testing.T) {
 					t.Error("OccurredAt should be set when input is zero")
 				}
 			} else {
-				wantOccurredAt := tt.occurredAt.UTC().Truncate(time.Microsecond)
+				wantOccurredAt := tt.occurredAt.
+					UTC().
+					Truncate(time.Microsecond)
 
 				if !got.OccurredAt.Equal(wantOccurredAt) {
 					t.Errorf(
@@ -310,4 +324,12 @@ func TestNewTransaction(t *testing.T) {
 			}
 		})
 	}
+}
+
+func uuidPtrEqual(a, b *uuid.UUID) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+
+	return *a == *b
 }

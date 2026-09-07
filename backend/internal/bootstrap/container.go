@@ -18,9 +18,10 @@ import (
 
 type Container struct {
 	// HTTP Handlers
-	AccountHandler *handler.AccountHandler
-	JarHandler     *handler.JarHandler
-	AuthHandler    *handler.AuthHandler
+	AccountHandler     *handler.AccountHandler
+	JarHandler         *handler.JarHandler
+	TransactionHandler *handler.TransactionHandler
+	AuthHandler        *handler.AuthHandler
 
 	// Internal dependencies
 	logger *slog.Logger
@@ -31,18 +32,23 @@ type Container struct {
 	SessionStore session.SessionStore
 
 	// Repositories
-	accountRepository ports.AccountRepository
-	jarRepository     ports.JarRepository
+	accountRepository     ports.AccountRepository
+	jarRepository         ports.JarRepository
+	transactionRepository ports.TransactionRepository
+	allocationRepository  ports.AllocationRepository
+	txManager             ports.TxManager
 
 	// Services
-	accountService *application.AccountService
-	jarService     *application.JarService
-	authService    *application.AuthService
+	accountService     *application.AccountService
+	jarService         *application.JarService
+	transactionService *application.TransactionService
+	authService        *application.AuthService
 }
 
 var (
-	_ handler.AccountService = (*application.AccountService)(nil)
-	_ handler.JarService     = (*application.JarService)(nil)
+	_ handler.AccountService     = (*application.AccountService)(nil)
+	_ handler.JarService         = (*application.JarService)(nil)
+	_ handler.TransactionService = (*application.TransactionService)(nil)
 )
 
 // New creates and initializes the dependency container
@@ -98,6 +104,11 @@ func (c *Container) initDatabase(
 func (c *Container) initRepositories() {
 	c.accountRepository = postgres.NewAccountRepository(c.db)
 	c.jarRepository = postgres.NewJarRepository(c.db)
+	c.transactionRepository = postgres.NewTransactionRepository(c.db)
+
+	c.allocationRepository = postgres.NewAllocationRepository(c.db)
+
+	c.txManager = postgres.NewTxManager(c.db)
 }
 
 // initServices creates all service instances with repository dependencies.
@@ -112,6 +123,14 @@ func (c *Container) initServices() {
 		c.logger,
 	)
 
+	c.transactionService = application.NewTransactionService(
+		c.transactionRepository,
+		c.allocationRepository,
+		c.jarRepository,
+		c.txManager,
+
+		c.logger,
+	)
 	c.authService = application.NewAuthService(
 		c.SessionStore,
 		c.cfg.AppLock.PINHash,
@@ -128,6 +147,11 @@ func (c *Container) initHandlers() {
 
 	c.JarHandler = handler.NewJarHandler(
 		c.jarService,
+		c.logger,
+	)
+
+	c.TransactionHandler = handler.NewTransactionHandler(
+		c.transactionService,
 		c.logger,
 	)
 

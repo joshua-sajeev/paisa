@@ -1,4 +1,4 @@
-// Package transaction contains the core domain model for an transaction
+// Package transaction contains the core domain model for a transaction.
 package transaction
 
 import (
@@ -32,9 +32,10 @@ type Transaction struct {
 	Name          string
 	Type          TransactionType
 	Category      TransactionCategory
-	FromAccountID uuid.UUID
-	ToAccountID   uuid.UUID
-	JarID         uuid.UUID
+	FromAccountID *uuid.UUID
+	ToAccountID   *uuid.UUID
+	JarID         *uuid.UUID
+
 	// Amount is stored in the smallest currency unit (paise for INR).
 	// Minimum value: 1 paisa (₹0.01).
 	Amount         int64
@@ -48,9 +49,9 @@ func NewTransaction(
 	name string,
 	transactionType TransactionType,
 	category TransactionCategory,
-	fromAccountID uuid.UUID,
-	toAccountID uuid.UUID,
-	jarID uuid.UUID,
+	fromAccountID *uuid.UUID,
+	toAccountID *uuid.UUID,
+	jarID *uuid.UUID,
 	amount int64,
 	occurredAt time.Time,
 	isMasterIncome bool,
@@ -67,25 +68,29 @@ func NewTransaction(
 	if !category.IsValid() {
 		return nil, ErrInvalidCategory
 	}
+
 	if amount <= 0 {
 		return nil, ErrInvalidAmount
 	}
 
-	// Type-specific validation rules
+	// Type-specific validation rules.
 	switch transactionType {
 	case TransactionTypeIncome:
-		if toAccountID == uuid.Nil {
+		if toAccountID == nil {
 			return nil, ErrTargetAccountRequired
 		}
+
 	case TransactionTypeExpense:
-		if fromAccountID == uuid.Nil {
+		if fromAccountID == nil {
 			return nil, ErrSourceAccountRequired
 		}
+
 	case TransactionTypeTransfer:
-		if fromAccountID == uuid.Nil || toAccountID == uuid.Nil {
+		if fromAccountID == nil || toAccountID == nil {
 			return nil, ErrInvalidAccount
 		}
-		if fromAccountID == toAccountID {
+
+		if *fromAccountID == *toAccountID {
 			return nil, ErrInvalidTransfer
 		}
 	}
@@ -112,4 +117,75 @@ func NewTransaction(
 		CreatedAt:      now,
 		UpdatedAt:      now,
 	}, nil
+}
+
+func (t *Transaction) Update(
+	name string,
+	category TransactionCategory,
+	fromAccountID *uuid.UUID,
+	toAccountID *uuid.UUID,
+	jarID *uuid.UUID,
+	amount int64,
+	occurredAt time.Time,
+	isMasterIncome bool,
+) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return ErrInvalidName
+	}
+
+	if !category.IsValid() {
+		return ErrInvalidCategory
+	}
+
+	if amount <= 0 {
+		return ErrInvalidAmount
+	}
+
+	switch t.Type {
+	case TransactionTypeIncome:
+		if toAccountID == nil {
+			return ErrTargetAccountRequired
+		}
+
+	case TransactionTypeExpense:
+		if fromAccountID == nil {
+			return ErrSourceAccountRequired
+		}
+
+	case TransactionTypeTransfer:
+		if fromAccountID == nil || toAccountID == nil {
+			return ErrInvalidAccount
+		}
+
+		if *fromAccountID == *toAccountID {
+			return ErrInvalidTransfer
+		}
+	}
+
+	t.Name = name
+	t.Category = category
+	t.FromAccountID = fromAccountID
+	t.ToAccountID = toAccountID
+	t.JarID = jarID
+	t.Amount = amount
+
+	if !occurredAt.IsZero() {
+		t.OccurredAt = occurredAt.UTC().Truncate(time.Microsecond)
+	}
+
+	t.IsMasterIncome = isMasterIncome
+	t.UpdatedAt = time.Now().UTC().Truncate(time.Microsecond)
+
+	return nil
+}
+
+// HasAllocationChanged reports whether amount or master income status changed,
+// indicating allocations need to be recalculated.
+func (t *Transaction) HasAllocationChanged(
+	newAmount int64,
+	newIsMasterIncome bool,
+) bool {
+	return t.Amount != newAmount ||
+		t.IsMasterIncome != newIsMasterIncome
 }

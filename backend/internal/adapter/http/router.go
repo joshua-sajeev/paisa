@@ -14,11 +14,12 @@ import (
 
 // HandlerRegistry holds all HTTP handlers and dependencies needed by the router.
 type HandlerRegistry struct {
-	AccountHandler *handler.AccountHandler
-	JarHandler     *handler.JarHandler
-	AuthHandler    *handler.AuthHandler
-	SessionStore   session.SessionStore
-	DemoMode       bool
+	AccountHandler     *handler.AccountHandler
+	JarHandler         *handler.JarHandler
+	TransactionHandler *handler.TransactionHandler
+	AuthHandler        *handler.AuthHandler
+	SessionStore       session.SessionStore
+	DemoMode           bool
 }
 
 // NewRouter creates and configures the application HTTP router.
@@ -39,7 +40,6 @@ func NewRouter(h *HandlerRegistry, logger *slog.Logger) http.Handler {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("OK"))
 	})
-
 	// Authentication routes.
 	r.Route("/auth", func(r chi.Router) {
 		registerAuthRoutes(r, h.AuthHandler, loginLimiter, logger)
@@ -56,6 +56,7 @@ func NewRouter(h *HandlerRegistry, logger *slog.Logger) http.Handler {
 
 		registerAccountRoutes(r, h.AccountHandler)
 		registerJarRoutes(r, h.JarHandler)
+		registerTransactionRoutes(r, h.TransactionHandler)
 	})
 
 	return r

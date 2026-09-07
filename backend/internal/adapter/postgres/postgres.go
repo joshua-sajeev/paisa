@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joshu-sajeev/paisa/internal/ports"
 )
 
 type txKey struct{}
@@ -45,7 +46,10 @@ func NewTxManager(pool *pgxpool.Pool) *TxManager {
 //
 // The transaction is committed when fn returns nil. If fn returns an
 // error, the transaction is rolled back and the original error is returned.
-func (m *TxManager) WithinTransaction(ctx context.Context, fn func(ctx context.Context) error) error {
+func (m *TxManager) WithinTransaction(
+	ctx context.Context,
+	fn func(ctx context.Context) error,
+) error {
 	tx, err := m.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
@@ -72,3 +76,5 @@ func (m *TxManager) WithinTransaction(ctx context.Context, fn func(ctx context.C
 
 	return nil
 }
+
+var _ ports.TxManager = (*TxManager)(nil)

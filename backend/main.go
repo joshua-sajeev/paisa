@@ -39,11 +39,12 @@ func main() {
 	defer container.Close()
 
 	r := router.NewRouter(&router.HandlerRegistry{
-		AccountHandler: container.AccountHandler,
-		JarHandler:     container.JarHandler,
-		AuthHandler:    container.AuthHandler,
-		SessionStore:   container.SessionStore,
-		DemoMode:       cfg.DemoMode,
+		AccountHandler:     container.AccountHandler,
+		JarHandler:         container.JarHandler,
+		AuthHandler:        container.AuthHandler,
+		TransactionHandler: container.TransactionHandler,
+		SessionStore:       container.SessionStore,
+		DemoMode:           cfg.DemoMode,
 	}, container.Logger())
 	server := &http.Server{
 		Addr:         fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.Port),
