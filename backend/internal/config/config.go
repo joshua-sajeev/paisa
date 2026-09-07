@@ -76,7 +76,7 @@ func Load() (*Config, error) {
 		return nil, errors.New("DB_PASSWORD environment variable is required")
 	}
 
-	if cfg.AppLock.PINHash == "" {
+	if !cfg.DemoMode && cfg.AppLock.PINHash == "" {
 		return nil, errors.New("APP_PIN_HASH environment variable is required")
 	}
 

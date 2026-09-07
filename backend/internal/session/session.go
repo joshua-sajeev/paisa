@@ -36,7 +36,7 @@ type InMemoryStore struct {
 	sessions map[string]*Session
 }
 
-// NewInMemoryStore creates an in-memory session store.
+// NewInMemoryStore creates a new in-memory session store.
 func NewInMemoryStore() *InMemoryStore {
 	return &InMemoryStore{
 		sessions: make(map[string]*Session),
@@ -52,11 +52,16 @@ func (s *InMemoryStore) Create(_ context.Context, sess *Session) error {
 }
 
 func (s *InMemoryStore) Get(_ context.Context, id string) (*Session, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	sess, ok := s.sessions[id]
-	if !ok || time.Now().After(sess.ExpiresAt) {
+	if !ok {
+		return nil, ErrNotFound
+	}
+
+	if time.Now().After(sess.ExpiresAt) {
+		delete(s.sessions, id)
 		return nil, ErrNotFound
 	}
 

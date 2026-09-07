@@ -3,6 +3,7 @@ package security
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -149,16 +150,7 @@ func VerifyPIN(pin, phc string) error {
 		uint32(len(expectedHash)),
 	)
 
-	if len(computed) != len(expectedHash) {
-		return errors.New("verification failed")
-	}
-
-	var diff byte
-	for i := range computed {
-		diff |= computed[i] ^ expectedHash[i]
-	}
-
-	if diff != 0 {
+	if subtle.ConstantTimeCompare(computed, expectedHash) != 1 {
 		return errors.New("verification failed")
 	}
 
