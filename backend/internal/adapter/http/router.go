@@ -25,7 +25,7 @@ type HandlerRegistry struct {
 func NewRouter(h *HandlerRegistry, logger *slog.Logger) http.Handler {
 	r := chi.NewRouter()
 	// Create the login rate limiter once for the lifetime of the server.
-	loginLimiter := newLoginRateLimiter(1, 5)
+	loginLimiter := newLoginRateLimiter(5, 1)
 	// Global middleware.
 	r.Use(
 		middleware.RequestID,
