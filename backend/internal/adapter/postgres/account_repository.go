@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -26,24 +25,6 @@ func NewAccountRepository(db *pgxpool.Pool) ports.AccountRepository {
 }
 
 var _ ports.AccountRepository = (*accountRepository)(nil)
-
-type txKey struct{}
-
-// dbExec interface matches methods shared by *pgxpool.Pool and pgx.Tx.
-type dbExec interface {
-	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
-	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
-	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
-}
-
-// dbExecutor returns either the active transaction from the context
-// or the connection pool.
-func dbExecutor(ctx context.Context, pool *pgxpool.Pool) dbExec {
-	if tx, ok := ctx.Value(txKey{}).(pgx.Tx); ok {
-		return tx
-	}
-	return pool
-}
 
 func accountValues(a *account.Account) []any {
 	return []any{
@@ -88,11 +69,22 @@ const (
 		ORDER BY created_at DESC, id DESC
 	`
 
-	updateAccountQuery = `
+	findAccountByIDQuery = `
+		SELECT
+			id,
+			name,
+			is_archived,
+			created_at,
+			updated_at
+		FROM accounts
+		WHERE id = $1
+	`
+
+	saveAccountQuery = `
 		UPDATE accounts
 		SET
-			name = COALESCE($2, name),
-			is_archived = COALESCE($3, is_archived),
+			name = $2,
+			is_archived = $3,
 			updated_at = $4
 		WHERE id = $1
 	`
@@ -150,40 +142,63 @@ func (r *accountRepository) List(ctx context.Context) ([]*account.Account, error
 	return accounts, nil
 }
 
-func (r *accountRepository) Update(
+func (r *accountRepository) FindByID(
 	ctx context.Context,
 	id uuid.UUID,
-	name *string,
-	isArchived *bool,
+) (*account.Account, error) {
+	exec := dbExecutor(ctx, r.db)
+
+	var a account.Account
+
+	err := exec.QueryRow(
+		ctx,
+		findAccountByIDQuery,
+		id,
+	).Scan(accountScanArgs(&a)...)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf(
+				"find account: %w",
+				account.ErrAccountNotFound,
+			)
+		}
+
+		return nil, fmt.Errorf("find account: %w", err)
+	}
+
+	return &a, nil
+}
+
+func (r *accountRepository) Save(
+	ctx context.Context,
+	a *account.Account,
 ) error {
 	exec := dbExecutor(ctx, r.db)
 
-	now := time.Now().UTC().Truncate(time.Microsecond)
-
 	tag, err := exec.Exec(
 		ctx,
-		updateAccountQuery,
-		id,
-		name,
-		isArchived,
-		now,
+		saveAccountQuery,
+		a.ID,
+		a.Name,
+		a.IsArchived,
+		a.UpdatedAt,
 	)
 	if err != nil {
 		var pgErr *pgconn.PgError
 
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return fmt.Errorf(
-				"update account: %w",
+				"save account: %w",
 				account.ErrAccountNameExists,
 			)
 		}
 
-		return fmt.Errorf("update account: %w", err)
+		return fmt.Errorf("save account: %w", err)
 	}
 
 	if tag.RowsAffected() == 0 {
 		return fmt.Errorf(
-			"update account: %w",
+			"save account: %w",
 			account.ErrAccountNotFound,
 		)
 	}

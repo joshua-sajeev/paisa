@@ -13,10 +13,12 @@ type AccountRepository interface {
 	// Create creates a new account.
 	Create(ctx context.Context, a *account.Account) error
 
-	// List gets all active accounts.
+	// List gets all accounts.
 	List(ctx context.Context) ([]*account.Account, error)
 
-	// Update updates the provided account fields.
-	// A nil field is left unchanged.
-	Update(ctx context.Context, id uuid.UUID, name *string, isArchived *bool) error
+	// FindByID gets an account by ID.
+	FindByID(ctx context.Context, id uuid.UUID) (*account.Account, error)
+
+	// Save persists the current state of an account.
+	Save(ctx context.Context, a *account.Account) error
 }

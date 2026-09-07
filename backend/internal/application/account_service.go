@@ -74,9 +74,9 @@ func (s *AccountService) Create(ctx context.Context, name string) (*account.Acco
 	return acc, nil
 }
 
-// List gets all active accounts.
+// List gets all accounts.
 func (s *AccountService) List(ctx context.Context) ([]*account.Account, error) {
-	s.logger.DebugContext(ctx, "listing all active accounts")
+	s.logger.DebugContext(ctx, "listing all accounts")
 
 	accounts, err := s.repo.List(ctx)
 	if err != nil {
@@ -90,7 +90,7 @@ func (s *AccountService) List(ctx context.Context) ([]*account.Account, error) {
 
 	s.logger.InfoContext(
 		ctx,
-		"active accounts listed",
+		"accounts listed",
 		slog.Int("count", len(accounts)),
 	)
 
@@ -110,14 +110,78 @@ func (s *AccountService) Update(
 		slog.String("id", id.String()),
 	)
 
-	if err := s.repo.Update(ctx, id, name, isArchived); err != nil {
+	acc, err := s.repo.FindByID(ctx, id)
+	if err != nil {
 		s.logger.ErrorContext(
 			ctx,
-			"repository account update failed",
+			"failed to find account",
 			slog.String("error", err.Error()),
 			slog.String("id", id.String()),
 		)
+		return err
+	}
 
+	changed := false
+
+	if name != nil {
+		if err := acc.Rename(*name); err != nil {
+			s.logger.WarnContext(
+				ctx,
+				"invalid account name",
+				slog.String("id", id.String()),
+				slog.String("error", err.Error()),
+			)
+			return err
+		}
+
+		changed = true
+	}
+
+	if isArchived != nil {
+		if *isArchived {
+			err := acc.Archive()
+			if err != nil {
+				if !errors.Is(err, account.ErrAccountAlreadyArchived) {
+					return err
+				}
+
+				s.logger.DebugContext(
+					ctx,
+					"account already archived",
+					slog.String("id", id.String()),
+				)
+			} else {
+				changed = true
+			}
+		} else {
+			err := acc.Unarchive()
+			if err != nil {
+				if !errors.Is(err, account.ErrAccountNotArchived) {
+					return err
+				}
+
+				s.logger.DebugContext(
+					ctx,
+					"account already active",
+					slog.String("id", id.String()),
+				)
+			} else {
+				changed = true
+			}
+		}
+	}
+
+	if !changed {
+		return nil
+	}
+
+	if err := s.repo.Save(ctx, acc); err != nil {
+		s.logger.ErrorContext(
+			ctx,
+			"failed to save account",
+			slog.String("error", err.Error()),
+			slog.String("id", id.String()),
+		)
 		return err
 	}
 

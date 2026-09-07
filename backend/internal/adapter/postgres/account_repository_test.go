@@ -261,76 +261,206 @@ func TestAccountList(t *testing.T) {
 	}
 }
 
-func TestAccountUpdate(t *testing.T) {
+func TestAccountFindByID(t *testing.T) {
+	t.Cleanup(func() {
+		truncateAccountsTable(t, ctx, db)
+	})
+
+	acc := newTestAccount("Savings")
+
+	if err := accountRepo.Create(ctx, acc); err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	got, err := accountRepo.FindByID(ctx, acc.ID)
+	if err != nil {
+		t.Fatalf("FindByID() error = %v", err)
+	}
+
+	assertAccount(t, got, acc)
+}
+
+func TestAccountFindByID_NotFound(t *testing.T) {
+	t.Cleanup(func() {
+		truncateAccountsTable(t, ctx, db)
+	})
+
+	_, err := accountRepo.FindByID(ctx, uuid.New())
+
+	if !errors.Is(err, account.ErrAccountNotFound) {
+		t.Errorf(
+			"FindByID() error = %v, want %v",
+			err,
+			account.ErrAccountNotFound,
+		)
+	}
+}
+
+func TestAccountSave(t *testing.T) {
 	t.Cleanup(func() {
 		truncateAccountsTable(t, ctx, db)
 	})
 
 	tests := []struct {
-		name           string
-		updateName     *string
-		updateArchived *bool
-		wantName       string
-		wantArchived   bool
+		name         string
+		setup        func(t *testing.T) *account.Account
+		update       func(*account.Account)
+		wantName     string
+		wantArchived bool
+		wantErr      error
 	}{
 		{
-			name:         "update name only",
-			updateName:   new("Updated Name"),
+			name: "update name",
+			setup: func(t *testing.T) *account.Account {
+				acc := newTestAccount("Original")
+
+				if err := accountRepo.Create(ctx, acc); err != nil {
+					t.Fatalf("Create() error = %v", err)
+				}
+
+				return acc
+			},
+			update: func(a *account.Account) {
+				a.Name = "Updated Name"
+				a.UpdatedAt = time.Now().UTC().Truncate(time.Microsecond)
+			},
 			wantName:     "Updated Name",
 			wantArchived: false,
 		},
 		{
-			name:           "archive only",
-			updateArchived: new(true),
-			wantArchived:   true,
+			name: "archive",
+			setup: func(t *testing.T) *account.Account {
+				acc := newTestAccount("Original")
+
+				if err := accountRepo.Create(ctx, acc); err != nil {
+					t.Fatalf("Create() error = %v", err)
+				}
+
+				return acc
+			},
+			update: func(a *account.Account) {
+				a.IsArchived = true
+				a.UpdatedAt = time.Now().UTC().Truncate(time.Microsecond)
+			},
+			wantName:     "", // Keep existing name.
+			wantArchived: true,
 		},
 		{
-			name:           "unarchive only",
-			updateArchived: new(false),
-			wantArchived:   false,
+			name: "unarchive",
+			setup: func(t *testing.T) *account.Account {
+				acc := newTestAccount("Original")
+				acc.IsArchived = true
+
+				if err := accountRepo.Create(ctx, acc); err != nil {
+					t.Fatalf("Create() error = %v", err)
+				}
+
+				return acc
+			},
+			update: func(a *account.Account) {
+				a.IsArchived = false
+				a.UpdatedAt = time.Now().UTC().Truncate(time.Microsecond)
+			},
+			wantName:     "",
+			wantArchived: false,
 		},
 		{
-			name:           "update name and archive",
-			updateName:     new("Archived Savings"),
-			updateArchived: new(true),
-			wantName:       "Archived Savings",
-			wantArchived:   true,
+			name: "update name and archive",
+			setup: func(t *testing.T) *account.Account {
+				acc := newTestAccount("Original")
+
+				if err := accountRepo.Create(ctx, acc); err != nil {
+					t.Fatalf("Create() error = %v", err)
+				}
+
+				return acc
+			},
+			update: func(a *account.Account) {
+				a.Name = "Archived Savings"
+				a.IsArchived = true
+				a.UpdatedAt = time.Now().UTC().Truncate(time.Microsecond)
+			},
+			wantName:     "Archived Savings",
+			wantArchived: true,
 		},
 		{
-			name:         "name with unicode",
-			updateName:   new("新しい名前"),
+			name: "unicode name",
+			setup: func(t *testing.T) *account.Account {
+				acc := newTestAccount("Original")
+
+				if err := accountRepo.Create(ctx, acc); err != nil {
+					t.Fatalf("Create() error = %v", err)
+				}
+
+				return acc
+			},
+			update: func(a *account.Account) {
+				a.Name = "新しい名前"
+				a.UpdatedAt = time.Now().UTC().Truncate(time.Microsecond)
+			},
 			wantName:     "新しい名前",
 			wantArchived: false,
+		},
+		{
+			name: "duplicate name",
+			setup: func(t *testing.T) *account.Account {
+				first := newTestAccount("First")
+				second := newTestAccount("Second")
+
+				if err := accountRepo.Create(ctx, first); err != nil {
+					t.Fatalf("first Create() error = %v", err)
+				}
+
+				if err := accountRepo.Create(ctx, second); err != nil {
+					t.Fatalf("second Create() error = %v", err)
+				}
+
+				second.Name = first.Name
+				second.UpdatedAt = time.Now().UTC().Truncate(time.Microsecond)
+
+				return second
+			},
+			wantErr: account.ErrAccountNameExists,
+		},
+		{
+			name: "not found",
+			setup: func(t *testing.T) *account.Account {
+				return newTestAccount("Missing")
+			},
+			wantErr: account.ErrAccountNotFound,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a := newTestAccount("Original")
+			acc := tt.setup(t)
 
-			if err := accountRepo.Create(ctx, a); err != nil {
-				t.Fatalf("Create() error = %v", err)
+			originalName := acc.Name
+			originalCreatedAt := acc.CreatedAt
+
+			if tt.update != nil {
+				tt.update(acc)
 			}
 
-			originalCreatedAt := a.CreatedAt
-			originalUpdatedAt := a.UpdatedAt
+			err := accountRepo.Save(ctx, acc)
 
-			time.Sleep(10 * time.Millisecond)
-
-			if err := accountRepo.Update(
-				ctx,
-				a.ID,
-				tt.updateName,
-				tt.updateArchived,
-			); err != nil {
-				t.Fatalf("Update() error = %v", err)
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf(
+					"Save() error = %v, want %v",
+					err,
+					tt.wantErr,
+				)
 			}
 
-			got := queryAccount(t, a.ID)
+			if tt.wantErr != nil {
+				return
+			}
 
-			wantName := a.Name
-			if tt.updateName != nil {
-				wantName = *tt.updateName
+			got := queryAccount(t, acc.ID)
+
+			wantName := tt.wantName
+			if wantName == "" {
+				wantName = originalName
 			}
 
 			if got.Name != wantName {
@@ -357,125 +487,64 @@ func TestAccountUpdate(t *testing.T) {
 				)
 			}
 
-			if !got.UpdatedAt.After(originalUpdatedAt) {
+			if !got.UpdatedAt.Equal(acc.UpdatedAt) {
 				t.Errorf(
-					"UpdatedAt not updated: orig=%v, got=%v",
-					originalUpdatedAt,
+					"UpdatedAt = %v, want %v",
 					got.UpdatedAt,
+					acc.UpdatedAt,
 				)
 			}
 		})
 	}
 }
 
-func TestAccountUpdate_DuplicateName(t *testing.T) {
-	t.Cleanup(func() {
-		truncateAccountsTable(t, ctx, db)
-	})
-
-	first := newTestAccount("First")
-	second := newTestAccount("Second")
-
-	if err := accountRepo.Create(ctx, first); err != nil {
-		t.Fatalf("first Create() error = %v", err)
-	}
-
-	if err := accountRepo.Create(ctx, second); err != nil {
-		t.Fatalf("second Create() error = %v", err)
-	}
-
-	err := accountRepo.Update(ctx, second.ID, &first.Name, nil)
-
-	if !errors.Is(err, account.ErrAccountNameExists) {
-		t.Errorf(
-			"Update() error = %v, want account.ErrAccountNameExists",
-			err,
-		)
-	}
-
-	got := queryAccount(t, second.ID)
-
-	if got.Name != second.Name {
-		t.Errorf(
-			"Name = %q after failed update, want %q",
-			got.Name,
-			second.Name,
-		)
-	}
-}
-
-func TestAccountUpdate_NotFound(t *testing.T) {
-	t.Cleanup(func() {
-		truncateAccountsTable(t, ctx, db)
-	})
-
-	name := "Name"
-	archived := true
-
-	err := accountRepo.Update(
-		ctx,
-		uuid.New(),
-		&name,
-		&archived,
-	)
-
-	if !errors.Is(err, account.ErrAccountNotFound) {
-		t.Errorf(
-			"Update() error = %v, want account.ErrAccountNotFound",
-			err,
-		)
-	}
-}
-
-func TestAccountUpdate_Concurrent(t *testing.T) {
+func TestAccountSave_Concurrent(t *testing.T) {
 	t.Cleanup(func() {
 		truncateAccountsTable(t, ctx, db)
 	})
 
 	const numOps = 10
 
-	ids := make([]uuid.UUID, numOps)
+	accounts := make([]*account.Account, numOps)
 
 	for i := range numOps {
-		a := newTestAccount(
+		acc := newTestAccount(
 			fmt.Sprintf("Concurrent Account %d", i),
 		)
 
-		ids[i] = a.ID
-
-		if err := accountRepo.Create(ctx, a); err != nil {
+		if err := accountRepo.Create(ctx, acc); err != nil {
 			t.Fatalf("setup Create() error: %v", err)
 		}
+
+		accounts[i] = acc
 	}
 
 	errChan := make(chan error, numOps)
 
 	for i := range numOps {
 		go func(idx int) {
-			archived := true
+			acc := accounts[idx]
 
-			errChan <- accountRepo.Update(
-				ctx,
-				ids[idx],
-				nil,
-				&archived,
-			)
+			acc.IsArchived = true
+			acc.UpdatedAt = time.Now().UTC().Truncate(time.Microsecond)
+
+			errChan <- accountRepo.Save(ctx, acc)
 		}(i)
 	}
 
 	for range numOps {
 		if err := <-errChan; err != nil {
-			t.Errorf("Update() error: %v", err)
+			t.Errorf("Save() error: %v", err)
 		}
 	}
 
-	for _, id := range ids {
-		got := queryAccount(t, id)
+	for _, acc := range accounts {
+		got := queryAccount(t, acc.ID)
 
 		if !got.IsArchived {
 			t.Errorf(
 				"account %v IsArchived = false, want true",
-				id,
+				acc.ID,
 			)
 		}
 	}

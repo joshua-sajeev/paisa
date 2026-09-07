@@ -12,14 +12,10 @@ import (
 )
 
 type mockAccountRepository struct {
-	createFn func(context.Context, *account.Account) error
-	listFn   func(context.Context) ([]*account.Account, error)
-	updateFn func(
-		context.Context,
-		uuid.UUID,
-		*string,
-		*bool,
-	) error
+	createFn   func(context.Context, *account.Account) error
+	listFn     func(context.Context) ([]*account.Account, error)
+	findByIDFn func(context.Context, uuid.UUID) (*account.Account, error)
+	saveFn     func(context.Context, *account.Account) error
 }
 
 func (m *mockAccountRepository) Create(
@@ -35,13 +31,18 @@ func (m *mockAccountRepository) List(
 	return m.listFn(ctx)
 }
 
-func (m *mockAccountRepository) Update(
+func (m *mockAccountRepository) FindByID(
 	ctx context.Context,
 	id uuid.UUID,
-	name *string,
-	isArchived *bool,
+) (*account.Account, error) {
+	return m.findByIDFn(ctx, id)
+}
+
+func (m *mockAccountRepository) Save(
+	ctx context.Context,
+	a *account.Account,
 ) error {
-	return m.updateFn(ctx, id, name, isArchived)
+	return m.saveFn(ctx, a)
 }
 
 func newTestAccountService(
@@ -229,34 +230,68 @@ func TestAccountService_Update(t *testing.T) {
 
 	tests := []struct {
 		name           string
+		initial        *account.Account
 		updateName     *string
 		updateArchived *bool
-		repoErr        error
+		findErr        error
+		saveErr        error
 		wantErr        error
+		wantName       string
+		wantArchived   bool
+		wantSave       bool
 	}{
 		{
-			name: "update name only",
+			name: "update name",
+			initial: &account.Account{
+				ID:         uuid.New(),
+				Name:       "Checking",
+				IsArchived: false,
+			},
 			updateName: func() *string {
 				name := "Savings"
 				return &name
 			}(),
+			wantName:     "Savings",
+			wantArchived: false,
+			wantSave:     true,
 		},
 		{
-			name: "archive only",
+			name: "archive",
+			initial: &account.Account{
+				ID:         uuid.New(),
+				Name:       "Savings",
+				IsArchived: false,
+			},
 			updateArchived: func() *bool {
 				archived := true
 				return &archived
 			}(),
+			wantName:     "Savings",
+			wantArchived: true,
+			wantSave:     true,
 		},
 		{
-			name: "unarchive only",
+			name: "unarchive",
+			initial: &account.Account{
+				ID:         uuid.New(),
+				Name:       "Savings",
+				IsArchived: true,
+			},
 			updateArchived: func() *bool {
 				archived := false
 				return &archived
 			}(),
+			wantName:     "Savings",
+			wantArchived: false,
+			wantSave:     true,
 		},
 		{
 			name: "update name and archive",
+			initial: &account.Account{
+				ID:         uuid.New(),
+				Name:       "Savings",
+				IsArchived: false,
+			},
 			updateName: func() *string {
 				name := "Archived Savings"
 				return &name
@@ -265,11 +300,86 @@ func TestAccountService_Update(t *testing.T) {
 				archived := true
 				return &archived
 			}(),
+			wantName:     "Archived Savings",
+			wantArchived: true,
+			wantSave:     true,
 		},
 		{
-			name:    "repository error",
-			repoErr: repoErr,
-			wantErr: repoErr,
+			name: "already archived",
+			initial: &account.Account{
+				ID:         uuid.New(),
+				Name:       "Savings",
+				IsArchived: true,
+			},
+			updateArchived: func() *bool {
+				archived := true
+				return &archived
+			}(),
+			wantName:     "Savings",
+			wantArchived: true,
+			wantSave:     false,
+		},
+		{
+			name: "already active",
+			initial: &account.Account{
+				ID:         uuid.New(),
+				Name:       "Savings",
+				IsArchived: false,
+			},
+			updateArchived: func() *bool {
+				archived := false
+				return &archived
+			}(),
+			wantName:     "Savings",
+			wantArchived: false,
+			wantSave:     false,
+		},
+		{
+			name:     "account not found",
+			initial:  nil,
+			findErr:  account.ErrAccountNotFound,
+			wantErr:  account.ErrAccountNotFound,
+			wantSave: false,
+		},
+		{
+			name:     "find repository error",
+			initial:  nil,
+			findErr:  repoErr,
+			wantErr:  repoErr,
+			wantSave: false,
+		},
+		{
+			name: "save repository error",
+			initial: &account.Account{
+				ID:         uuid.New(),
+				Name:       "Checking",
+				IsArchived: false,
+			},
+			updateName: func() *string {
+				name := "Savings"
+				return &name
+			}(),
+			saveErr:      repoErr,
+			wantErr:      repoErr,
+			wantName:     "Savings",
+			wantArchived: false,
+			wantSave:     true,
+		},
+		{
+			name: "invalid name",
+			initial: &account.Account{
+				ID:         uuid.New(),
+				Name:       "Checking",
+				IsArchived: false,
+			},
+			updateName: func() *string {
+				name := ""
+				return &name
+			}(),
+			wantErr:      account.ErrInvalidName,
+			wantName:     "Checking",
+			wantArchived: false,
+			wantSave:     false,
 		},
 	}
 
@@ -277,22 +387,35 @@ func TestAccountService_Update(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			id := uuid.New()
 
-			var gotID uuid.UUID
-			var gotName *string
-			var gotArchived *bool
+			if tt.initial != nil {
+				tt.initial.ID = id
+			}
+
+			var findID uuid.UUID
+			var saved *account.Account
+			saveCalled := false
 
 			repo := &mockAccountRepository{
-				updateFn: func(
+				findByIDFn: func(
 					_ context.Context,
-					id uuid.UUID,
-					name *string,
-					isArchived *bool,
-				) error {
-					gotID = id
-					gotName = name
-					gotArchived = isArchived
+					gotID uuid.UUID,
+				) (*account.Account, error) {
+					findID = gotID
 
-					return tt.repoErr
+					if tt.findErr != nil {
+						return nil, tt.findErr
+					}
+
+					return tt.initial, nil
+				},
+				saveFn: func(
+					_ context.Context,
+					a *account.Account,
+				) error {
+					saveCalled = true
+					saved = a
+
+					return tt.saveErr
 				},
 			}
 
@@ -313,27 +436,43 @@ func TestAccountService_Update(t *testing.T) {
 				)
 			}
 
-			if gotID != id {
+			if findID != id {
 				t.Errorf(
-					"repository received id = %v, want %v",
-					gotID,
+					"FindByID() id = %v, want %v",
+					findID,
 					id,
 				)
 			}
 
-			if !equalStringPtr(gotName, tt.updateName) {
+			if saveCalled != tt.wantSave {
 				t.Errorf(
-					"repository received name = %v, want %v",
-					stringPtrValue(gotName),
-					stringPtrValue(tt.updateName),
+					"Save() called = %v, want %v",
+					saveCalled,
+					tt.wantSave,
 				)
 			}
 
-			if !equalBoolPtr(gotArchived, tt.updateArchived) {
+			if !tt.wantSave {
+				return
+			}
+
+			if saved == nil {
+				t.Fatal("Save() received nil account")
+			}
+
+			if saved.Name != tt.wantName {
 				t.Errorf(
-					"repository received archived = %v, want %v",
-					boolPtrValue(gotArchived),
-					boolPtrValue(tt.updateArchived),
+					"saved Name = %q, want %q",
+					saved.Name,
+					tt.wantName,
+				)
+			}
+
+			if saved.IsArchived != tt.wantArchived {
+				t.Errorf(
+					"saved IsArchived = %v, want %v",
+					saved.IsArchived,
+					tt.wantArchived,
 				)
 			}
 		})
