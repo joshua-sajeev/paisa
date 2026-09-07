@@ -1,11 +1,14 @@
 package postgres_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/joshu-sajeev/paisa/internal/adapter/postgres"
+	"github.com/joshu-sajeev/paisa/internal/domain/account"
 	"github.com/joshu-sajeev/paisa/internal/domain/jar"
 )
 
@@ -714,6 +717,133 @@ func TestJarUpdateAllocations_Empty(t *testing.T) {
 		t.Fatalf(
 			"UpdateAllocations() error = %v, want nil",
 			err,
+		)
+	}
+}
+
+func TestTxManager_WithinTransaction_Commits(t *testing.T) {
+	t.Cleanup(func() {
+		truncateTables(t, ctx, db)
+	})
+
+	repo := postgres.NewJarRepository(db)
+	txManager := postgres.NewTxManager(db)
+
+	j := newTestJar(
+		"Transaction Commit Test",
+		jar.AllocationTypePercentage,
+		100,
+	)
+
+	err := txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
+		return repo.Create(txCtx, j)
+	})
+	if err != nil {
+		t.Fatalf("WithinTransaction() error = %v", err)
+	}
+
+	got := queryJar(t, j.ID)
+
+	assertJar(t, got, j)
+}
+
+func TestTxManager_WithinTransaction_RollsBack(t *testing.T) {
+	t.Cleanup(func() {
+		truncateTables(t, ctx, db)
+	})
+
+	repo := postgres.NewJarRepository(db)
+	txManager := postgres.NewTxManager(db)
+
+	j := newTestJar(
+		"Transaction Rollback Test",
+		jar.AllocationTypePercentage,
+		100,
+	)
+
+	expectedErr := errors.New("intentional failure")
+
+	err := txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
+		if err := repo.Create(txCtx, j); err != nil {
+			return err
+		}
+
+		return expectedErr
+	})
+
+	if !errors.Is(err, expectedErr) {
+		t.Fatalf(
+			"WithinTransaction() error = %v, want %v",
+			err,
+			expectedErr,
+		)
+	}
+
+	_, err = jarRepo.FindByID(ctx, j.ID)
+	if !errors.Is(err, jar.ErrJarNotFound) {
+		t.Fatalf(
+			"FindByID() error = %v, want %v",
+			err,
+			jar.ErrJarNotFound,
+		)
+	}
+}
+
+func TestTxManager_WithinTransaction_RollsBackMultipleRepositories(
+	t *testing.T,
+) {
+	t.Cleanup(func() {
+		truncateTables(t, ctx, db)
+	})
+
+	accountRepo := postgres.NewAccountRepository(db)
+	jarRepo := postgres.NewJarRepository(db)
+	txManager := postgres.NewTxManager(db)
+
+	acc := newTestAccount("Transaction Test Account")
+	j := newTestJar(
+		"Transaction Test Jar",
+		jar.AllocationTypePercentage,
+		100,
+	)
+
+	expectedErr := errors.New("intentional failure")
+
+	err := txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
+		if err := accountRepo.Create(txCtx, acc); err != nil {
+			return err
+		}
+
+		if err := jarRepo.Create(txCtx, j); err != nil {
+			return err
+		}
+
+		return expectedErr
+	})
+
+	if !errors.Is(err, expectedErr) {
+		t.Fatalf(
+			"WithinTransaction() error = %v, want %v",
+			err,
+			expectedErr,
+		)
+	}
+
+	_, err = accountRepo.FindByID(ctx, acc.ID)
+	if !errors.Is(err, account.ErrAccountNotFound) {
+		t.Fatalf(
+			"FindByID() account error = %v, want %v",
+			err,
+			account.ErrAccountNotFound,
+		)
+	}
+
+	_, err = jarRepo.FindByID(ctx, j.ID)
+	if !errors.Is(err, jar.ErrJarNotFound) {
+		t.Fatalf(
+			"FindByID() jar error = %v, want %v",
+			err,
+			jar.ErrJarNotFound,
 		)
 	}
 }
