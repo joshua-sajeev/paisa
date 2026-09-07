@@ -34,6 +34,10 @@ func NewAuthService(
 
 // Login verifies the PIN and creates a new authenticated session.
 func (s *AuthService) Login(ctx context.Context, pin string) (*session.Session, error) {
+	if err := security.ValidatePIN(pin); err != nil {
+		return nil, ErrInvalidCredentials
+	}
+
 	if err := security.VerifyPIN(pin, s.pinHash); err != nil {
 		return nil, ErrInvalidCredentials
 	}

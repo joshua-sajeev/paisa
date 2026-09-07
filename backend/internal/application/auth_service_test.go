@@ -88,7 +88,6 @@ func TestAuthService_Login(t *testing.T) {
 		wantErr     error
 		wantSession bool
 		wantCreate  bool
-		sessionTTL  time.Duration
 	}{
 		{
 			name: "success",
@@ -101,7 +100,6 @@ func TestAuthService_Login(t *testing.T) {
 			},
 			wantSession: true,
 			wantCreate:  true,
-			sessionTTL:  30 * time.Minute,
 		},
 		{
 			name: "invalid PIN",
@@ -116,6 +114,45 @@ func TestAuthService_Login(t *testing.T) {
 			wantErr:     application.ErrInvalidCredentials,
 			wantSession: false,
 			wantCreate:  false,
+		},
+		{
+			name: "PIN too short",
+			pin:  "12345",
+			createFn: func(
+				ctx context.Context,
+				sess *session.Session,
+			) error {
+				t.Fatal("Create should not be called")
+				return nil
+			},
+			wantErr:    application.ErrInvalidCredentials,
+			wantCreate: false,
+		},
+		{
+			name: "PIN too long",
+			pin:  "1234567",
+			createFn: func(
+				ctx context.Context,
+				sess *session.Session,
+			) error {
+				t.Fatal("Create should not be called")
+				return nil
+			},
+			wantErr:    application.ErrInvalidCredentials,
+			wantCreate: false,
+		},
+		{
+			name: "PIN contains non-digit characters",
+			pin:  "12a456",
+			createFn: func(
+				ctx context.Context,
+				sess *session.Session,
+			) error {
+				t.Fatal("Create should not be called")
+				return nil
+			},
+			wantErr:    application.ErrInvalidCredentials,
+			wantCreate: false,
 		},
 		{
 			name: "session store error",
@@ -181,11 +218,6 @@ func TestAuthService_Login(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-
-			if !tt.wantSession {
-				assert.Nil(t, sess)
-				return
-			}
 
 			require.NotNil(t, sess)
 
