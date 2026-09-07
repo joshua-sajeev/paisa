@@ -11,13 +11,24 @@ CREATE TABLE jars (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     CONSTRAINT chk_jars_allocation_type
-        CHECK (allocation_type IN ('percentage', 'remainder')),
+        CHECK (
+            allocation_type IN (
+                'percentage',
+                'fixed',
+                'remainder'
+            )
+        ),
 
     CONSTRAINT chk_jars_allocation
         CHECK (
             (
                 allocation_type = 'percentage'
                 AND allocation_value BETWEEN 1 AND 100
+            )
+            OR
+            (
+                allocation_type = 'fixed'
+                AND allocation_value > 0
             )
             OR
             (
