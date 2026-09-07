@@ -15,6 +15,7 @@ import (
 // HandlerRegistry holds all HTTP handlers and dependencies needed by the router.
 type HandlerRegistry struct {
 	AccountHandler *handler.AccountHandler
+	JarHandler     *handler.JarHandler
 	AuthHandler    *handler.AuthHandler
 	SessionStore   session.SessionStore
 	DemoMode       bool
@@ -54,6 +55,7 @@ func NewRouter(h *HandlerRegistry, logger *slog.Logger) http.Handler {
 		}
 
 		registerAccountRoutes(r, h.AccountHandler)
+		registerJarRoutes(r, h.JarHandler)
 	})
 
 	return r

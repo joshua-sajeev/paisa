@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/joshu-sajeev/paisa/internal/domain/jar"
 )
 
 // ErrorResponse represents an HTTP error response.
@@ -21,6 +22,17 @@ type AccountResponse struct {
 	Name       string    `json:"name"`
 	IsArchived bool      `json:"is_archived"`
 	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+// JarResponse represents a jar in an HTTP response.
+type JarResponse struct {
+	ID              uuid.UUID          `json:"id"`
+	Name            string             `json:"name"`
+	AllocationType  jar.AllocationType `json:"allocation_type"`
+	AllocationValue int64              `json:"allocation_value"`
+	IsArchived      bool               `json:"is_archived"`
+	CreatedAt       time.Time          `json:"created_at"`
+	UpdatedAt       time.Time          `json:"updated_at"`
 }
 
 // SuccessResponse represents a successful HTTP response.

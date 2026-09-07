@@ -20,16 +20,20 @@ import (
 var (
 	db          *pgxpool.Pool
 	accountRepo ports.AccountRepository
+	jarRepo     ports.JarRepository
 	ctx         = context.Background()
 )
 
-// truncateAccountsTable clears all data from accounts table and related tables
-func truncateAccountsTable(t testing.TB, ctx context.Context, db *pgxpool.Pool) {
+// truncateTables clears all data from all tables
+func truncateTables(t testing.TB, ctx context.Context, db *pgxpool.Pool) {
 	t.Helper()
 
-	_, err := db.Exec(ctx, "TRUNCATE TABLE accounts CASCADE")
+	_, err := db.Exec(
+		ctx,
+		"TRUNCATE TABLE accounts, jars CASCADE",
+	)
 	if err != nil {
-		t.Fatalf("truncate accounts table: %v", err)
+		t.Fatalf("truncate tables: %v", err)
 	}
 }
 
@@ -78,5 +82,6 @@ func TestMain(m *testing.M) {
 	defer db.Close()
 
 	accountRepo = postgres.NewAccountRepository(db)
+	jarRepo = postgres.NewJarRepository(db)
 	os.Exit(m.Run())
 }

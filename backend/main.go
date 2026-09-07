@@ -40,6 +40,7 @@ func main() {
 
 	r := router.NewRouter(&router.HandlerRegistry{
 		AccountHandler: container.AccountHandler,
+		JarHandler:     container.JarHandler,
 		AuthHandler:    container.AuthHandler,
 		SessionStore:   container.SessionStore,
 		DemoMode:       cfg.DemoMode,

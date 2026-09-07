@@ -19,6 +19,7 @@ import (
 type Container struct {
 	// HTTP Handlers
 	AccountHandler *handler.AccountHandler
+	JarHandler     *handler.JarHandler
 	AuthHandler    *handler.AuthHandler
 
 	// Internal dependencies
@@ -31,13 +32,18 @@ type Container struct {
 
 	// Repositories
 	accountRepository ports.AccountRepository
+	jarRepository     ports.JarRepository
 
 	// Services
 	accountService *application.AccountService
+	jarService     *application.JarService
 	authService    *application.AuthService
 }
 
-var _ handler.AccountService = (*application.AccountService)(nil)
+var (
+	_ handler.AccountService = (*application.AccountService)(nil)
+	_ handler.JarService     = (*application.JarService)(nil)
+)
 
 // New creates and initializes the dependency container
 func New(ctx context.Context, cfg *config.Config) (*Container, error) {
@@ -91,12 +97,18 @@ func (c *Container) initDatabase(
 // initRepositories creates all repository instances.
 func (c *Container) initRepositories() {
 	c.accountRepository = postgres.NewAccountRepository(c.db)
+	c.jarRepository = postgres.NewJarRepository(c.db)
 }
 
 // initServices creates all service instances with repository dependencies.
 func (c *Container) initServices() {
 	c.accountService = application.NewAccountService(
 		c.accountRepository,
+		c.logger,
+	)
+
+	c.jarService = application.NewJarService(
+		c.jarRepository,
 		c.logger,
 	)
 
@@ -114,12 +126,18 @@ func (c *Container) initHandlers() {
 		c.logger,
 	)
 
+	c.JarHandler = handler.NewJarHandler(
+		c.jarService,
+		c.logger,
+	)
+
 	c.AuthHandler = handler.NewAuthHandler(
 		c.authService,
 		c.logger,
 	)
 }
 
+// Logger returns the application logger.
 func (c *Container) Logger() *slog.Logger {
 	return c.logger
 }

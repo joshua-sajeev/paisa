@@ -87,7 +87,7 @@ func queryAccount(t *testing.T, id uuid.UUID) *account.Account {
 
 func TestAccountCreate(t *testing.T) {
 	t.Cleanup(func() {
-		truncateAccountsTable(t, ctx, db)
+		truncateTables(t, ctx, db)
 	})
 
 	tests := []struct {
@@ -117,7 +117,7 @@ func TestAccountCreate(t *testing.T) {
 
 func TestAccountCreate_DuplicateName(t *testing.T) {
 	t.Cleanup(func() {
-		truncateAccountsTable(t, ctx, db)
+		truncateTables(t, ctx, db)
 	})
 
 	first := newTestAccount("Savings")
@@ -141,7 +141,7 @@ func TestAccountCreate_DuplicateName(t *testing.T) {
 
 func TestAccountCreate_ConcurrentDuplicateName(t *testing.T) {
 	t.Cleanup(func() {
-		truncateAccountsTable(t, ctx, db)
+		truncateTables(t, ctx, db)
 	})
 
 	const numOps = 10
@@ -191,7 +191,7 @@ func TestAccountCreate_ConcurrentDuplicateName(t *testing.T) {
 
 func TestAccountList(t *testing.T) {
 	t.Cleanup(func() {
-		truncateAccountsTable(t, ctx, db)
+		truncateTables(t, ctx, db)
 	})
 
 	account1 := newTestAccount("Checking")
@@ -263,7 +263,7 @@ func TestAccountList(t *testing.T) {
 
 func TestAccountFindByID(t *testing.T) {
 	t.Cleanup(func() {
-		truncateAccountsTable(t, ctx, db)
+		truncateTables(t, ctx, db)
 	})
 
 	acc := newTestAccount("Savings")
@@ -282,7 +282,7 @@ func TestAccountFindByID(t *testing.T) {
 
 func TestAccountFindByID_NotFound(t *testing.T) {
 	t.Cleanup(func() {
-		truncateAccountsTable(t, ctx, db)
+		truncateTables(t, ctx, db)
 	})
 
 	_, err := accountRepo.FindByID(ctx, uuid.New())
@@ -298,7 +298,7 @@ func TestAccountFindByID_NotFound(t *testing.T) {
 
 func TestAccountSave(t *testing.T) {
 	t.Cleanup(func() {
-		truncateAccountsTable(t, ctx, db)
+		truncateTables(t, ctx, db)
 	})
 
 	tests := []struct {
@@ -500,7 +500,7 @@ func TestAccountSave(t *testing.T) {
 
 func TestAccountSave_Concurrent(t *testing.T) {
 	t.Cleanup(func() {
-		truncateAccountsTable(t, ctx, db)
+		truncateTables(t, ctx, db)
 	})
 
 	const numOps = 10
