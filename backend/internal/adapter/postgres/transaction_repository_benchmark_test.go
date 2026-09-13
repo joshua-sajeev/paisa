@@ -1,160 +1,57 @@
 package postgres_test
 
 import (
-	"fmt"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
-	"github.com/joshu-sajeev/paisa/internal/domain/account"
-	"github.com/joshu-sajeev/paisa/internal/domain/jar"
 	"github.com/joshu-sajeev/paisa/internal/domain/transaction"
 	"github.com/joshu-sajeev/paisa/internal/ports"
+	"github.com/joshu-sajeev/paisa/internal/seed"
 )
 
 func setupBenchmark(b *testing.B, count int) (uuid.UUID, uuid.UUID, []uuid.UUID) {
 	b.Helper()
 
-	// Truncate tables first
-	_, err := db.Exec(ctx, "TRUNCATE TABLE accounts, jars CASCADE")
+	if err := seed.RunWithCount(ctx, db, count); err != nil {
+		b.Fatalf("failed to seed: %v", err)
+	}
+
+	// Fetch accounts from DB to return active IDs
+	var accIDs []uuid.UUID
+	rows, err := db.Query(ctx, "SELECT id FROM accounts ORDER BY name")
 	if err != nil {
-		b.Fatalf("failed to truncate: %v", err)
+		b.Fatalf("failed to query accounts: %v", err)
 	}
+	defer rows.Close()
 
-	// Create accounts
-	acc1 := &account.Account{
-		ID:         uuid.New(),
-		Name:       "Checking",
-		IsArchived: false,
-		CreatedAt:  time.Now().UTC(),
-		UpdatedAt:  time.Now().UTC(),
-	}
-	acc2 := &account.Account{
-		ID:         uuid.New(),
-		Name:       "Savings",
-		IsArchived: false,
-		CreatedAt:  time.Now().UTC(),
-		UpdatedAt:  time.Now().UTC(),
-	}
-
-	if err := accountRepo.Create(ctx, acc1); err != nil {
-		b.Fatalf("failed to create acc1: %v", err)
-	}
-	if err := accountRepo.Create(ctx, acc2); err != nil {
-		b.Fatalf("failed to create acc2: %v", err)
-	}
-
-	// Create a Jar
-	j := &jar.Jar{
-		ID:              uuid.New(),
-		Name:            "Emergency Fund",
-		AllocationType:  jar.AllocationTypeFixed,
-		AllocationValue: 10000,
-		IsArchived:      false,
-		CreatedAt:       time.Now().UTC(),
-		UpdatedAt:       time.Now().UTC(),
-	}
-	if err := jarRepo.Create(ctx, j); err != nil {
-		b.Fatalf("failed to create jar: %v", err)
-	}
-
-	txIDs := make([]uuid.UUID, 0, count)
-
-	// Create transactions
-	for i := 0; i < count; i++ {
-		var tx *transaction.Transaction
-		occurred := time.Now().UTC().Add(-time.Duration(i) * time.Hour)
-
-		switch i % 5 {
-		case 0:
-			// Income to acc1
-			tx = &transaction.Transaction{
-				ID:             uuid.New(),
-				Name:           fmt.Sprintf("Salary %d", i),
-				Type:           transaction.TransactionTypeIncome,
-				Category:       transaction.TransactionCategoryOther,
-				FromAccountID:  nil,
-				ToAccountID:    &acc1.ID,
-				JarID:          nil,
-				Amount:         500000,
-				OccurredAt:     occurred,
-				IsMasterIncome: true,
-				CreatedAt:      time.Now().UTC(),
-				UpdatedAt:      time.Now().UTC(),
-			}
-		case 1:
-			// Income to acc2
-			tx = &transaction.Transaction{
-				ID:             uuid.New(),
-				Name:           fmt.Sprintf("Interest %d", i),
-				Type:           transaction.TransactionTypeIncome,
-				Category:       transaction.TransactionCategoryOther,
-				FromAccountID:  nil,
-				ToAccountID:    &acc2.ID,
-				JarID:          nil,
-				Amount:         10000,
-				OccurredAt:     occurred,
-				IsMasterIncome: false,
-				CreatedAt:      time.Now().UTC(),
-				UpdatedAt:      time.Now().UTC(),
-			}
-		case 2:
-			// Expense from acc1
-			tx = &transaction.Transaction{
-				ID:             uuid.New(),
-				Name:           fmt.Sprintf("Groceries %d", i),
-				Type:           transaction.TransactionTypeExpense,
-				Category:       transaction.TransactionCategoryGroceries,
-				FromAccountID:  &acc1.ID,
-				ToAccountID:    nil,
-				JarID:          nil,
-				Amount:         15000,
-				OccurredAt:     occurred,
-				IsMasterIncome: false,
-				CreatedAt:      time.Now().UTC(),
-				UpdatedAt:      time.Now().UTC(),
-			}
-		case 3:
-			// Expense from acc2, with jar
-			tx = &transaction.Transaction{
-				ID:             uuid.New(),
-				Name:           fmt.Sprintf("Health %d", i),
-				Type:           transaction.TransactionTypeExpense,
-				Category:       transaction.TransactionCategoryHealth,
-				FromAccountID:  &acc2.ID,
-				ToAccountID:    nil,
-				JarID:          &j.ID,
-				Amount:         20000,
-				OccurredAt:     occurred,
-				IsMasterIncome: false,
-				CreatedAt:      time.Now().UTC(),
-				UpdatedAt:      time.Now().UTC(),
-			}
-		case 4:
-			// Transfer acc1 -> acc2
-			tx = &transaction.Transaction{
-				ID:             uuid.New(),
-				Name:           fmt.Sprintf("Transfer %d", i),
-				Type:           transaction.TransactionTypeTransfer,
-				Category:       transaction.TransactionCategoryTransfer,
-				FromAccountID:  &acc1.ID,
-				ToAccountID:    &acc2.ID,
-				JarID:          nil,
-				Amount:         50000,
-				OccurredAt:     occurred,
-				IsMasterIncome: false,
-				CreatedAt:      time.Now().UTC(),
-				UpdatedAt:      time.Now().UTC(),
-			}
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			b.Fatalf("failed to scan account id: %v", err)
 		}
-
-		if err := transactionRepo.Create(ctx, tx); err != nil {
-			b.Fatalf("failed to create transaction %d: %v", i, err)
-		}
-		txIDs = append(txIDs, tx.ID)
+		accIDs = append(accIDs, id)
+	}
+	if len(accIDs) < 2 {
+		b.Fatalf("expected at least 2 accounts, got %d", len(accIDs))
 	}
 
-	return acc1.ID, acc2.ID, txIDs
+	// Fetch transactions from DB to return active IDs
+	var txIDs []uuid.UUID
+	txRows, err := db.Query(ctx, "SELECT id FROM transactions LIMIT $1", count)
+	if err != nil {
+		b.Fatalf("failed to query transactions: %v", err)
+	}
+	defer txRows.Close()
+
+	for txRows.Next() {
+		var id uuid.UUID
+		if err := txRows.Scan(&id); err != nil {
+			b.Fatalf("failed to scan transaction id: %v", err)
+		}
+		txIDs = append(txIDs, id)
+	}
+
+	return accIDs[0], accIDs[1], txIDs
 }
 
 func BenchmarkTransactionRepository_List(b *testing.B) {

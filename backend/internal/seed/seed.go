@@ -9,15 +9,19 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const transactionCount = 10_000
+const transactionCount = 100_000
 
 func Run(ctx context.Context, db *pgxpool.Pool) error {
+	return RunWithCount(ctx, db, transactionCount)
+}
+
+func RunWithCount(ctx context.Context, db *pgxpool.Pool, count int) error {
 	log.Printf(
 		"seeding dataset: %d accounts, %d jars, %d goals, %d transactions",
 		len(accountDefinitions),
 		len(jarDefinitions),
 		len(goalDefinitions),
-		transactionCount,
+		count,
 	)
 
 	if err := clearSeedData(ctx, db); err != nil {
@@ -48,7 +52,7 @@ func Run(ctx context.Context, db *pgxpool.Pool) error {
 		db,
 		accounts,
 		jars,
-		transactionCount,
+		count,
 	); err != nil {
 		return fmt.Errorf("seed transactions: %w", err)
 	}
