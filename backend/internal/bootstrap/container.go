@@ -18,11 +18,11 @@ import (
 
 type Container struct {
 	// HTTP Handlers
+	DashboardHandler   *handler.DashboardHandler
 	AccountHandler     *handler.AccountHandler
 	JarHandler         *handler.JarHandler
 	TransactionHandler *handler.TransactionHandler
 	AuthHandler        *handler.AuthHandler
-
 	// Internal dependencies
 	logger *slog.Logger
 	db     *pgxpool.Pool
@@ -32,6 +32,7 @@ type Container struct {
 	SessionStore session.SessionStore
 
 	// Repositories
+	dashboardRepository   ports.DashboardRepository
 	accountRepository     ports.AccountRepository
 	jarRepository         ports.JarRepository
 	transactionRepository ports.TransactionRepository
@@ -39,6 +40,7 @@ type Container struct {
 	txManager             ports.TxManager
 
 	// Services
+	dashboardService   *application.DashboardService
 	accountService     *application.AccountService
 	jarService         *application.JarService
 	transactionService *application.TransactionService
@@ -102,6 +104,7 @@ func (c *Container) initDatabase(
 
 // initRepositories creates all repository instances.
 func (c *Container) initRepositories() {
+	c.dashboardRepository = postgres.NewDashboardRepository(c.db)
 	c.accountRepository = postgres.NewAccountRepository(c.db)
 	c.jarRepository = postgres.NewJarRepository(c.db)
 	c.transactionRepository = postgres.NewTransactionRepository(c.db)
@@ -113,6 +116,10 @@ func (c *Container) initRepositories() {
 
 // initServices creates all service instances with repository dependencies.
 func (c *Container) initServices() {
+	c.dashboardService = application.NewDashboardService(
+		c.dashboardRepository,
+		c.logger,
+	)
 	c.accountService = application.NewAccountService(
 		c.accountRepository,
 		c.logger,
@@ -140,6 +147,10 @@ func (c *Container) initServices() {
 
 // initHandlers creates all handler instances with service dependencies.
 func (c *Container) initHandlers() {
+	c.DashboardHandler = handler.NewDashboardHandler(
+		c.dashboardService,
+		c.logger,
+	)
 	c.AccountHandler = handler.NewAccountHandler(
 		c.accountService,
 		c.logger,

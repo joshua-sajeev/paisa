@@ -39,6 +39,7 @@ func main() {
 	defer container.Close()
 
 	r := router.NewRouter(&router.HandlerRegistry{
+		DashboardHandler:   container.DashboardHandler,
 		AccountHandler:     container.AccountHandler,
 		JarHandler:         container.JarHandler,
 		AuthHandler:        container.AuthHandler,

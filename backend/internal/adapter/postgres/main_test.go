@@ -22,6 +22,7 @@ var (
 	accountRepo     ports.AccountRepository
 	jarRepo         ports.JarRepository
 	transactionRepo ports.TransactionRepository
+	dashboardRepo   ports.DashboardRepository
 	ctx             = context.Background()
 )
 
@@ -85,5 +86,6 @@ func TestMain(m *testing.M) {
 	accountRepo = postgres.NewAccountRepository(db)
 	jarRepo = postgres.NewJarRepository(db)
 	transactionRepo = postgres.NewTransactionRepository(db)
+	dashboardRepo = postgres.NewDashboardRepository(db)
 	os.Exit(m.Run())
 }
