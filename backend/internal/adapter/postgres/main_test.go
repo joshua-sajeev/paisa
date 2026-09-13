@@ -18,10 +18,11 @@ import (
 )
 
 var (
-	db          *pgxpool.Pool
-	accountRepo ports.AccountRepository
-	jarRepo     ports.JarRepository
-	ctx         = context.Background()
+	db              *pgxpool.Pool
+	accountRepo     ports.AccountRepository
+	jarRepo         ports.JarRepository
+	transactionRepo ports.TransactionRepository
+	ctx             = context.Background()
 )
 
 // truncateTables clears all data from all tables
@@ -83,5 +84,6 @@ func TestMain(m *testing.M) {
 
 	accountRepo = postgres.NewAccountRepository(db)
 	jarRepo = postgres.NewJarRepository(db)
+	transactionRepo = postgres.NewTransactionRepository(db)
 	os.Exit(m.Run())
 }
