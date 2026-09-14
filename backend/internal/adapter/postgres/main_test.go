@@ -23,6 +23,8 @@ var (
 	jarRepo         ports.JarRepository
 	transactionRepo ports.TransactionRepository
 	dashboardRepo   ports.DashboardRepository
+	allocationRepo  ports.AllocationRepository
+	txManager       ports.TxManager
 	ctx             = context.Background()
 )
 
@@ -87,5 +89,7 @@ func TestMain(m *testing.M) {
 	jarRepo = postgres.NewJarRepository(db)
 	transactionRepo = postgres.NewTransactionRepository(db)
 	dashboardRepo = postgres.NewDashboardRepository(db)
+	allocationRepo = postgres.NewAllocationRepository(db)
+	txManager = postgres.NewTxManager(db)
 	os.Exit(m.Run())
 }

@@ -180,12 +180,24 @@ func (t *Transaction) Update(
 	return nil
 }
 
-// HasAllocationChanged reports whether amount or master income status changed,
+// HasAllocationChanged reports whether amount, master income status, or jar assignment changed,
 // indicating allocations need to be recalculated.
 func (t *Transaction) HasAllocationChanged(
-	newAmount int64,
-	newIsMasterIncome bool,
+	oldAmount int64,
+	oldIsMasterIncome bool,
+	oldJarID *uuid.UUID,
 ) bool {
-	return t.Amount != newAmount ||
-		t.IsMasterIncome != newIsMasterIncome
+	if t.Amount != oldAmount || t.IsMasterIncome != oldIsMasterIncome {
+		return true
+	}
+
+	if (t.JarID == nil) != (oldJarID == nil) {
+		return true
+	}
+
+	if t.JarID != nil && oldJarID != nil && *t.JarID != *oldJarID {
+		return true
+	}
+
+	return false
 }

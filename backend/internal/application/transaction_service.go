@@ -102,7 +102,7 @@ func (s *TransactionService) Create(
 				)
 				return err
 			}
-		} else if jarID != nil {
+		} else if newTxn.Type == transaction.TransactionTypeIncome && jarID != nil {
 			alloc := &transaction.Allocation{
 				ID:            uuid.New(),
 				TransactionID: newTxn.ID,
@@ -170,6 +170,7 @@ func (s *TransactionService) Update(
 	var oldType transaction.TransactionType
 	var oldFromAccountID *uuid.UUID
 	var oldToAccountID *uuid.UUID
+	var oldJarID *uuid.UUID
 	var err error
 
 	err = s.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
@@ -190,6 +191,7 @@ func (s *TransactionService) Update(
 		oldIsMasterIncome = txn.IsMasterIncome
 		oldFromAccountID = txn.FromAccountID
 		oldToAccountID = txn.ToAccountID
+		oldJarID = txn.JarID
 
 		if err := txn.Update(
 			name,
@@ -230,7 +232,7 @@ func (s *TransactionService) Update(
 			return err
 		}
 
-		if txn.HasAllocationChanged(oldAmount, oldIsMasterIncome) {
+		if txn.HasAllocationChanged(oldAmount, oldIsMasterIncome, oldJarID) {
 			if err := s.allocationRepo.DeleteByTransactionID(txCtx, id); err != nil {
 				s.logger.ErrorContext(
 					txCtx,
@@ -240,7 +242,7 @@ func (s *TransactionService) Update(
 				return err
 			}
 
-			if isMasterIncome {
+			if txn.IsMasterIncome {
 				if err := s.createAllocations(txCtx, txn); err != nil {
 					s.logger.ErrorContext(
 						txCtx,
@@ -249,12 +251,12 @@ func (s *TransactionService) Update(
 					)
 					return err
 				}
-			} else if jarID != nil {
+			} else if txn.Type == transaction.TransactionTypeIncome && txn.JarID != nil {
 				alloc := &transaction.Allocation{
 					ID:            uuid.New(),
 					TransactionID: id,
-					JarID:         *jarID,
-					Amount:        amount,
+					JarID:         *txn.JarID,
+					Amount:        txn.Amount,
 				}
 
 				if err := s.allocationRepo.Create(txCtx, alloc); err != nil {

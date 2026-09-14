@@ -4,11 +4,91 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/joshu-sajeev/paisa/internal/domain/account"
 	"github.com/joshu-sajeev/paisa/internal/domain/jar"
 	"github.com/joshu-sajeev/paisa/internal/domain/transaction"
+	"github.com/joshu-sajeev/paisa/internal/ports"
 	"github.com/joshu-sajeev/paisa/internal/seed"
 )
+
+func mustCreateTransaction(
+	t *testing.T,
+	name string,
+	txnType transaction.TransactionType,
+	cat transaction.TransactionCategory,
+	fromAcc *uuid.UUID,
+	toAcc *uuid.UUID,
+	amount int64,
+	occurredAt time.Time,
+) *transaction.Transaction {
+	t.Helper()
+	txn, err := transaction.NewTransaction(
+		name,
+		txnType,
+		cat,
+		fromAcc,
+		toAcc,
+		nil,
+		amount,
+		occurredAt,
+		false,
+	)
+	if err != nil {
+		t.Fatalf("NewTransaction error: %v", err)
+	}
+	if err := transactionRepo.Create(ctx, txn); err != nil {
+		t.Fatalf("transactionRepo.Create error: %v", err)
+	}
+	return txn
+}
+
+func mustCreateTransactionWithJar(
+	t *testing.T,
+	name string,
+	txnType transaction.TransactionType,
+	cat transaction.TransactionCategory,
+	fromAcc *uuid.UUID,
+	toAcc *uuid.UUID,
+	jarID *uuid.UUID,
+	amount int64,
+	occurredAt time.Time,
+) *transaction.Transaction {
+	t.Helper()
+	txn, err := transaction.NewTransaction(
+		name,
+		txnType,
+		cat,
+		fromAcc,
+		toAcc,
+		jarID,
+		amount,
+		occurredAt,
+		false,
+	)
+	if err != nil {
+		t.Fatalf("NewTransaction error: %v", err)
+	}
+	if err := transactionRepo.Create(ctx, txn); err != nil {
+		t.Fatalf("transactionRepo.Create error: %v", err)
+	}
+	return txn
+}
+
+func findTransactionListItem(
+	t *testing.T,
+	items []*ports.TransactionListItem,
+	id uuid.UUID,
+) *ports.TransactionListItem {
+	t.Helper()
+	for _, item := range items {
+		if item.ID == id {
+			return item
+		}
+	}
+	t.Fatalf("transaction item with id %v not found", id)
+	return nil
+}
 
 func TestDashboardRecentTransactionsProjectsDisplayFields(t *testing.T) {
 	t.Cleanup(func() {

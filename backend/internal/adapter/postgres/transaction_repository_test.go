@@ -1,460 +1,374 @@
 package postgres_test
 
 import (
+	"context"
+	"io"
+	"log/slog"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/joshu-sajeev/paisa/internal/application"
 	"github.com/joshu-sajeev/paisa/internal/domain/account"
 	"github.com/joshu-sajeev/paisa/internal/domain/jar"
 	"github.com/joshu-sajeev/paisa/internal/domain/transaction"
 	"github.com/joshu-sajeev/paisa/internal/ports"
 )
 
-func mustCreateTransaction(
-	t *testing.T,
-	name string,
-	transactionType transaction.TransactionType,
-	category transaction.TransactionCategory,
-	fromAccountID *uuid.UUID,
-	toAccountID *uuid.UUID,
-	amount int64,
-	occurredAt time.Time,
-) *transaction.Transaction {
-	return mustCreateTransactionWithJar(
-		t,
-		name,
-		transactionType,
-		category,
-		fromAccountID,
-		toAccountID,
-		nil,
-		amount,
-		occurredAt,
+func setupTestTransactionService(t *testing.T) *application.TransactionService {
+	t.Helper()
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	return application.NewTransactionService(
+		transactionRepo,
+		allocationRepo,
+		jarRepo,
+		accountRepo,
+		txManager,
+		logger,
 	)
 }
 
-func mustCreateTransactionWithJar(
-	t *testing.T,
-	name string,
-	transactionType transaction.TransactionType,
-	category transaction.TransactionCategory,
-	fromAccountID *uuid.UUID,
-	toAccountID *uuid.UUID,
-	jarID *uuid.UUID,
-	amount int64,
-	occurredAt time.Time,
-) *transaction.Transaction {
+type dbAllocation struct {
+	JarID  uuid.UUID
+	Amount int64
+}
+
+func getDBAllocations(t *testing.T, ctx context.Context, transactionID uuid.UUID) []dbAllocation {
 	t.Helper()
 
-	txn, err := transaction.NewTransaction(
-		name,
-		transactionType,
-		category,
-		fromAccountID,
-		toAccountID,
-		jarID,
-		amount,
-		occurredAt,
-		false,
+	rows, err := db.Query(
+		ctx,
+		"SELECT jar_id, amount FROM jar_allocations WHERE transaction_id = $1 ORDER BY jar_id",
+		transactionID,
 	)
 	if err != nil {
-		t.Fatalf("NewTransaction() error = %v", err)
+		t.Fatalf("failed to query jar_allocations: %v", err)
+	}
+	defer rows.Close()
+
+	var allocs []dbAllocation
+	for rows.Next() {
+		var a dbAllocation
+		if err := rows.Scan(&a.JarID, &a.Amount); err != nil {
+			t.Fatalf("failed to scan jar_allocations: %v", err)
+		}
+		allocs = append(allocs, a)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("jar_allocations rows error: %v", err)
 	}
 
-	txn.CreatedAt = occurredAt
-	txn.UpdatedAt = occurredAt
-
-	if err := transactionRepo.Create(ctx, txn); err != nil {
-		t.Fatalf("Create() error = %v", err)
-	}
-
-	return txn
+	return allocs
 }
 
-func findTransactionListItem(
-	t *testing.T,
-	items []*ports.TransactionListItem,
-	id uuid.UUID,
-) *ports.TransactionListItem {
+func getDBTransactionJarID(t *testing.T, ctx context.Context, transactionID uuid.UUID) *uuid.UUID {
 	t.Helper()
 
-	for _, item := range items {
-		if item.ID == id {
-			return item
-		}
+	var jarID *uuid.UUID
+	err := db.QueryRow(
+		ctx,
+		"SELECT jar_id FROM transactions WHERE id = $1",
+		transactionID,
+	).Scan(&jarID)
+	if err != nil {
+		t.Fatalf("failed to query transactions.jar_id: %v", err)
 	}
 
-	t.Fatalf("transaction list item %v not found", id)
+	return jarID
+}
+
+func findJarSummary(t *testing.T, summaries []*ports.JarSummary, jarID uuid.UUID) *ports.JarSummary {
+	t.Helper()
+	for _, s := range summaries {
+		if s.ID == jarID {
+			return s
+		}
+	}
+	t.Fatalf("jar summary for jar ID %v not found", jarID)
 	return nil
 }
 
-func TestTransactionsTableDoesNotPersistBalanceAfter(t *testing.T) {
-	var exists bool
+func TestJarExpenseAllocationAndReassignment(t *testing.T) {
+	truncateTables(t, ctx, db)
 
-	err := db.QueryRow(
-		ctx,
-		`
-		SELECT EXISTS (
-			SELECT 1
-			FROM information_schema.columns
-			WHERE table_name = 'transactions'
-			  AND column_name = 'balance_after'
+	svc := setupTestTransactionService(t)
+
+	// Create test account
+	acc, err := account.NewAccount("Main Account")
+	if err != nil {
+		t.Fatalf("NewAccount error: %v", err)
+	}
+	if err := accountRepo.Create(ctx, acc); err != nil {
+		t.Fatalf("AccountRepo.Create error: %v", err)
+	}
+
+	// Create test jars: Jar A (Fixed 85000), Jar Remainder (Remainder)
+	jarA := newTestJar("Necessities", jar.AllocationTypeFixed, 85000)
+	if err := jarRepo.Create(ctx, jarA); err != nil {
+		t.Fatalf("JarRepo.Create Jar A error: %v", err)
+	}
+
+	jarRemainder := newTestJar("Savings", jar.AllocationTypeRemainder, 0)
+	if err := jarRepo.Create(ctx, jarRemainder); err != nil {
+		t.Fatalf("JarRepo.Create Jar Remainder error: %v", err)
+	}
+
+	jarB := newTestJar("Leisure", jar.AllocationTypeFixed, 10000)
+	if err := jarRepo.Create(ctx, jarB); err != nil {
+		t.Fatalf("JarRepo.Create Jar B error: %v", err)
+	}
+
+	occurredAt := time.Now().UTC()
+
+	// 1. Master income allocation
+	t.Run("master income allocation creates jar_allocations", func(t *testing.T) {
+		masterTx, err := svc.Create(
+			ctx,
+			"Monthly Salary",
+			transaction.TransactionTypeIncome,
+			transaction.TransactionCategoryOther,
+			nil,
+			&acc.ID,
+			nil,
+			100000,
+			occurredAt,
+			true,
 		)
-		`,
-	).Scan(&exists)
-	if err != nil {
-		t.Fatalf("query schema: %v", err)
-	}
+		if err != nil {
+			t.Fatalf("Create master income error: %v", err)
+		}
 
-	if exists {
-		t.Fatal("transactions.balance_after column exists, want computed-only balance")
-	}
-}
+		allocs := getDBAllocations(t, ctx, masterTx.ID)
+		if len(allocs) < 2 {
+			t.Fatalf("master income expected at least 2 jar_allocations, got %d", len(allocs))
+		}
 
-func TestTransactionListProjectsGlobalDisplayFields(t *testing.T) {
-	t.Cleanup(func() {
-		truncateTables(t, ctx, db)
+		summaries, err := dashboardRepo.GetJarSummaries(ctx)
+		if err != nil {
+			t.Fatalf("GetJarSummaries error: %v", err)
+		}
+
+		sumA := findJarSummary(t, summaries, jarA.ID)
+		if sumA.Allocated != 85000 {
+			t.Errorf("Jar A Allocated = %d, want 85000", sumA.Allocated)
+		}
+		if sumA.Used != 0 {
+			t.Errorf("Jar A Used = %d, want 0", sumA.Used)
+		}
+		if sumA.Available != 85000 {
+			t.Errorf("Jar A Available = %d, want 85000", sumA.Available)
+		}
 	})
 
-	checking := newTestAccount("Checking")
-	checking.Balance = 750
-	savings := newTestAccount("Savings")
-	savings.Balance = 1200
-
-	for _, acc := range []*account.Account{checking, savings} {
-		if err := accountRepo.Create(ctx, acc); err != nil {
-			t.Fatalf("Create() account error = %v", err)
+	// 2. Normal expense with jar does NOT create a jar_allocations row, but increases used
+	var expenseTx *transaction.Transaction
+	t.Run("normal expense with jar", func(t *testing.T) {
+		var err error
+		expenseTx, err = svc.Create(
+			ctx,
+			"Groceries",
+			transaction.TransactionTypeExpense,
+			transaction.TransactionCategoryGroceries,
+			&acc.ID,
+			nil,
+			&jarA.ID,
+			10000,
+			occurredAt,
+			false,
+		)
+		if err != nil {
+			t.Fatalf("Create expense error: %v", err)
 		}
-	}
 
-	needs := newTestJar(
-		"Needs",
-		jar.AllocationTypePercentage,
-		50,
-	)
-	if err := jarRepo.Create(ctx, needs); err != nil {
-		t.Fatalf("Create() jar error = %v", err)
-	}
+		// Verify 0 rows in jar_allocations for normal expense
+		allocs := getDBAllocations(t, ctx, expenseTx.ID)
+		if len(allocs) != 0 {
+			t.Fatalf("normal expense must NOT create jar_allocations, got %d rows", len(allocs))
+		}
 
-	jan1 := time.Date(2026, 1, 1, 9, 0, 0, 0, time.UTC)
-	jan2 := time.Date(2026, 1, 2, 9, 0, 0, 0, time.UTC)
-	jan3 := time.Date(2026, 1, 3, 9, 0, 0, 0, time.UTC)
+		summaries, err := dashboardRepo.GetJarSummaries(ctx)
+		if err != nil {
+			t.Fatalf("GetJarSummaries error: %v", err)
+		}
 
-	income := mustCreateTransaction(
-		t,
-		"Salary",
-		transaction.TransactionTypeIncome,
-		transaction.TransactionCategoryOther,
-		nil,
-		&checking.ID,
-		1000,
-		jan1,
-	)
-	expense := mustCreateTransactionWithJar(
-		t,
-		"Groceries",
-		transaction.TransactionTypeExpense,
-		transaction.TransactionCategoryGroceries,
-		&checking.ID,
-		nil,
-		&needs.ID,
-		200,
-		jan2,
-	)
-	transfer := mustCreateTransaction(
-		t,
-		"Move to savings",
-		transaction.TransactionTypeTransfer,
-		transaction.TransactionCategoryTransfer,
-		&checking.ID,
-		&savings.ID,
-		300,
-		jan3,
-	)
-
-	got, err := transactionRepo.List(
-		ctx,
-		ports.ListParams{Limit: 10, Offset: 0},
-	)
-	if err != nil {
-		t.Fatalf("List() error = %v", err)
-	}
-
-	incomeItem := findTransactionListItem(t, got, income.ID)
-	if incomeItem.Account != checking.Name {
-		t.Errorf("income Account = %q, want %q", incomeItem.Account, checking.Name)
-	}
-	if incomeItem.AccountBalance == nil || *incomeItem.AccountBalance != checking.Balance {
-		t.Errorf("income AccountBalance = %v, want %d", incomeItem.AccountBalance, checking.Balance)
-	}
-
-	expenseItem := findTransactionListItem(t, got, expense.ID)
-	if expenseItem.Account != checking.Name {
-		t.Errorf("expense Account = %q, want %q", expenseItem.Account, checking.Name)
-	}
-	if expenseItem.AccountBalance == nil || *expenseItem.AccountBalance != checking.Balance {
-		t.Errorf("expense AccountBalance = %v, want %d", expenseItem.AccountBalance, checking.Balance)
-	}
-	if expenseItem.JarName == nil || *expenseItem.JarName != needs.Name {
-		t.Errorf("expense JarName = %v, want %q", expenseItem.JarName, needs.Name)
-	}
-
-	transferItem := findTransactionListItem(t, got, transfer.ID)
-	wantTransferAccount := checking.Name + " -> " + savings.Name
-	if transferItem.Account != wantTransferAccount {
-		t.Errorf("transfer Account = %q, want %q", transferItem.Account, wantTransferAccount)
-	}
-	if transferItem.AccountBalance != nil {
-		t.Errorf("transfer AccountBalance = %v, want nil", transferItem.AccountBalance)
-	}
-	if transferItem.Amount != transfer.Amount {
-		t.Errorf("transfer Amount = %d, want %d", transferItem.Amount, transfer.Amount)
-	}
-}
-
-func TestTransactionListByAccountRunningBalanceIncludesHistoryBeforeFromDate(t *testing.T) {
-	t.Cleanup(func() {
-		truncateTables(t, ctx, db)
+		sumA := findJarSummary(t, summaries, jarA.ID)
+		if sumA.Allocated != 85000 {
+			t.Errorf("Jar A Allocated = %d, want 85000 (unchanged)", sumA.Allocated)
+		}
+		if sumA.Used != 10000 {
+			t.Errorf("Jar A Used = %d, want 10000", sumA.Used)
+		}
+		if sumA.Available != 75000 {
+			t.Errorf("Jar A Available = %d, want 75000 (85000 - 10000)", sumA.Available)
+		}
 	})
 
-	checking := newTestAccount("Checking")
-	savings := newTestAccount("Savings")
-
-	for _, acc := range []*account.Account{checking, savings} {
-		if err := accountRepo.Create(ctx, acc); err != nil {
-			t.Fatalf("Create() account error = %v", err)
+	// 3. Normal expense without jar
+	t.Run("normal expense without jar", func(t *testing.T) {
+		noJarTx, err := svc.Create(
+			ctx,
+			"Cash Outlay",
+			transaction.TransactionTypeExpense,
+			transaction.TransactionCategoryOther,
+			&acc.ID,
+			nil,
+			nil,
+			5000,
+			occurredAt,
+			false,
+		)
+		if err != nil {
+			t.Fatalf("Create expense without jar error: %v", err)
 		}
-	}
 
-	jan1 := time.Date(2026, 1, 1, 9, 0, 0, 0, time.UTC)
-	jan2 := time.Date(2026, 1, 2, 9, 0, 0, 0, time.UTC)
-	jan3 := time.Date(2026, 1, 3, 9, 0, 0, 0, time.UTC)
-	jan4 := time.Date(2026, 1, 4, 9, 0, 0, 0, time.UTC)
-
-	mustCreateTransaction(
-		t,
-		"Salary",
-		transaction.TransactionTypeIncome,
-		transaction.TransactionCategoryOther,
-		nil,
-		&checking.ID,
-		1000,
-		jan1,
-	)
-	mustCreateTransaction(
-		t,
-		"Groceries",
-		transaction.TransactionTypeExpense,
-		transaction.TransactionCategoryGroceries,
-		&checking.ID,
-		nil,
-		200,
-		jan2,
-	)
-	transfer := mustCreateTransaction(
-		t,
-		"Move to savings",
-		transaction.TransactionTypeTransfer,
-		transaction.TransactionCategoryTransfer,
-		&checking.ID,
-		&savings.ID,
-		300,
-		jan3,
-	)
-	income := mustCreateTransaction(
-		t,
-		"Refund",
-		transaction.TransactionTypeIncome,
-		transaction.TransactionCategoryOther,
-		nil,
-		&checking.ID,
-		50,
-		jan4,
-	)
-
-	fromDate := time.Date(2026, 1, 3, 0, 0, 0, 0, time.UTC)
-
-	got, err := transactionRepo.ListByAccount(
-		ctx,
-		checking.ID,
-		ports.ListParams{
-			Limit:    10,
-			Offset:   0,
-			FromDate: &fromDate,
-		},
-	)
-	if err != nil {
-		t.Fatalf("ListByAccount() error = %v", err)
-	}
-
-	if len(got) != 2 {
-		t.Fatalf("ListByAccount() returned %d transactions, want 2", len(got))
-	}
-
-	if got[0].ID != income.ID {
-		t.Errorf("first transaction ID = %v, want %v", got[0].ID, income.ID)
-	}
-
-	if got[0].AccountBalance == nil || *got[0].AccountBalance != 550 {
-		t.Errorf("first AccountBalance = %v, want %d", got[0].AccountBalance, 550)
-	}
-
-	if got[1].ID != transfer.ID {
-		t.Errorf("second transaction ID = %v, want %v", got[1].ID, transfer.ID)
-	}
-
-	if got[1].AccountBalance == nil || *got[1].AccountBalance != 500 {
-		t.Errorf("second AccountBalance = %v, want %d", got[1].AccountBalance, 500)
-	}
-
-	if got[1].Amount != -300 {
-		t.Errorf("transfer-out Amount = %d, want %d", got[1].Amount, -300)
-	}
-
-	if got[1].Account != savings.Name {
-		t.Errorf("transfer-out Account = %q, want %q", got[1].Account, savings.Name)
-	}
-
-	gotSavings, err := transactionRepo.ListByAccount(
-		ctx,
-		savings.ID,
-		ports.ListParams{Limit: 10, Offset: 0},
-	)
-	if err != nil {
-		t.Fatalf("ListByAccount() savings error = %v", err)
-	}
-
-	if len(gotSavings) != 1 {
-		t.Fatalf("ListByAccount() savings returned %d transactions, want 1", len(gotSavings))
-	}
-
-	if gotSavings[0].ID != transfer.ID {
-		t.Errorf("savings transaction ID = %v, want %v", gotSavings[0].ID, transfer.ID)
-	}
-
-	if gotSavings[0].Amount != 300 {
-		t.Errorf("transfer-in Amount = %d, want %d", gotSavings[0].Amount, 300)
-	}
-
-	if gotSavings[0].Account != checking.Name {
-		t.Errorf("transfer-in Account = %q, want %q", gotSavings[0].Account, checking.Name)
-	}
-}
-
-func TestTransactionListByAccountRunningBalanceSurvivesPaginationAndDateFilters(t *testing.T) {
-	t.Cleanup(func() {
-		truncateTables(t, ctx, db)
+		allocs := getDBAllocations(t, ctx, noJarTx.ID)
+		if len(allocs) != 0 {
+			t.Fatalf("expense without jar must NOT create jar_allocations, got %d rows", len(allocs))
+		}
 	})
 
-	checking := newTestAccount("Checking")
-	savings := newTestAccount("Savings")
-
-	for _, acc := range []*account.Account{checking, savings} {
-		if err := accountRepo.Create(ctx, acc); err != nil {
-			t.Fatalf("Create() account error = %v", err)
+	// 4. Changing expense amount (10000 -> 25000)
+	t.Run("changing expense amount", func(t *testing.T) {
+		_, err := svc.Update(
+			ctx,
+			expenseTx.ID,
+			"Groceries Updated",
+			transaction.TransactionCategoryGroceries,
+			&acc.ID,
+			nil,
+			&jarA.ID,
+			25000,
+			occurredAt,
+			false,
+		)
+		if err != nil {
+			t.Fatalf("Update expense amount error: %v", err)
 		}
-	}
 
-	jan1 := time.Date(2026, 1, 1, 9, 0, 0, 0, time.UTC)
-	jan2 := time.Date(2026, 1, 2, 9, 0, 0, 0, time.UTC)
-	jan3 := time.Date(2026, 1, 3, 9, 0, 0, 0, time.UTC)
-	jan4 := time.Date(2026, 1, 4, 9, 0, 0, 0, time.UTC)
+		allocs := getDBAllocations(t, ctx, expenseTx.ID)
+		if len(allocs) != 0 {
+			t.Fatalf("updated expense must NOT create jar_allocations, got %d rows", len(allocs))
+		}
 
-	mustCreateTransaction(
-		t,
-		"Salary",
-		transaction.TransactionTypeIncome,
-		transaction.TransactionCategoryOther,
-		nil,
-		&checking.ID,
-		1000,
-		jan1,
-	)
-	expense := mustCreateTransaction(
-		t,
-		"Groceries",
-		transaction.TransactionTypeExpense,
-		transaction.TransactionCategoryGroceries,
-		&checking.ID,
-		nil,
-		200,
-		jan2,
-	)
-	transfer := mustCreateTransaction(
-		t,
-		"Move to savings",
-		transaction.TransactionTypeTransfer,
-		transaction.TransactionCategoryTransfer,
-		&checking.ID,
-		&savings.ID,
-		300,
-		jan3,
-	)
-	mustCreateTransaction(
-		t,
-		"Refund",
-		transaction.TransactionTypeIncome,
-		transaction.TransactionCategoryOther,
-		nil,
-		&checking.ID,
-		50,
-		jan4,
-	)
+		summaries, err := dashboardRepo.GetJarSummaries(ctx)
+		if err != nil {
+			t.Fatalf("GetJarSummaries error: %v", err)
+		}
 
-	paged, err := transactionRepo.ListByAccount(
-		ctx,
-		checking.ID,
-		ports.ListParams{Limit: 1, Offset: 1},
-	)
-	if err != nil {
-		t.Fatalf("ListByAccount() paged error = %v", err)
-	}
+		sumA := findJarSummary(t, summaries, jarA.ID)
+		if sumA.Allocated != 85000 {
+			t.Errorf("Jar A Allocated = %d, want 85000", sumA.Allocated)
+		}
+		if sumA.Used != 25000 {
+			t.Errorf("Jar A Used = %d, want 25000", sumA.Used)
+		}
+		if sumA.Available != 60000 {
+			t.Errorf("Jar A Available = %d, want 60000", sumA.Available)
+		}
+	})
 
-	if len(paged) != 1 {
-		t.Fatalf("paged ListByAccount() returned %d transactions, want 1", len(paged))
-	}
+	// 5. Changing expense jar A -> jar B
+	t.Run("changing expense jar A to jar B", func(t *testing.T) {
+		_, err := svc.Update(
+			ctx,
+			expenseTx.ID,
+			"Groceries Moved to Jar B",
+			transaction.TransactionCategoryGroceries,
+			&acc.ID,
+			nil,
+			&jarB.ID,
+			25000,
+			occurredAt,
+			false,
+		)
+		if err != nil {
+			t.Fatalf("Update expense jar error: %v", err)
+		}
 
-	if paged[0].ID != transfer.ID {
-		t.Errorf("paged transaction ID = %v, want %v", paged[0].ID, transfer.ID)
-	}
+		allocs := getDBAllocations(t, ctx, expenseTx.ID)
+		if len(allocs) != 0 {
+			t.Fatalf("reassigned expense must NOT create jar_allocations, got %d rows", len(allocs))
+		}
 
-	if paged[0].AccountBalance == nil || *paged[0].AccountBalance != 500 {
-		t.Errorf("paged AccountBalance = %v, want %d", paged[0].AccountBalance, 500)
-	}
+		summaries, err := dashboardRepo.GetJarSummaries(ctx)
+		if err != nil {
+			t.Fatalf("GetJarSummaries error: %v", err)
+		}
 
-	fromDate := time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC)
-	toDate := time.Date(2026, 1, 3, 0, 0, 0, 0, time.UTC)
+		sumA := findJarSummary(t, summaries, jarA.ID)
+		if sumA.Used != 0 {
+			t.Errorf("Jar A Used = %d, want 0 (moved to Jar B)", sumA.Used)
+		}
+		if sumA.Available != 85000 {
+			t.Errorf("Jar A Available = %d, want 85000", sumA.Available)
+		}
 
-	filtered, err := transactionRepo.ListByAccount(
-		ctx,
-		checking.ID,
-		ports.ListParams{
-			Limit:    10,
-			Offset:   0,
-			FromDate: &fromDate,
-			ToDate:   &toDate,
-		},
-	)
-	if err != nil {
-		t.Fatalf("ListByAccount() filtered error = %v", err)
-	}
+		sumB := findJarSummary(t, summaries, jarB.ID)
+		if sumB.Used != 25000 {
+			t.Errorf("Jar B Used = %d, want 25000", sumB.Used)
+		}
+	})
 
-	if len(filtered) != 2 {
-		t.Fatalf("filtered ListByAccount() returned %d transactions, want 2", len(filtered))
-	}
+	// 6. Expense deletion
+	t.Run("expense deletion", func(t *testing.T) {
+		if err := svc.Delete(ctx, expenseTx.ID); err != nil {
+			t.Fatalf("Delete expense error: %v", err)
+		}
 
-	if filtered[0].ID != transfer.ID {
-		t.Errorf("first filtered transaction ID = %v, want %v", filtered[0].ID, transfer.ID)
-	}
-	if filtered[0].AccountBalance == nil || *filtered[0].AccountBalance != 500 {
-		t.Errorf("first filtered AccountBalance = %v, want %d", filtered[0].AccountBalance, 500)
-	}
+		summaries, err := dashboardRepo.GetJarSummaries(ctx)
+		if err != nil {
+			t.Fatalf("GetJarSummaries error: %v", err)
+		}
 
-	if filtered[1].ID != expense.ID {
-		t.Errorf("second filtered transaction ID = %v, want %v", filtered[1].ID, expense.ID)
-	}
-	if filtered[1].AccountBalance == nil || *filtered[1].AccountBalance != 800 {
-		t.Errorf("second filtered AccountBalance = %v, want %d", filtered[1].AccountBalance, 800)
-	}
+		sumB := findJarSummary(t, summaries, jarB.ID)
+		if sumB.Used != 0 {
+			t.Errorf("Jar B Used = %d, want 0 after deletion", sumB.Used)
+		}
+	})
+
+	// 7. Direct income to jar (e.g. bonus to Jar B) creates single jar_allocations row
+	t.Run("direct income to jar and reassignment", func(t *testing.T) {
+		incomeTx, err := svc.Create(
+			ctx,
+			"Direct Bonus to Jar A",
+			transaction.TransactionTypeIncome,
+			transaction.TransactionCategoryOther,
+			nil,
+			&acc.ID,
+			&jarA.ID,
+			5000,
+			occurredAt,
+			false,
+		)
+		if err != nil {
+			t.Fatalf("Create direct income error: %v", err)
+		}
+
+		allocs := getDBAllocations(t, ctx, incomeTx.ID)
+		if len(allocs) != 1 || allocs[0].JarID != jarA.ID || allocs[0].Amount != 5000 {
+			t.Fatalf("direct income expected 1 allocation for Jar A, got %+v", allocs)
+		}
+
+		// Reassign direct income from Jar A to Jar B
+		_, err = svc.Update(
+			ctx,
+			incomeTx.ID,
+			"Direct Bonus to Jar B",
+			transaction.TransactionCategoryOther,
+			nil,
+			&acc.ID,
+			&jarB.ID,
+			5000,
+			occurredAt,
+			false,
+		)
+		if err != nil {
+			t.Fatalf("Update direct income jar error: %v", err)
+		}
+
+		allocs = getDBAllocations(t, ctx, incomeTx.ID)
+		if len(allocs) != 1 || allocs[0].JarID != jarB.ID || allocs[0].Amount != 5000 {
+			t.Fatalf("reassigned direct income expected 1 allocation for Jar B, got %+v", allocs)
+		}
+	})
 }
