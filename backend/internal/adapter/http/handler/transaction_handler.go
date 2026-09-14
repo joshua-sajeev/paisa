@@ -48,14 +48,14 @@ type TransactionService interface {
 	List(
 		ctx context.Context,
 		params ports.ListParams,
-	) ([]*transaction.Transaction, error)
+	) ([]*ports.TransactionListItem, error)
 
 	// ListByAccount retrieves transactions for a specific account with running balance.
 	ListByAccount(
 		ctx context.Context,
 		accountID uuid.UUID,
 		params ports.ListParams,
-	) ([]*ports.TransactionWithBalance, error)
+	) ([]*ports.TransactionListItem, error)
 
 	GetByID(ctx context.Context, id uuid.UUID) (*transaction.Transaction, error)
 }
@@ -154,6 +154,35 @@ func transactionToResponse(
 	return resp
 }
 
+// TransactionListItemResponse represents a transaction in list responses.
+type TransactionListItemResponse struct {
+	ID             string  `json:"id"`
+	Name           string  `json:"name"`
+	Date           string  `json:"date"`
+	Type           string  `json:"type"`
+	Amount         int64   `json:"amount"`
+	JarName        *string `json:"jar_name"`
+	Account        string  `json:"account"`
+	AccountBalance *int64  `json:"account_balance"`
+	Category       string  `json:"category"`
+}
+
+func transactionListItemToResponse(
+	item *ports.TransactionListItem,
+) TransactionListItemResponse {
+	return TransactionListItemResponse{
+		ID:             item.ID.String(),
+		Name:           item.Name,
+		Date:           item.OccurredAt.Format(time.DateOnly),
+		Type:           string(item.Type),
+		Amount:         item.Amount,
+		JarName:        item.JarName,
+		Account:        item.Account,
+		AccountBalance: item.AccountBalance,
+		Category:       string(item.Category),
+	}
+}
+
 // parseOptionalUUID parses an optional UUID string.
 // An empty string is represented as nil so that it can be stored as SQL NULL.
 func parseOptionalUUID(value string) (*uuid.UUID, error) {
@@ -238,8 +267,8 @@ func (h *TransactionHandler) HandleCreate(
 
 // ListTransactionsResponse represents the global transaction list response.
 type ListTransactionsResponse struct {
-	Transactions []TransactionResponse `json:"transactions"`
-	Total        int                   `json:"total"`
+	Transactions []TransactionListItemResponse `json:"transactions"`
+	Total        int                           `json:"total"`
 }
 
 // HandleList handles GET /transactions.
@@ -334,9 +363,9 @@ func (h *TransactionHandler) HandleList(
 		return
 	}
 
-	responses := make([]TransactionResponse, len(txns))
+	responses := make([]TransactionListItemResponse, len(txns))
 	for i, txn := range txns {
-		responses[i] = transactionToResponse(txn, nil)
+		responses[i] = transactionListItemToResponse(txn)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -349,8 +378,8 @@ func (h *TransactionHandler) HandleList(
 
 // ListAccountTransactionsResponse represents the account statement response.
 type ListAccountTransactionsResponse struct {
-	Transactions []TransactionResponse `json:"transactions"`
-	Total        int                   `json:"total"`
+	Transactions []TransactionListItemResponse `json:"transactions"`
+	Total        int                           `json:"total"`
 }
 
 // HandleListByAccount handles GET /accounts/{id}/transactions.
@@ -434,7 +463,7 @@ func (h *TransactionHandler) HandleListByAccount(
 		}
 	}
 
-	txnsWithBalance, err := h.service.ListByAccount(
+	txns, err := h.service.ListByAccount(
 		ctx,
 		accountID,
 		params,
@@ -450,19 +479,16 @@ func (h *TransactionHandler) HandleListByAccount(
 		return
 	}
 
-	responses := make([]TransactionResponse, len(txnsWithBalance))
-	for i, twb := range txnsWithBalance {
-		responses[i] = transactionToResponse(
-			twb.Transaction,
-			&twb.BalanceAfter,
-		)
+	responses := make([]TransactionListItemResponse, len(txns))
+	for i, txn := range txns {
+		responses[i] = transactionListItemToResponse(txn)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 
 	_ = json.NewEncoder(w).Encode(ListAccountTransactionsResponse{
 		Transactions: responses,
-		Total:        len(txnsWithBalance),
+		Total:        len(txns),
 	})
 }
 

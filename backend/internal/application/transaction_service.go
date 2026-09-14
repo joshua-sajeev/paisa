@@ -358,11 +358,10 @@ func (s *TransactionService) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 // List retrieves transactions with optional filtering and pagination.
-// Returns plain transactions without running balance.
 func (s *TransactionService) List(
 	ctx context.Context,
 	params ports.ListParams,
-) ([]*transaction.Transaction, error) {
+) ([]*ports.TransactionListItem, error) {
 	s.logger.DebugContext(
 		ctx,
 		"listing transactions",
@@ -388,7 +387,7 @@ func (s *TransactionService) ListByAccount(
 	ctx context.Context,
 	accountID uuid.UUID,
 	params ports.ListParams,
-) ([]*ports.TransactionWithBalance, error) {
+) ([]*ports.TransactionListItem, error) {
 	s.logger.DebugContext(
 		ctx,
 		"listing transactions by account",

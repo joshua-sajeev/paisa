@@ -43,21 +43,12 @@ type DashboardGoalResponse struct {
 	Deadline    time.Time `json:"deadline"`
 }
 
-type DashboardTransactionResponse struct {
-	ID         uuid.UUID `json:"id"`
-	Name       string    `json:"name"`
-	Type       string    `json:"type"`
-	Category   string    `json:"category"`
-	Amount     int64     `json:"amount"`
-	OccurredAt time.Time `json:"occurred_at"`
-}
-
 type DashboardResponse struct {
-	Summary            *DashboardSummaryResponse       `json:"summary"`
-	Accounts           []*DashboardAccountResponse     `json:"accounts"`
-	Jars               []*DashboardJarResponse         `json:"jars"`
-	Goals              []*DashboardGoalResponse        `json:"goals"`
-	RecentTransactions []*DashboardTransactionResponse `json:"recent_transactions"`
+	Summary            *DashboardSummaryResponse      `json:"summary"`
+	Accounts           []*DashboardAccountResponse    `json:"accounts"`
+	Jars               []*DashboardJarResponse        `json:"jars"`
+	Goals              []*DashboardGoalResponse       `json:"goals"`
+	RecentTransactions []*TransactionListItemResponse `json:"recent_transactions"`
 }
 
 // NewDashboardResponse converts domain types to HTTP response
@@ -112,16 +103,10 @@ func NewDashboardResponse(dash *application.DashboardResponse) *DashboardRespons
 	}
 
 	// Convert recent transactions
-	txResp := make([]*DashboardTransactionResponse, len(dash.RecentTransactions))
+	txResp := make([]*TransactionListItemResponse, len(dash.RecentTransactions))
 	for i, t := range dash.RecentTransactions {
-		txResp[i] = &DashboardTransactionResponse{
-			ID:         t.ID,
-			Name:       t.Name,
-			Type:       t.Type,
-			Category:   t.Category,
-			Amount:     t.Amount,
-			OccurredAt: t.OccurredAt,
-		}
+		resp := transactionListItemToResponse(t)
+		txResp[i] = &resp
 	}
 
 	return &DashboardResponse{

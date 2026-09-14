@@ -25,11 +25,17 @@ type ListParams struct {
 	MaxAmount *int64
 }
 
-// TransactionWithBalance represents a transaction with its running balance.
-// Used for account statements where the balance is meaningful.
-type TransactionWithBalance struct {
-	Transaction  *transaction.Transaction
-	BalanceAfter int64 // Running balance after this transaction for the specific account
+// TransactionListItem represents a transaction projected for list responses.
+type TransactionListItem struct {
+	ID             uuid.UUID
+	Name           string
+	Type           transaction.TransactionType
+	Amount         int64
+	JarName        *string
+	Account        string
+	AccountBalance *int64
+	Category       transaction.TransactionCategory
+	OccurredAt     time.Time
 }
 
 // TransactionRepository defines the persistence port for transactions.
@@ -38,10 +44,10 @@ type TransactionRepository interface {
 	Create(ctx context.Context, t *transaction.Transaction) error
 
 	// List retrieves transactions with optional filtering and pagination.
-	// Returns plain transactions without running balance (balance is meaningless across multiple accounts).
+	// Returns display-ready transaction list items.
 	// Supports filtering by search, type, category, date range, amount range, etc.
 	// Results are ordered newest-first by occurred_at, created_at, id.
-	List(ctx context.Context, params ListParams) ([]*transaction.Transaction, error)
+	List(ctx context.Context, params ListParams) ([]*TransactionListItem, error)
 
 	// ListByAccount retrieves transactions for a specific account with running balance.
 	// The running balance is relative to the account: positive for money in, negative for money out.
@@ -52,7 +58,7 @@ type TransactionRepository interface {
 		ctx context.Context,
 		accountID uuid.UUID,
 		params ListParams,
-	) ([]*TransactionWithBalance, error)
+	) ([]*TransactionListItem, error)
 
 	// FindByID retrieves a single transaction by ID.
 	FindByID(ctx context.Context, id uuid.UUID) (*transaction.Transaction, error)

@@ -304,19 +304,37 @@ func (r *dashboardRepository) GetGoalSummaries(ctx context.Context) ([]*ports.Go
 }
 
 // GetRecentTransactions returns the N most recent transactions.
-func (r *dashboardRepository) GetRecentTransactions(ctx context.Context, limit int) ([]*ports.RecentTransaction, error) {
+func (r *dashboardRepository) GetRecentTransactions(ctx context.Context, limit int) ([]*ports.TransactionListItem, error) {
 	db := dbExecutor(ctx, r.db)
 
 	const query = `
 		SELECT
-			id,
-			name,
-			type,
-			category,
-			amount,
-			occurred_at
-		FROM transactions
-		ORDER BY occurred_at DESC, id DESC
+			t.id,
+			t.name,
+			t.type,
+			t.amount,
+			j.name AS jar_name,
+			CASE
+				WHEN t.type = 'income' THEN to_account.name
+				WHEN t.type = 'expense' THEN from_account.name
+				WHEN t.type = 'transfer' THEN from_account.name || ' -> ' || to_account.name
+				ELSE ''
+			END AS account,
+			CASE
+				WHEN t.type = 'income' THEN to_account.balance
+				WHEN t.type = 'expense' THEN from_account.balance
+				ELSE NULL
+			END AS account_balance,
+			t.category,
+			t.occurred_at
+		FROM transactions t
+		LEFT JOIN accounts from_account
+			ON from_account.id = t.from_account_id
+		LEFT JOIN accounts to_account
+			ON to_account.id = t.to_account_id
+		LEFT JOIN jars j
+			ON j.id = t.jar_id
+		ORDER BY t.occurred_at DESC, t.created_at DESC, t.id DESC
 		LIMIT $1
 	`
 
@@ -326,19 +344,12 @@ func (r *dashboardRepository) GetRecentTransactions(ctx context.Context, limit i
 	}
 	defer rows.Close()
 
-	var transactions []*ports.RecentTransaction
+	var transactions []*ports.TransactionListItem
 
 	for rows.Next() {
-		var transaction ports.RecentTransaction
+		var transaction ports.TransactionListItem
 
-		if err := rows.Scan(
-			&transaction.ID,
-			&transaction.Name,
-			&transaction.Type,
-			&transaction.Category,
-			&transaction.Amount,
-			&transaction.OccurredAt,
-		); err != nil {
+		if err := rows.Scan(transactionListItemScanArgs(&transaction)...); err != nil {
 			return nil, err
 		}
 

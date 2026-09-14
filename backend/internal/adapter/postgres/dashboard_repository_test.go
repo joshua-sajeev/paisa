@@ -2,9 +2,111 @@ package postgres_test
 
 import (
 	"testing"
+	"time"
 
+	"github.com/joshu-sajeev/paisa/internal/domain/account"
+	"github.com/joshu-sajeev/paisa/internal/domain/jar"
+	"github.com/joshu-sajeev/paisa/internal/domain/transaction"
 	"github.com/joshu-sajeev/paisa/internal/seed"
 )
+
+func TestDashboardRecentTransactionsProjectsDisplayFields(t *testing.T) {
+	t.Cleanup(func() {
+		truncateTables(t, ctx, db)
+	})
+
+	checking := newTestAccount("Checking")
+	checking.Balance = 750
+	savings := newTestAccount("Savings")
+	savings.Balance = 1200
+
+	for _, acc := range []*account.Account{checking, savings} {
+		if err := accountRepo.Create(ctx, acc); err != nil {
+			t.Fatalf("Create() account error = %v", err)
+		}
+	}
+
+	needs := newTestJar(
+		"Needs",
+		jar.AllocationTypePercentage,
+		50,
+	)
+	if err := jarRepo.Create(ctx, needs); err != nil {
+		t.Fatalf("Create() jar error = %v", err)
+	}
+
+	jan1 := time.Date(2026, 1, 1, 9, 0, 0, 0, time.UTC)
+	jan2 := time.Date(2026, 1, 2, 9, 0, 0, 0, time.UTC)
+	jan3 := time.Date(2026, 1, 3, 9, 0, 0, 0, time.UTC)
+
+	income := mustCreateTransaction(
+		t,
+		"Salary",
+		transaction.TransactionTypeIncome,
+		transaction.TransactionCategoryOther,
+		nil,
+		&checking.ID,
+		1000,
+		jan1,
+	)
+	expense := mustCreateTransactionWithJar(
+		t,
+		"Groceries",
+		transaction.TransactionTypeExpense,
+		transaction.TransactionCategoryGroceries,
+		&checking.ID,
+		nil,
+		&needs.ID,
+		200,
+		jan2,
+	)
+	transfer := mustCreateTransaction(
+		t,
+		"Move to savings",
+		transaction.TransactionTypeTransfer,
+		transaction.TransactionCategoryTransfer,
+		&checking.ID,
+		&savings.ID,
+		300,
+		jan3,
+	)
+
+	got, err := dashboardRepo.GetRecentTransactions(ctx, 10)
+	if err != nil {
+		t.Fatalf("GetRecentTransactions() error = %v", err)
+	}
+
+	incomeItem := findTransactionListItem(t, got, income.ID)
+	if incomeItem.Account != checking.Name {
+		t.Errorf("income Account = %q, want %q", incomeItem.Account, checking.Name)
+	}
+	if incomeItem.AccountBalance == nil || *incomeItem.AccountBalance != checking.Balance {
+		t.Errorf("income AccountBalance = %v, want %d", incomeItem.AccountBalance, checking.Balance)
+	}
+
+	expenseItem := findTransactionListItem(t, got, expense.ID)
+	if expenseItem.Account != checking.Name {
+		t.Errorf("expense Account = %q, want %q", expenseItem.Account, checking.Name)
+	}
+	if expenseItem.AccountBalance == nil || *expenseItem.AccountBalance != checking.Balance {
+		t.Errorf("expense AccountBalance = %v, want %d", expenseItem.AccountBalance, checking.Balance)
+	}
+	if expenseItem.JarName == nil || *expenseItem.JarName != needs.Name {
+		t.Errorf("expense JarName = %v, want %q", expenseItem.JarName, needs.Name)
+	}
+
+	transferItem := findTransactionListItem(t, got, transfer.ID)
+	wantTransferAccount := checking.Name + " -> " + savings.Name
+	if transferItem.Account != wantTransferAccount {
+		t.Errorf("transfer Account = %q, want %q", transferItem.Account, wantTransferAccount)
+	}
+	if transferItem.AccountBalance != nil {
+		t.Errorf("transfer AccountBalance = %v, want nil", transferItem.AccountBalance)
+	}
+	if transferItem.Amount != transfer.Amount {
+		t.Errorf("transfer Amount = %d, want %d", transferItem.Amount, transfer.Amount)
+	}
+}
 
 func BenchmarkDashboardRepository(b *testing.B) {
 	if err := seed.Run(ctx, db); err != nil {

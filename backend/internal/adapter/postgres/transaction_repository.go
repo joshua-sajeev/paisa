@@ -78,6 +78,20 @@ func applyTransactionScan(
 	t.JarID = scan.jarID
 }
 
+func transactionListItemScanArgs(item *ports.TransactionListItem) []any {
+	return []any{
+		&item.ID,
+		&item.Name,
+		&item.Type,
+		&item.Amount,
+		&item.JarName,
+		&item.Account,
+		&item.AccountBalance,
+		&item.Category,
+		&item.OccurredAt,
+	}
+}
+
 const (
 	insertTransactionQuery = `
 		INSERT INTO transactions (
@@ -158,7 +172,7 @@ func (r *transactionRepository) Create(
 func (r *transactionRepository) List(
 	ctx context.Context,
 	params ports.ListParams,
-) ([]*transaction.Transaction, error) {
+) ([]*ports.TransactionListItem, error) {
 	exec := dbExecutor(ctx, r.db)
 
 	query, queryParams := r.buildListQuery(params)
@@ -169,21 +183,18 @@ func (r *transactionRepository) List(
 	}
 	defer rows.Close()
 
-	transactions := make([]*transaction.Transaction, 0)
+	transactions := make([]*ports.TransactionListItem, 0)
 
 	for rows.Next() {
-		var txn transaction.Transaction
-		var scan transactionScan
+		var item ports.TransactionListItem
 
 		if err := rows.Scan(
-			transactionScanArgs(&txn, &scan)...,
+			transactionListItemScanArgs(&item)...,
 		); err != nil {
 			return nil, fmt.Errorf("scan transaction: %w", err)
 		}
 
-		applyTransactionScan(&txn, &scan)
-
-		transactions = append(transactions, &txn)
+		transactions = append(transactions, &item)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -203,25 +214,37 @@ func (r *transactionRepository) buildListQuery(
 
 	query.WriteString(`
 		SELECT
-			id,
-			name,
-			type,
-			category,
-			from_account_id,
-			to_account_id,
-			jar_id,
-			amount,
-			occurred_at,
-			is_master_income,
-			created_at,
-			updated_at
-		FROM transactions
+			t.id,
+			t.name,
+			t.type,
+			t.amount,
+			j.name AS jar_name,
+			CASE
+				WHEN t.type = 'income' THEN to_account.name
+				WHEN t.type = 'expense' THEN from_account.name
+				WHEN t.type = 'transfer' THEN from_account.name || ' -> ' || to_account.name
+				ELSE ''
+			END AS account,
+			CASE
+				WHEN t.type = 'income' THEN to_account.balance
+				WHEN t.type = 'expense' THEN from_account.balance
+				ELSE NULL
+			END AS account_balance,
+			t.category,
+			t.occurred_at
+		FROM transactions t
+		LEFT JOIN accounts from_account
+			ON from_account.id = t.from_account_id
+		LEFT JOIN accounts to_account
+			ON to_account.id = t.to_account_id
+		LEFT JOIN jars j
+			ON j.id = t.jar_id
 		WHERE 1 = 1
 	`)
 
 	if params.Search != nil && *params.Search != "" {
 		query.WriteString(
-			" AND name ILIKE '%' || $" +
+			" AND t.name ILIKE '%' || $" +
 				fmt.Sprintf("%d", len(queryParams)+1) +
 				" || '%'",
 		)
@@ -232,9 +255,9 @@ func (r *transactionRepository) buildListQuery(
 		n := len(queryParams) + 1
 
 		query.WriteString(
-			" AND (from_account_id = $" +
+			" AND (t.from_account_id = $" +
 				fmt.Sprintf("%d", n) +
-				" OR to_account_id = $" +
+				" OR t.to_account_id = $" +
 				fmt.Sprintf("%d", n) +
 				")",
 		)
@@ -245,21 +268,21 @@ func (r *transactionRepository) buildListQuery(
 
 	if params.Type != nil {
 		query.WriteString(
-			" AND type = $" + fmt.Sprintf("%d", len(queryParams)+1),
+			" AND t.type = $" + fmt.Sprintf("%d", len(queryParams)+1),
 		)
 		queryParams = append(queryParams, *params.Type)
 	}
 
 	if params.Category != nil {
 		query.WriteString(
-			" AND category = $" + fmt.Sprintf("%d", len(queryParams)+1),
+			" AND t.category = $" + fmt.Sprintf("%d", len(queryParams)+1),
 		)
 		queryParams = append(queryParams, *params.Category)
 	}
 
 	if params.FromDate != nil {
 		query.WriteString(
-			" AND occurred_at >= $" +
+			" AND t.occurred_at >= $" +
 				fmt.Sprintf("%d", len(queryParams)+1),
 		)
 		queryParams = append(queryParams, *params.FromDate)
@@ -267,7 +290,7 @@ func (r *transactionRepository) buildListQuery(
 
 	if params.ToDate != nil {
 		query.WriteString(
-			" AND occurred_at <= $" +
+			" AND t.occurred_at <= $" +
 				fmt.Sprintf("%d", len(queryParams)+1),
 		)
 		queryParams = append(queryParams, *params.ToDate)
@@ -275,7 +298,7 @@ func (r *transactionRepository) buildListQuery(
 
 	if params.MinAmount != nil {
 		query.WriteString(
-			" AND amount >= $" +
+			" AND t.amount >= $" +
 				fmt.Sprintf("%d", len(queryParams)+1),
 		)
 		queryParams = append(queryParams, *params.MinAmount)
@@ -283,7 +306,7 @@ func (r *transactionRepository) buildListQuery(
 
 	if params.MaxAmount != nil {
 		query.WriteString(
-			" AND amount <= $" +
+			" AND t.amount <= $" +
 				fmt.Sprintf("%d", len(queryParams)+1),
 		)
 		queryParams = append(queryParams, *params.MaxAmount)
@@ -291,7 +314,7 @@ func (r *transactionRepository) buildListQuery(
 
 	query.WriteString(
 		`
-		ORDER BY occurred_at DESC, created_at DESC, id DESC
+		ORDER BY t.occurred_at DESC, t.created_at DESC, t.id DESC
 		LIMIT $` +
 			fmt.Sprintf("%d", len(queryParams)+1) +
 			` OFFSET $` +
@@ -312,7 +335,7 @@ func (r *transactionRepository) ListByAccount(
 	ctx context.Context,
 	accountID uuid.UUID,
 	params ports.ListParams,
-) ([]*ports.TransactionWithBalance, error) {
+) ([]*ports.TransactionListItem, error) {
 	exec := dbExecutor(ctx, r.db)
 
 	query, queryParams := r.buildListByAccountQuery(
@@ -329,35 +352,19 @@ func (r *transactionRepository) ListByAccount(
 	}
 	defer rows.Close()
 
-	transactions := make(
-		[]*ports.TransactionWithBalance,
-		0,
-	)
+	transactions := make([]*ports.TransactionListItem, 0)
 
 	for rows.Next() {
-		var txn transaction.Transaction
-		var scan transactionScan
-		var balance int64
+		var item ports.TransactionListItem
 
-		scanArgs := transactionScanArgs(&txn, &scan)
-		scanArgs = append(scanArgs, &balance)
-
-		if err := rows.Scan(scanArgs...); err != nil {
+		if err := rows.Scan(transactionListItemScanArgs(&item)...); err != nil {
 			return nil, fmt.Errorf(
 				"scan transaction with balance: %w",
 				err,
 			)
 		}
 
-		applyTransactionScan(&txn, &scan)
-
-		transactions = append(
-			transactions,
-			&ports.TransactionWithBalance{
-				Transaction:  &txn,
-				BalanceAfter: balance,
-			},
-		)
+		transactions = append(transactions, &item)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -504,17 +511,35 @@ func (r *transactionRepository) buildListByAccountQuery(
 			id,
 			name,
 			type,
+			CASE
+				WHEN to_account_id = $1 THEN amount
+				WHEN from_account_id = $1 THEN -amount
+				ELSE amount
+			END AS amount,
+			jar_name,
+			account,
+			balance_after AS account_balance,
 			category,
-			from_account_id,
-			to_account_id,
-			jar_id,
-			amount,
-			occurred_at,
-			is_master_income,
-			created_at,
-			updated_at,
-			balance_after
-		FROM filtered_transactions
+			occurred_at
+		FROM (
+			SELECT
+				ft.*,
+				j.name AS jar_name,
+				CASE
+					WHEN ft.type = 'transfer' AND ft.from_account_id = $1 THEN to_account.name
+					WHEN ft.type = 'transfer' AND ft.to_account_id = $1 THEN from_account.name
+					WHEN ft.type = 'income' THEN to_account.name
+					WHEN ft.type = 'expense' THEN from_account.name
+					ELSE ''
+				END AS account
+			FROM filtered_transactions ft
+			LEFT JOIN accounts from_account
+				ON from_account.id = ft.from_account_id
+			LEFT JOIN accounts to_account
+				ON to_account.id = ft.to_account_id
+			LEFT JOIN jars j
+				ON j.id = ft.jar_id
+		) projected_transactions
 		ORDER BY occurred_at DESC, created_at DESC, id DESC
 		LIMIT $` +
 		fmt.Sprintf("%d", len(queryParams)+1) +

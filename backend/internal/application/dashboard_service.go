@@ -31,7 +31,7 @@ type DashboardResponse struct {
 	Accounts           []*ports.AccountBalance
 	Jars               []*ports.JarSummary
 	Goals              []*ports.GoalSummary
-	RecentTransactions []*ports.RecentTransaction
+	RecentTransactions []*ports.TransactionListItem
 }
 
 // GetDashboard retrieves and composes the complete dashboard

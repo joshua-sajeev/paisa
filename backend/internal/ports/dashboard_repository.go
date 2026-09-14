@@ -47,16 +47,6 @@ type GoalSummary struct {
 	Deadline    time.Time
 }
 
-// RecentTransaction represents a transaction summary
-type RecentTransaction struct {
-	ID         uuid.UUID
-	Name       string
-	Type       string
-	Category   string
-	Amount     int64
-	OccurredAt time.Time
-}
-
 // DashboardRepository defines dashboard data access operations
 type DashboardRepository interface {
 	GetTotalBalance(ctx context.Context) (int64, error)
@@ -64,5 +54,5 @@ type DashboardRepository interface {
 	GetAccountBalances(ctx context.Context) ([]*AccountBalance, error)
 	GetJarSummaries(ctx context.Context) ([]*JarSummary, error)
 	GetGoalSummaries(ctx context.Context) ([]*GoalSummary, error)
-	GetRecentTransactions(ctx context.Context, limit int) ([]*RecentTransaction, error)
+	GetRecentTransactions(ctx context.Context, limit int) ([]*TransactionListItem, error)
 }
