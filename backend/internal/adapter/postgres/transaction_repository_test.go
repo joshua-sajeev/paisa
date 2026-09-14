@@ -61,22 +61,6 @@ func getDBAllocations(t *testing.T, ctx context.Context, transactionID uuid.UUID
 	return allocs
 }
 
-func getDBTransactionJarID(t *testing.T, ctx context.Context, transactionID uuid.UUID) *uuid.UUID {
-	t.Helper()
-
-	var jarID *uuid.UUID
-	err := db.QueryRow(
-		ctx,
-		"SELECT jar_id FROM transactions WHERE id = $1",
-		transactionID,
-	).Scan(&jarID)
-	if err != nil {
-		t.Fatalf("failed to query transactions.jar_id: %v", err)
-	}
-
-	return jarID
-}
-
 func findJarSummary(t *testing.T, summaries []*ports.JarSummary, jarID uuid.UUID) *ports.JarSummary {
 	t.Helper()
 	for _, s := range summaries {
@@ -89,7 +73,9 @@ func findJarSummary(t *testing.T, summaries []*ports.JarSummary, jarID uuid.UUID
 }
 
 func TestJarExpenseAllocationAndReassignment(t *testing.T) {
-	truncateTables(t, ctx, db)
+	t.Cleanup(func() {
+		truncateTables(t, ctx, db)
+	})
 
 	svc := setupTestTransactionService(t)
 

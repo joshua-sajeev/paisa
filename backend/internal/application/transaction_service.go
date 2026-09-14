@@ -317,10 +317,17 @@ func (s *TransactionService) Delete(ctx context.Context, id uuid.UUID) error {
 		}
 
 		// Reverse account balance effects before deletion
-		if err := s.reverseAccountBalances(txCtx, txn.Type, txn.FromAccountID, txn.ToAccountID, txn.Amount); err != nil {
+		if err := s.reverseAccountBalances(
+			txCtx,
+			txn.Type,
+			txn.FromAccountID,
+			txn.ToAccountID,
+			txn.Amount,
+		); err != nil {
 			s.logger.ErrorContext(
 				txCtx,
 				"failed to reverse account balances during deletion",
+				slog.String("id", id.String()),
 				slog.String("error", err.Error()),
 			)
 			return err
@@ -330,6 +337,7 @@ func (s *TransactionService) Delete(ctx context.Context, id uuid.UUID) error {
 			s.logger.ErrorContext(
 				txCtx,
 				"failed to delete allocations",
+				slog.String("id", id.String()),
 				slog.String("error", err.Error()),
 			)
 			return err
@@ -339,6 +347,7 @@ func (s *TransactionService) Delete(ctx context.Context, id uuid.UUID) error {
 			s.logger.ErrorContext(
 				txCtx,
 				"failed to delete transaction",
+				slog.String("id", id.String()),
 				slog.String("error", err.Error()),
 			)
 			return err

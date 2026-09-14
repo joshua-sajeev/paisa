@@ -23,7 +23,9 @@ func mustCreateTransaction(
 	occurredAt time.Time,
 ) *transaction.Transaction {
 	t.Helper()
-	txn, err := transaction.NewTransaction(
+
+	return mustCreateTransactionWithJar(
+		t,
 		name,
 		txnType,
 		cat,
@@ -32,15 +34,7 @@ func mustCreateTransaction(
 		nil,
 		amount,
 		occurredAt,
-		false,
 	)
-	if err != nil {
-		t.Fatalf("NewTransaction error: %v", err)
-	}
-	if err := transactionRepo.Create(ctx, txn); err != nil {
-		t.Fatalf("transactionRepo.Create error: %v", err)
-	}
-	return txn
 }
 
 func mustCreateTransactionWithJar(
@@ -158,33 +152,64 @@ func TestDashboardRecentTransactionsProjectsDisplayFields(t *testing.T) {
 
 	incomeItem := findTransactionListItem(t, got, income.ID)
 	if incomeItem.Account != checking.Name {
-		t.Errorf("income Account = %q, want %q", incomeItem.Account, checking.Name)
+		t.Errorf(
+			"income Account = %q, want %q",
+			incomeItem.Account,
+			checking.Name,
+		)
 	}
 	if incomeItem.AccountBalance == nil || *incomeItem.AccountBalance != checking.Balance {
-		t.Errorf("income AccountBalance = %v, want %d", incomeItem.AccountBalance, checking.Balance)
+		t.Errorf(
+			"income AccountBalance = %v, want %d",
+			incomeItem.AccountBalance,
+			checking.Balance,
+		)
 	}
 
 	expenseItem := findTransactionListItem(t, got, expense.ID)
 	if expenseItem.Account != checking.Name {
-		t.Errorf("expense Account = %q, want %q", expenseItem.Account, checking.Name)
+		t.Errorf(
+			"expense Account = %q, want %q",
+			expenseItem.Account,
+			checking.Name,
+		)
 	}
 	if expenseItem.AccountBalance == nil || *expenseItem.AccountBalance != checking.Balance {
-		t.Errorf("expense AccountBalance = %v, want %d", expenseItem.AccountBalance, checking.Balance)
+		t.Errorf(
+			"expense AccountBalance = %v, want %d",
+			expenseItem.AccountBalance,
+			checking.Balance,
+		)
 	}
 	if expenseItem.JarName == nil || *expenseItem.JarName != needs.Name {
-		t.Errorf("expense JarName = %v, want %q", expenseItem.JarName, needs.Name)
+		t.Errorf(
+			"expense JarName = %v, want %q",
+			expenseItem.JarName,
+			needs.Name,
+		)
 	}
 
 	transferItem := findTransactionListItem(t, got, transfer.ID)
 	wantTransferAccount := checking.Name + " -> " + savings.Name
 	if transferItem.Account != wantTransferAccount {
-		t.Errorf("transfer Account = %q, want %q", transferItem.Account, wantTransferAccount)
+		t.Errorf(
+			"transfer Account = %q, want %q",
+			transferItem.Account,
+			wantTransferAccount,
+		)
 	}
 	if transferItem.AccountBalance != nil {
-		t.Errorf("transfer AccountBalance = %v, want nil", transferItem.AccountBalance)
+		t.Errorf(
+			"transfer AccountBalance = %v, want nil",
+			transferItem.AccountBalance,
+		)
 	}
 	if transferItem.Amount != transfer.Amount {
-		t.Errorf("transfer Amount = %d, want %d", transferItem.Amount, transfer.Amount)
+		t.Errorf(
+			"transfer Amount = %d, want %d",
+			transferItem.Amount,
+			transfer.Amount,
+		)
 	}
 }
 
