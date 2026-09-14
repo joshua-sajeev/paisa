@@ -34,6 +34,10 @@ func assertAccount(t *testing.T, got, want *account.Account) {
 		t.Errorf("Name = %q, want %q", got.Name, want.Name)
 	}
 
+	if got.Balance != want.Balance {
+		t.Errorf("Balance = %d, want %d", got.Balance, want.Balance)
+	}
+
 	if got.IsArchived != want.IsArchived {
 		t.Errorf(
 			"IsArchived = %v, want %v",
@@ -64,6 +68,7 @@ func queryAccount(t *testing.T, id uuid.UUID) *account.Account {
 		SELECT
 			id,
 			name,
+			balance,
 			is_archived,
 			created_at,
 			updated_at
@@ -74,6 +79,7 @@ func queryAccount(t *testing.T, id uuid.UUID) *account.Account {
 	).Scan(
 		&a.ID,
 		&a.Name,
+		&a.Balance,
 		&a.IsArchived,
 		&a.CreatedAt,
 		&a.UpdatedAt,
@@ -100,6 +106,14 @@ func TestAccountCreate(t *testing.T) {
 		{"special chars", newTestAccount(`Account's "Savings"`)},
 		{"unicode", newTestAccount("日本語アカウント")},
 		{"long name", newTestAccount("VeryLongAccountNameWithManyCharactersForTesting")},
+		{
+			name: "initial balance",
+			acc: func() *account.Account {
+				acc := newTestAccount("Opening Balance")
+				acc.Balance = 125000
+				return acc
+			}(),
+		},
 	}
 
 	for _, tt := range tests {
@@ -495,6 +509,84 @@ func TestAccountSave(t *testing.T) {
 				)
 			}
 		})
+	}
+}
+
+func TestAccountSave_DoesNotOverwriteBalance(t *testing.T) {
+	t.Cleanup(func() {
+		truncateTables(t, ctx, db)
+	})
+
+	acc := newTestAccount("Checking")
+	acc.Balance = 1000
+
+	if err := accountRepo.Create(ctx, acc); err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	if err := accountRepo.AdjustBalance(ctx, acc.ID, 500); err != nil {
+		t.Fatalf("AdjustBalance() error = %v", err)
+	}
+
+	acc.Name = "Renamed Checking"
+	acc.Balance = 1
+	acc.UpdatedAt = time.Now().UTC().Truncate(time.Microsecond)
+
+	if err := accountRepo.Save(ctx, acc); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	got := queryAccount(t, acc.ID)
+
+	if got.Name != "Renamed Checking" {
+		t.Errorf("Name = %q, want %q", got.Name, "Renamed Checking")
+	}
+
+	if got.Balance != 1500 {
+		t.Errorf("Balance = %d, want %d", got.Balance, 1500)
+	}
+}
+
+func TestAccountAdjustBalance(t *testing.T) {
+	t.Cleanup(func() {
+		truncateTables(t, ctx, db)
+	})
+
+	acc := newTestAccount("Checking")
+	acc.Balance = 1000
+
+	if err := accountRepo.Create(ctx, acc); err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	if err := accountRepo.AdjustBalance(ctx, acc.ID, 2500); err != nil {
+		t.Fatalf("AdjustBalance() error = %v", err)
+	}
+
+	if err := accountRepo.AdjustBalance(ctx, acc.ID, -750); err != nil {
+		t.Fatalf("AdjustBalance() error = %v", err)
+	}
+
+	got := queryAccount(t, acc.ID)
+
+	if got.Balance != 2750 {
+		t.Errorf("Balance = %d, want %d", got.Balance, 2750)
+	}
+}
+
+func TestAccountAdjustBalance_NotFound(t *testing.T) {
+	t.Cleanup(func() {
+		truncateTables(t, ctx, db)
+	})
+
+	err := accountRepo.AdjustBalance(ctx, uuid.New(), 1000)
+
+	if !errors.Is(err, account.ErrAccountNotFound) {
+		t.Errorf(
+			"AdjustBalance() error = %v, want %v",
+			err,
+			account.ErrAccountNotFound,
+		)
 	}
 }
 

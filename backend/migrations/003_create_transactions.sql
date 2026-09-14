@@ -152,6 +152,11 @@ CREATE INDEX idx_transactions_to_account
 CREATE INDEX idx_transactions_jar
     ON transactions (jar_id);
 
+CREATE INDEX idx_transactions_expense_jar_covering
+    ON transactions (jar_id)
+    INCLUDE (amount)
+    WHERE type = 'expense' AND jar_id IS NOT NULL;
+
 CREATE INDEX idx_transactions_occurred_at
     ON transactions (occurred_at);
 
@@ -164,6 +169,7 @@ CREATE INDEX idx_jar_allocations_jar
 DROP INDEX idx_jar_allocations_jar;
 
 DROP INDEX idx_transactions_occurred_at;
+DROP INDEX idx_transactions_expense_jar_covering;
 DROP INDEX idx_transactions_jar;
 DROP INDEX idx_transactions_to_account;
 DROP INDEX idx_transactions_from_account;

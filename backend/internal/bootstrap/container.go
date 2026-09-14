@@ -134,6 +134,7 @@ func (c *Container) initServices() {
 		c.transactionRepository,
 		c.allocationRepository,
 		c.jarRepository,
+		c.accountRepository,
 		c.txManager,
 
 		c.logger,

@@ -130,6 +130,50 @@ func seedTransactions(
 		}
 	}
 
+	if err := refreshAccountBalances(ctx, db); err != nil {
+		return fmt.Errorf("refresh account balances: %w", err)
+	}
+
+	return nil
+}
+
+func refreshAccountBalances(ctx context.Context, db *pgxpool.Pool) error {
+	_, err := db.Exec(
+		ctx,
+		`
+		WITH account_deltas AS (
+			SELECT
+				account_id,
+				SUM(delta) AS balance
+			FROM (
+				SELECT
+					to_account_id AS account_id,
+					amount AS delta
+				FROM transactions
+				WHERE to_account_id IS NOT NULL
+
+				UNION ALL
+
+				SELECT
+					from_account_id AS account_id,
+					-amount AS delta
+				FROM transactions
+				WHERE from_account_id IS NOT NULL
+			) deltas
+			GROUP BY account_id
+		)
+		UPDATE accounts a
+		SET
+			balance = COALESCE(account_deltas.balance, 0),
+			updated_at = NOW()
+		FROM account_deltas
+		WHERE a.id = account_deltas.account_id
+		`,
+	)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

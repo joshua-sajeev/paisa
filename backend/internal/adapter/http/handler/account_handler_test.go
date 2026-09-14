@@ -88,8 +88,9 @@ func TestAccountHandler_Create(t *testing.T) {
 				name string,
 			) (*account.Account, error) {
 				return &account.Account{
-					ID:   uuid.New(),
-					Name: name,
+					ID:      uuid.New(),
+					Name:    name,
+					Balance: 125000,
 				}, nil
 			},
 			wantStatus: http.StatusCreated,
@@ -165,6 +166,7 @@ func TestAccountHandler_Create(t *testing.T) {
 			)
 
 			assert.Equal(t, tt.wantName, response.Name)
+			assert.Equal(t, int64(125000), response.Balance)
 		})
 	}
 }
@@ -222,12 +224,14 @@ func TestAccountHandler_List(t *testing.T) {
 					{
 						ID:         id1,
 						Name:       "Savings",
+						Balance:    125000,
 						IsArchived: false,
 						UpdatedAt:  now,
 					},
 					{
 						ID:         id2,
 						Name:       "Emergency",
+						Balance:    25000,
 						IsArchived: true,
 						UpdatedAt:  now,
 					},
@@ -238,12 +242,14 @@ func TestAccountHandler_List(t *testing.T) {
 				{
 					ID:         id1,
 					Name:       "Savings",
+					Balance:    125000,
 					IsArchived: false,
 					UpdatedAt:  now,
 				},
 				{
 					ID:         id2,
 					Name:       "Emergency",
+					Balance:    25000,
 					IsArchived: true,
 					UpdatedAt:  now,
 				},

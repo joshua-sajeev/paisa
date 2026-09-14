@@ -382,7 +382,7 @@ func (r *transactionRepository) buildListByAccountQuery(
 	queryParams = append(queryParams, accountID)
 
 	query.WriteString(`
-		WITH filtered_transactions AS (
+		WITH account_transactions AS (
 			SELECT
 				id,
 				name,
@@ -401,6 +401,44 @@ func (r *transactionRepository) buildListByAccountQuery(
 				from_account_id = $1
 				OR to_account_id = $1
 			)
+		),
+		with_running_balance AS (
+			SELECT
+				id,
+				name,
+				type,
+				category,
+				from_account_id,
+				to_account_id,
+				jar_id,
+				amount,
+				occurred_at,
+				is_master_income,
+				created_at,
+				updated_at,
+				COALESCE(
+					SUM(
+						CASE
+							WHEN to_account_id = $1 THEN amount
+							WHEN from_account_id = $1 THEN -amount
+							ELSE 0
+						END
+					) OVER (
+						ORDER BY
+							occurred_at ASC,
+							created_at ASC,
+							id ASC
+						ROWS BETWEEN
+							UNBOUNDED PRECEDING AND CURRENT ROW
+					),
+					0
+				) AS balance_after
+			FROM account_transactions
+		),
+		filtered_transactions AS (
+			SELECT *
+			FROM with_running_balance
+			WHERE 1 = 1
 	`)
 
 	if params.Search != nil && *params.Search != "" {
@@ -461,40 +499,6 @@ func (r *transactionRepository) buildListByAccountQuery(
 	}
 
 	query.WriteString(`
-			ORDER BY occurred_at ASC, created_at ASC, id ASC
-		),
-		with_running_balance AS (
-			SELECT
-				id,
-				name,
-				type,
-				category,
-				from_account_id,
-				to_account_id,
-				jar_id,
-				amount,
-				occurred_at,
-				is_master_income,
-				created_at,
-				updated_at,
-				COALESCE(
-					SUM(
-						CASE
-							WHEN to_account_id = $1 THEN amount
-							WHEN from_account_id = $1 THEN -amount
-							ELSE 0
-						END
-					) OVER (
-						ORDER BY
-							occurred_at ASC,
-							created_at ASC,
-							id ASC
-						ROWS BETWEEN
-							UNBOUNDED PRECEDING AND CURRENT ROW
-					),
-					0
-				) AS balance_after
-			FROM filtered_transactions
 		)
 		SELECT
 			id,
@@ -510,7 +514,7 @@ func (r *transactionRepository) buildListByAccountQuery(
 			created_at,
 			updated_at,
 			balance_after
-		FROM with_running_balance
+		FROM filtered_transactions
 		ORDER BY occurred_at DESC, created_at DESC, id DESC
 		LIMIT $` +
 		fmt.Sprintf("%d", len(queryParams)+1) +

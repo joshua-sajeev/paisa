@@ -12,10 +12,11 @@ import (
 )
 
 type mockAccountRepository struct {
-	createFn   func(context.Context, *account.Account) error
-	listFn     func(context.Context) ([]*account.Account, error)
-	findByIDFn func(context.Context, uuid.UUID) (*account.Account, error)
-	saveFn     func(context.Context, *account.Account) error
+	createFn        func(context.Context, *account.Account) error
+	listFn          func(context.Context) ([]*account.Account, error)
+	findByIDFn      func(context.Context, uuid.UUID) (*account.Account, error)
+	saveFn          func(context.Context, *account.Account) error
+	adjustBalanceFn func(context.Context, uuid.UUID, int64) error
 }
 
 func (m *mockAccountRepository) Create(
@@ -43,6 +44,18 @@ func (m *mockAccountRepository) Save(
 	a *account.Account,
 ) error {
 	return m.saveFn(ctx, a)
+}
+
+func (m *mockAccountRepository) AdjustBalance(
+	ctx context.Context,
+	id uuid.UUID,
+	delta int64,
+) error {
+	if m.adjustBalanceFn == nil {
+		return nil
+	}
+
+	return m.adjustBalanceFn(ctx, id, delta)
 }
 
 func newTestAccountService(

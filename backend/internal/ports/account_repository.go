@@ -19,6 +19,9 @@ type AccountRepository interface {
 	// FindByID gets an account by ID.
 	FindByID(ctx context.Context, id uuid.UUID) (*account.Account, error)
 
-	// Save persists the current state of an account.
+	// Save persists editable account metadata without changing balance.
 	Save(ctx context.Context, a *account.Account) error
+
+	// AdjustBalance atomically changes an account balance by delta.
+	AdjustBalance(ctx context.Context, id uuid.UUID, delta int64) error
 }

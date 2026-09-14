@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -30,6 +31,7 @@ func accountValues(a *account.Account) []any {
 	return []any{
 		a.ID,
 		a.Name,
+		a.Balance,
 		a.IsArchived,
 		a.CreatedAt,
 		a.UpdatedAt,
@@ -40,6 +42,7 @@ func accountScanArgs(a *account.Account) []any {
 	return []any{
 		&a.ID,
 		&a.Name,
+		&a.Balance,
 		&a.IsArchived,
 		&a.CreatedAt,
 		&a.UpdatedAt,
@@ -51,17 +54,19 @@ const (
 		INSERT INTO accounts (
 			id,
 			name,
+			balance,
 			is_archived,
 			created_at,
 			updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5)
+		VALUES ($1, $2, $3, $4, $5, $6)
 	`
 
 	listAccountsQuery = `
 		SELECT
 			id,
 			name,
+			balance,
 			is_archived,
 			created_at,
 			updated_at
@@ -73,6 +78,7 @@ const (
 		SELECT
 			id,
 			name,
+			balance,
 			is_archived,
 			created_at,
 			updated_at
@@ -86,6 +92,14 @@ const (
 			name = $2,
 			is_archived = $3,
 			updated_at = $4
+		WHERE id = $1
+	`
+
+	adjustAccountBalanceQuery = `
+		UPDATE accounts
+		SET
+			balance = balance + $2,
+			updated_at = $3
 		WHERE id = $1
 	`
 )
@@ -199,6 +213,34 @@ func (r *accountRepository) Save(
 	if tag.RowsAffected() == 0 {
 		return fmt.Errorf(
 			"save account: %w",
+			account.ErrAccountNotFound,
+		)
+	}
+
+	return nil
+}
+
+func (r *accountRepository) AdjustBalance(
+	ctx context.Context,
+	id uuid.UUID,
+	delta int64,
+) error {
+	exec := dbExecutor(ctx, r.db)
+
+	tag, err := exec.Exec(
+		ctx,
+		adjustAccountBalanceQuery,
+		id,
+		delta,
+		time.Now().UTC().Truncate(time.Microsecond),
+	)
+	if err != nil {
+		return fmt.Errorf("adjust account balance: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf(
+			"adjust account balance: %w",
 			account.ErrAccountNotFound,
 		)
 	}

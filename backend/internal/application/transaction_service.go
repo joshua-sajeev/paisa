@@ -16,6 +16,7 @@ type TransactionService struct {
 	transactionRepo ports.TransactionRepository
 	allocationRepo  ports.AllocationRepository
 	jarRepo         ports.JarRepository
+	accountRepo     ports.AccountRepository
 	txManager       ports.TxManager
 	logger          *slog.Logger
 }
@@ -25,6 +26,7 @@ func NewTransactionService(
 	transactionRepo ports.TransactionRepository,
 	allocationRepo ports.AllocationRepository,
 	jarRepo ports.JarRepository,
+	accountRepo ports.AccountRepository,
 	txManager ports.TxManager,
 	logger *slog.Logger,
 ) *TransactionService {
@@ -32,6 +34,7 @@ func NewTransactionService(
 		transactionRepo: transactionRepo,
 		allocationRepo:  allocationRepo,
 		jarRepo:         jarRepo,
+		accountRepo:     accountRepo,
 		txManager:       txManager,
 		logger:          logger,
 	}
@@ -117,6 +120,15 @@ func (s *TransactionService) Create(
 			}
 		}
 
+		if err := s.updateAccountBalances(txCtx, newTxn); err != nil {
+			s.logger.ErrorContext(
+				txCtx,
+				"failed to update account balances",
+				slog.String("error", err.Error()),
+			)
+			return err
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -133,6 +145,7 @@ func (s *TransactionService) Create(
 }
 
 // Update modifies a transaction and recalculates allocations if needed.
+// Also corrects account balances for any changes to amount or account assignments.
 func (s *TransactionService) Update(
 	ctx context.Context,
 	id uuid.UUID,
@@ -154,6 +167,9 @@ func (s *TransactionService) Update(
 	var txn *transaction.Transaction
 	var oldAmount int64
 	var oldIsMasterIncome bool
+	var oldType transaction.TransactionType
+	var oldFromAccountID *uuid.UUID
+	var oldToAccountID *uuid.UUID
 	var err error
 
 	err = s.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
@@ -168,8 +184,12 @@ func (s *TransactionService) Update(
 			return err
 		}
 
+		// Preserve old values for balance correction
+		oldType = txn.Type
 		oldAmount = txn.Amount
 		oldIsMasterIncome = txn.IsMasterIncome
+		oldFromAccountID = txn.FromAccountID
+		oldToAccountID = txn.ToAccountID
 
 		if err := txn.Update(
 			name,
@@ -185,6 +205,26 @@ func (s *TransactionService) Update(
 				txCtx,
 				"transaction validation failed",
 				slog.String("id", id.String()),
+				slog.String("error", err.Error()),
+			)
+			return err
+		}
+
+		// Reverse old balance effects
+		if err := s.reverseAccountBalances(txCtx, oldType, oldFromAccountID, oldToAccountID, oldAmount); err != nil {
+			s.logger.ErrorContext(
+				txCtx,
+				"failed to reverse old account balances",
+				slog.String("error", err.Error()),
+			)
+			return err
+		}
+
+		// Apply new balance effects
+		if err := s.applyAccountBalances(txCtx, txn.Type, txn.FromAccountID, txn.ToAccountID, txn.Amount); err != nil {
+			s.logger.ErrorContext(
+				txCtx,
+				"failed to apply new account balances",
 				slog.String("error", err.Error()),
 			)
 			return err
@@ -253,6 +293,7 @@ func (s *TransactionService) Update(
 }
 
 // Delete removes a transaction and its allocations atomically.
+// Also reverses the transaction's account balance effects.
 func (s *TransactionService) Delete(ctx context.Context, id uuid.UUID) error {
 	s.logger.DebugContext(
 		ctx,
@@ -261,6 +302,28 @@ func (s *TransactionService) Delete(ctx context.Context, id uuid.UUID) error {
 	)
 
 	err := s.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
+		// Fetch the transaction to get its balance-affecting fields
+		txn, err := s.transactionRepo.FindByID(txCtx, id)
+		if err != nil {
+			s.logger.ErrorContext(
+				txCtx,
+				"failed to find transaction for deletion",
+				slog.String("id", id.String()),
+				slog.String("error", err.Error()),
+			)
+			return err
+		}
+
+		// Reverse account balance effects before deletion
+		if err := s.reverseAccountBalances(txCtx, txn.Type, txn.FromAccountID, txn.ToAccountID, txn.Amount); err != nil {
+			s.logger.ErrorContext(
+				txCtx,
+				"failed to reverse account balances during deletion",
+				slog.String("error", err.Error()),
+			)
+			return err
+		}
+
 		if err := s.allocationRepo.DeleteByTransactionID(txCtx, id); err != nil {
 			s.logger.ErrorContext(
 				txCtx,
@@ -400,6 +463,92 @@ func (s *TransactionService) createAllocations(
 		if err := s.allocationRepo.Create(ctx, alloc); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (s *TransactionService) updateAccountBalances(
+	ctx context.Context,
+	txn *transaction.Transaction,
+) error {
+	return s.applyAccountBalances(ctx, txn.Type, txn.FromAccountID, txn.ToAccountID, txn.Amount)
+}
+
+// applyAccountBalances applies the balance effects of a transaction.
+// This is used during Create and as part of Update (after reversal).
+func (s *TransactionService) applyAccountBalances(
+	ctx context.Context,
+	txnType transaction.TransactionType,
+	fromAccountID *uuid.UUID,
+	toAccountID *uuid.UUID,
+	amount int64,
+) error {
+	switch txnType {
+	case transaction.TransactionTypeIncome:
+		if toAccountID == nil {
+			return transaction.ErrTargetAccountRequired
+		}
+
+		return s.accountRepo.AdjustBalance(ctx, *toAccountID, amount)
+
+	case transaction.TransactionTypeExpense:
+		if fromAccountID == nil {
+			return transaction.ErrSourceAccountRequired
+		}
+
+		return s.accountRepo.AdjustBalance(ctx, *fromAccountID, -amount)
+
+	case transaction.TransactionTypeTransfer:
+		if fromAccountID == nil || toAccountID == nil {
+			return transaction.ErrInvalidAccount
+		}
+
+		if err := s.accountRepo.AdjustBalance(ctx, *fromAccountID, -amount); err != nil {
+			return err
+		}
+
+		return s.accountRepo.AdjustBalance(ctx, *toAccountID, amount)
+	}
+
+	return nil
+}
+
+// reverseAccountBalances reverses the balance effects of a transaction.
+// This is the inverse of applyAccountBalances.
+// Used during Update (to undo old effects) and Delete (to undo all effects).
+func (s *TransactionService) reverseAccountBalances(
+	ctx context.Context,
+	txnType transaction.TransactionType,
+	fromAccountID *uuid.UUID,
+	toAccountID *uuid.UUID,
+	amount int64,
+) error {
+	switch txnType {
+	case transaction.TransactionTypeIncome:
+		if toAccountID == nil {
+			return transaction.ErrTargetAccountRequired
+		}
+
+		return s.accountRepo.AdjustBalance(ctx, *toAccountID, -amount)
+
+	case transaction.TransactionTypeExpense:
+		if fromAccountID == nil {
+			return transaction.ErrSourceAccountRequired
+		}
+
+		return s.accountRepo.AdjustBalance(ctx, *fromAccountID, amount)
+
+	case transaction.TransactionTypeTransfer:
+		if fromAccountID == nil || toAccountID == nil {
+			return transaction.ErrInvalidAccount
+		}
+
+		if err := s.accountRepo.AdjustBalance(ctx, *fromAccountID, amount); err != nil {
+			return err
+		}
+
+		return s.accountRepo.AdjustBalance(ctx, *toAccountID, -amount)
 	}
 
 	return nil

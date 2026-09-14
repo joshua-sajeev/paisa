@@ -11,6 +11,7 @@ import (
 type Account struct {
 	ID         uuid.UUID
 	Name       string
+	Balance    int64
 	IsArchived bool
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
@@ -29,6 +30,7 @@ func NewAccount(name string) (*Account, error) {
 	return &Account{
 		ID:         uuid.New(),
 		Name:       name,
+		Balance:    0,
 		IsArchived: false,
 		CreatedAt:  now,
 		UpdatedAt:  now,
@@ -79,4 +81,10 @@ func (a *Account) Unarchive() error {
 
 func (a *Account) touch() {
 	a.UpdatedAt = time.Now().UTC().Truncate(time.Microsecond)
+}
+
+// UpdateBalance changes the account balance by the given amount.
+func (a *Account) UpdateBalance(amount int64) {
+	a.Balance += amount
+	a.touch()
 }

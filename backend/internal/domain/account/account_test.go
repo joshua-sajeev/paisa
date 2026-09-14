@@ -92,6 +92,37 @@ func TestNewAccount(t *testing.T) {
 	}
 }
 
+func TestAccountUpdateBalance(t *testing.T) {
+	acc, err := account.NewAccount("Checking")
+	if err != nil {
+		t.Fatalf("NewAccount() error = %v", err)
+	}
+
+	originalUpdatedAt := acc.UpdatedAt
+
+	time.Sleep(time.Millisecond)
+
+	acc.UpdateBalance(5000)
+
+	if acc.Balance != 5000 {
+		t.Errorf("Balance = %d, want %d", acc.Balance, 5000)
+	}
+
+	if !acc.UpdatedAt.After(originalUpdatedAt) {
+		t.Errorf(
+			"UpdatedAt = %v, want after %v",
+			acc.UpdatedAt,
+			originalUpdatedAt,
+		)
+	}
+
+	acc.UpdateBalance(-2000)
+
+	if acc.Balance != 3000 {
+		t.Errorf("Balance = %d, want %d", acc.Balance, 3000)
+	}
+}
+
 func TestAccountRename(t *testing.T) {
 	tests := []struct {
 		name     string

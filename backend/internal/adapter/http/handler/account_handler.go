@@ -51,6 +51,7 @@ func NewAccountResponse(a *account.Account) AccountResponse {
 	return AccountResponse{
 		ID:         a.ID,
 		Name:       a.Name,
+		Balance:    a.Balance,
 		IsArchived: a.IsArchived,
 		UpdatedAt:  a.UpdatedAt,
 	}
