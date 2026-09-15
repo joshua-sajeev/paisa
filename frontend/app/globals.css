@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@keyframes floatSlow {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-8px) rotate(4deg);
+  }
+}
+
+@keyframes floatReverse {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(10px) rotate(-6deg);
+  }
+}
+
+.animate-float-1 {
+  animation: floatSlow 6s ease-in-out infinite;
+}
+
+.animate-float-2 {
+  animation: floatReverse 7s ease-in-out infinite;
+}
+
+.key-pop {
+  transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.key-pop:active {
+  transform: scale(0.9) translateY(2px);
+}

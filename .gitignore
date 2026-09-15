@@ -12,3 +12,6 @@
 *.swp
 /backend/.envrc
 /backend/tmp
+/frontend/AGENTS.md
+/frontend/CLAUDE.md
+/frontend/README.md
