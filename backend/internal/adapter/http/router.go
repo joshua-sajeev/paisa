@@ -4,6 +4,8 @@ package http
 import (
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -20,6 +22,7 @@ type HandlerRegistry struct {
 	TransactionHandler *handler.TransactionHandler
 	AuthHandler        *handler.AuthHandler
 	SessionStore       session.SessionStore
+	SessionHandler     *handler.SessionHandler
 	DemoMode           bool
 }
 
@@ -48,18 +51,51 @@ func NewRouter(h *HandlerRegistry, logger *slog.Logger) http.Handler {
 
 	// Protected API routes.
 	r.Route("/api/v1", func(r chi.Router) {
-		if !h.DemoMode {
-			r.Use(AuthMiddleware(
-				h.SessionStore,
-				logger,
-			))
+		// Public session endpoint.
+		registerSessionRoutes(r, h.SessionHandler, h.SessionStore)
+
+		// Protected routes.
+		r.Group(func(r chi.Router) {
+			if !h.DemoMode {
+				r.Use(AuthMiddleware(
+					h.SessionStore,
+					logger,
+				))
+			}
+
+			registerAccountRoutes(r, h.AccountHandler)
+			registerJarRoutes(r, h.JarHandler)
+			registerTransactionRoutes(r, h.TransactionHandler)
+			registerDashboardRoutes(r, h.DashboardHandler)
+		})
+	})
+	// Static frontend.
+	staticDir := "../frontend/out"
+
+	r.Handle("/*", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		path := req.URL.Path
+
+		if path == "/" {
+			path = "/index.html"
+		} else {
+			path += ".html"
 		}
 
-		registerAccountRoutes(r, h.AccountHandler)
-		registerJarRoutes(r, h.JarHandler)
-		registerTransactionRoutes(r, h.TransactionHandler)
-		registerDashboardRoutes(r, h.DashboardHandler)
-	})
+		file := filepath.Join(staticDir, filepath.Clean(path))
 
+		if _, err := os.Stat(file); err == nil {
+			http.ServeFile(w, req, file)
+			return
+		}
+
+		asset := filepath.Join(staticDir, filepath.Clean(req.URL.Path))
+
+		if _, err := os.Stat(asset); err == nil {
+			http.ServeFile(w, req, asset)
+			return
+		}
+
+		http.NotFound(w, req)
+	}))
 	return r
 }

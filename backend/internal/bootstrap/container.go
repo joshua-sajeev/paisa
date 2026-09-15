@@ -23,6 +23,7 @@ type Container struct {
 	JarHandler         *handler.JarHandler
 	TransactionHandler *handler.TransactionHandler
 	AuthHandler        *handler.AuthHandler
+	SessionHandler     *handler.SessionHandler
 	// Internal dependencies
 	logger *slog.Logger
 	db     *pgxpool.Pool
@@ -169,6 +170,11 @@ func (c *Container) initHandlers() {
 
 	c.AuthHandler = handler.NewAuthHandler(
 		c.authService,
+		c.logger,
+	)
+
+	c.SessionHandler = handler.NewSessionHandler(
+		c.cfg.DemoMode,
 		c.logger,
 	)
 }
