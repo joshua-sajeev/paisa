@@ -8,11 +8,11 @@ import (
 )
 
 type DashboardSummaryResponse struct {
-	TotalBalance       int64   `json:"total_balance"`
-	MonthlyIncome      int64   `json:"monthly_income"`
-	MonthlyExpense     int64   `json:"monthly_expense"`
-	MonthlySavings     int64   `json:"monthly_savings"`
-	MonthlySavingsRate float64 `json:"monthly_savings_rate"`
+	TotalBalance         int64   `json:"total_balance"`
+	MonthlyIncome        int64   `json:"monthly_income"`
+	MonthlyExpense       int64   `json:"monthly_expense"`
+	MonthlySavings       int64   `json:"monthly_savings"`
+	MonthlySavingsChange float64 `json:"monthly_savings_change"`
 }
 
 type DashboardAccountResponse struct {
@@ -55,11 +55,11 @@ type DashboardResponse struct {
 func NewDashboardResponse(dash *application.DashboardResponse) *DashboardResponse {
 	// Convert summary
 	summaryResp := &DashboardSummaryResponse{
-		TotalBalance:       dash.TotalBalance,
-		MonthlyIncome:      dash.Summary.MonthlyIncome,
-		MonthlyExpense:     dash.Summary.MonthlyExpense,
-		MonthlySavings:     dash.Summary.MonthlySavings,
-		MonthlySavingsRate: dash.Summary.MonthlySavingsRate,
+		TotalBalance:         dash.TotalBalance,
+		MonthlyIncome:        dash.Summary.MonthlyIncome,
+		MonthlyExpense:       dash.Summary.MonthlyExpense,
+		MonthlySavings:       dash.Summary.MonthlySavings,
+		MonthlySavingsChange: dash.Summary.MonthlySavingsChange,
 	}
 
 	// Convert accounts

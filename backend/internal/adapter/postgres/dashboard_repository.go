@@ -45,35 +45,85 @@ func (r *dashboardRepository) GetMonthlySummary(ctx context.Context) (*ports.Das
 
 	now := time.Now()
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
-	monthEnd := monthStart.AddDate(0, 1, 0)
+	previousMonthStart := monthStart.AddDate(0, -1, 0)
 
 	const query = `
 		SELECT
-			COALESCE(SUM(amount) FILTER (WHERE type = 'income'), 0),
-			COALESCE(SUM(amount) FILTER (WHERE type = 'expense'), 0)
+			COALESCE(
+				SUM(amount) FILTER (
+					WHERE type = 'income'
+					AND occurred_at >= $1
+					AND occurred_at < $2
+				),
+				0
+			),
+			COALESCE(
+				SUM(amount) FILTER (
+					WHERE type = 'expense'
+					AND occurred_at >= $1
+					AND occurred_at < $2
+				),
+				0
+			),
+			COALESCE(
+				SUM(amount) FILTER (
+					WHERE type = 'income'
+					AND occurred_at >= $3
+					AND occurred_at < $1
+				),
+				0
+			),
+			COALESCE(
+				SUM(amount) FILTER (
+					WHERE type = 'expense'
+					AND occurred_at >= $3
+					AND occurred_at < $1
+				),
+				0
+			)
 		FROM transactions
-		WHERE occurred_at >= $1
+		WHERE occurred_at >= $3
 		  AND occurred_at < $2
 	`
 
-	var income, expense int64
-	if err := db.QueryRow(ctx, query, monthStart, monthEnd).Scan(&income, &expense); err != nil {
+	var (
+		income          int64
+		expense         int64
+		previousIncome  int64
+		previousExpense int64
+	)
+
+	if err := db.QueryRow(
+		ctx,
+		query,
+		monthStart,
+		monthStart.AddDate(0, 1, 0),
+		previousMonthStart,
+	).Scan(
+		&income,
+		&expense,
+		&previousIncome,
+		&previousExpense,
+	); err != nil {
 		return nil, err
 	}
 
 	savings := income - expense
-	savingsRate := 0.0
+	previousSavings := previousIncome - previousExpense
 
-	if income > 0 {
-		savingsRate = float64(savings) / float64(income) * 100
+	savingsChange := 0.0
+
+	if previousSavings != 0 {
+		savingsChange = float64(savings-previousSavings) /
+			float64(previousSavings) * 100
 	}
 
 	return &ports.DashboardSummary{
-		TotalBalance:       0,
-		MonthlyIncome:      income,
-		MonthlyExpense:     expense,
-		MonthlySavings:     savings,
-		MonthlySavingsRate: savingsRate,
+		TotalBalance:         0,
+		MonthlyIncome:        income,
+		MonthlyExpense:       expense,
+		MonthlySavings:       savings,
+		MonthlySavingsChange: savingsChange,
 	}, nil
 }
 

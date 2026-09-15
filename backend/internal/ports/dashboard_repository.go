@@ -9,11 +9,11 @@ import (
 
 // DashboardSummary contains monthly financial aggregates
 type DashboardSummary struct {
-	TotalBalance       int64
-	MonthlyIncome      int64
-	MonthlyExpense     int64
-	MonthlySavings     int64
-	MonthlySavingsRate float64
+	TotalBalance         int64
+	MonthlyIncome        int64
+	MonthlyExpense       int64
+	MonthlySavings       int64
+	MonthlySavingsChange float64
 }
 
 // AccountBalance represents an account's balance
