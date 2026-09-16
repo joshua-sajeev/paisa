@@ -1,8 +1,12 @@
+@import url("https://api.fontshare.com/v2/css?f[]=alpino@100,200,300,400,500,600,700,800,900&display=optional");
+@import "@material-design-icons/font/filled.css";
+@import "@material-design-icons/font/outlined.css";
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
+  --background: #f6f8fd;
   --foreground: #171717;
+  font-family: "Alpino", sans-serif;
 }
 
 @keyframes floatSlow {
