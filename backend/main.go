@@ -41,6 +41,7 @@ func main() {
 	r := router.NewRouter(&router.HandlerRegistry{
 		DashboardHandler:   container.DashboardHandler,
 		AccountHandler:     container.AccountHandler,
+		GoalHandler:        container.GoalHandler,
 		JarHandler:         container.JarHandler,
 		AuthHandler:        container.AuthHandler,
 		TransactionHandler: container.TransactionHandler,
