@@ -111,7 +111,7 @@ export function RecentTransactions({
   transactions,
 }: RecentTransactionsProps) {
   return (
-    <section className="flex flex-col space-y-2 pb-6">
+    <section className="flex flex-col space-y-2 pb-6 px-4">
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-1.5">
           <svg

@@ -20,7 +20,7 @@ function formatPercentage(value: number): string {
 
 export function Goals({ goals }: GoalsProps) {
   return (
-    <section className="flex flex-col space-y-2.5">
+    <section className="flex flex-col space-y-2.5 px-4">
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-1.5">
           <svg
@@ -53,13 +53,10 @@ export function Goals({ goals }: GoalsProps) {
         {goals.map((goal, index) => {
           const percentage = Math.min(
             100,
-            Math.max(0, goal.progress_percentage),
+            Math.max(0, goal.progress),
           );
 
-          const remaining = Math.max(
-            0,
-            goal.target_amount - goal.current_amount,
-          );
+          const remaining = goal.remaining;
 
           const isGreen = index % 2 === 1;
 
@@ -154,11 +151,11 @@ export function Goals({ goals }: GoalsProps) {
               <div className="mt-1 flex items-baseline justify-between">
                 <div className="flex items-baseline gap-1">
                   <span className="text-sm font-extrabold text-slate-900">
-                    {formatMoney(goal.current_amount)}
+                    {formatMoney(goal.contributed)}
                   </span>
 
                   <span className="text-[11px] font-bold text-slate-400">
-                    / {formatMoney(goal.target_amount)}
+                    / {formatMoney(goal.target)}
                   </span>
                 </div>
 

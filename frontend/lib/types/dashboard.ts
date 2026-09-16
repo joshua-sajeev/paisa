@@ -27,9 +27,11 @@ export type DashboardJar = {
 export type DashboardGoal = {
   id: string;
   name: string;
-  target_amount: number;
-  current_amount: number;
-  progress_percentage: number;
+  target: number;
+  contributed: number;
+  remaining: number;
+  progress: number;
+  deadline?: string;
 };
 
 export type DashboardTransaction = {
