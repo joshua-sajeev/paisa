@@ -23,6 +23,7 @@ type Container struct {
 	JarHandler         *handler.JarHandler
 	TransactionHandler *handler.TransactionHandler
 	AuthHandler        *handler.AuthHandler
+	GoalHandler        *handler.GoalHandler
 	SessionHandler     *handler.SessionHandler
 	// Internal dependencies
 	logger *slog.Logger
@@ -38,6 +39,7 @@ type Container struct {
 	jarRepository         ports.JarRepository
 	transactionRepository ports.TransactionRepository
 	allocationRepository  ports.AllocationRepository
+	goalRepository        ports.GoalRepository
 	txManager             ports.TxManager
 
 	// Services
@@ -46,6 +48,7 @@ type Container struct {
 	jarService         *application.JarService
 	transactionService *application.TransactionService
 	authService        *application.AuthService
+	goalService        *application.GoalService
 }
 
 var (
@@ -109,6 +112,7 @@ func (c *Container) initRepositories() {
 	c.accountRepository = postgres.NewAccountRepository(c.db)
 	c.jarRepository = postgres.NewJarRepository(c.db)
 	c.transactionRepository = postgres.NewTransactionRepository(c.db)
+	c.goalRepository = postgres.NewGoalRepository(c.db)
 
 	c.allocationRepository = postgres.NewAllocationRepository(c.db)
 
@@ -145,6 +149,10 @@ func (c *Container) initServices() {
 		c.cfg.AppLock.PINHash,
 		c.cfg.SessionTTLMinutes,
 	)
+	c.goalService = application.NewGoalService(
+		c.goalRepository,
+		c.logger,
+	)
 }
 
 // initHandlers creates all handler instances with service dependencies.
@@ -170,6 +178,11 @@ func (c *Container) initHandlers() {
 
 	c.AuthHandler = handler.NewAuthHandler(
 		c.authService,
+		c.logger,
+	)
+
+	c.GoalHandler = handler.NewGoalHandler(
+		c.goalService,
 		c.logger,
 	)
 

@@ -18,7 +18,7 @@ type Goal struct {
 	UpdatedAt  time.Time
 }
 
-func NewGoal(name string, target int64) (*Goal, error) {
+func NewGoal(name string, target int64, deadline time.Time) (*Goal, error) {
 	name = strings.TrimSpace(name)
 
 	if name == "" {
@@ -35,8 +35,43 @@ func NewGoal(name string, target int64) (*Goal, error) {
 		ID:         uuid.New(),
 		Name:       name,
 		Target:     target,
+		Deadline:   deadline,
 		IsArchived: false,
 		CreatedAt:  now,
 		UpdatedAt:  now,
 	}, nil
+}
+
+func (g *Goal) Rename(name string) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return ErrInvalidName
+	}
+	g.Name = name
+	g.UpdatedAt = time.Now().UTC().Truncate(time.Microsecond)
+	return nil
+}
+
+func (g *Goal) UpdateTarget(target int64) error {
+	if target <= 0 {
+		return ErrInvalidTarget
+	}
+	g.Target = target
+	g.UpdatedAt = time.Now().UTC().Truncate(time.Microsecond)
+	return nil
+}
+
+func (g *Goal) UpdateDeadline(deadline time.Time) {
+	g.Deadline = deadline
+	g.UpdatedAt = time.Now().UTC().Truncate(time.Microsecond)
+}
+
+func (g *Goal) Archive() {
+	g.IsArchived = true
+	g.UpdatedAt = time.Now().UTC().Truncate(time.Microsecond)
+}
+
+func (g *Goal) Unarchive() {
+	g.IsArchived = false
+	g.UpdatedAt = time.Now().UTC().Truncate(time.Microsecond)
 }
