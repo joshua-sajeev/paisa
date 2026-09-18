@@ -214,7 +214,7 @@ func TestDashboardRecentTransactionsProjectsDisplayFields(t *testing.T) {
 }
 
 func BenchmarkDashboardRepository(b *testing.B) {
-	if err := seed.Run(ctx, db); err != nil {
+	if err := seed.RunWithCount(ctx, db, 10000); err != nil {
 		b.Fatalf("failed to seed benchmark data: %v", err)
 	}
 
