@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const transactionCount = 100_000
+const transactionCount = 10_000
 
 func Run(ctx context.Context, db *pgxpool.Pool) error {
 	return RunWithCount(ctx, db, transactionCount)
