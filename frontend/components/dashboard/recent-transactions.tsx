@@ -25,28 +25,64 @@ function formatDate(date: string): string {
   }).format(parsed);
 }
 
+function getCategoryIconPath(category: string, name: string, type: string): string {
+  const catNorm = category?.toLowerCase().trim() || "";
+  const nameNorm = name?.toLowerCase().trim() || "";
+
+  switch (catNorm) {
+    case "food":
+      return "/icons/food.svg";
+    case "transport":
+      return "/icons/transport.svg";
+    case "entertainment":
+      return "/icons/entertainment.svg";
+    case "groceries":
+      return "/icons/groceries.svg";
+    case "health":
+      return "/icons/health.svg";
+    case "transfer":
+      return "/icons/transfer.svg";
+    case "donation":
+      return "/icons/donation.svg";
+    case "investment":
+      return "/icons/investment.svg";
+    case "housing":
+      return "/icons/housing.svg";
+    case "other":
+      if (
+        nameNorm.includes("atm") ||
+        nameNorm.includes("deposit") ||
+        nameNorm.includes("depositor")
+      ) {
+        return "/icons/deposit.svg";
+      }
+      if (nameNorm.includes("salary")) {
+        return "/icons/salary.svg";
+      }
+      if (nameNorm.includes("p2p") || nameNorm.includes("peer")) {
+        return "/icons/p2p_transfer.svg";
+      }
+      return "/icons/other.svg";
+    default:
+      if (type === "income") {
+        if (nameNorm.includes("salary")) {
+          return "/icons/salary.svg";
+        }
+        return "/icons/deposit.svg";
+      }
+      if (type === "transfer") {
+        return "/icons/transfer.svg";
+      }
+      return "/icons/other.svg";
+  }
+}
+
 function getTransactionStyle(
   transaction: DashboardTransaction,
 ) {
   switch (transaction.type) {
     case "income":
       return {
-        icon: (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-5 w-5"
-            aria-hidden="true"
-          >
-            <path d="M12 2v20" />
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H7" />
-          </svg>
-        ),
         background: "bg-emerald-100",
         text: "text-emerald-700",
         amount: "text-emerald-600",
@@ -55,24 +91,6 @@ function getTransactionStyle(
 
     case "transfer":
       return {
-        icon: (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-5 w-5"
-            aria-hidden="true"
-          >
-            <path d="m17 3 4 4-4 4" />
-            <path d="M3 7h18" />
-            <path d="m7 21-4-4 4-4" />
-            <path d="M21 17H3" />
-          </svg>
-        ),
         background: "bg-indigo-100",
         text: "text-indigo-700",
         amount: "text-indigo-600",
@@ -81,24 +99,6 @@ function getTransactionStyle(
 
     default:
       return {
-        icon: (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-5 w-5"
-            aria-hidden="true"
-          >
-            <path d="M6 2h9l5 5v15H6z" />
-            <path d="M14 2v6h6" />
-            <path d="M9 13h6" />
-            <path d="M9 17h4" />
-          </svg>
-        ),
         background: "bg-rose-100",
         text: "text-rose-600",
         amount: "text-rose-600",
@@ -164,7 +164,20 @@ export function RecentTransactions({
                   <div
                     className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl font-bold transition-transform group-hover:scale-105 ${style.background} ${style.text}`}
                   >
-                    {style.icon}
+                    <div
+                      className="h-5 w-5 bg-current"
+                      style={{
+                        maskImage: `url(${getCategoryIconPath(transaction.category, transaction.name, transaction.type)})`,
+                        WebkitMaskImage: `url(${getCategoryIconPath(transaction.category, transaction.name, transaction.type)})`,
+                        maskRepeat: "no-repeat",
+                        maskPosition: "center",
+                        maskSize: "contain",
+                        WebkitMaskRepeat: "no-repeat",
+                        WebkitMaskPosition: "center",
+                        WebkitMaskSize: "contain",
+                      }}
+                      aria-hidden="true"
+                    />
                   </div>
 
                   <div className="flex min-w-0 flex-col">
