@@ -10,7 +10,7 @@ export default function LoginPage() {
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
+  const [shake, setShake] = useState(false);
   async function handleLogin() {
     if (pin.length !== 6 || loading) {
       return;
@@ -31,9 +31,24 @@ export default function LoginPage() {
         }),
       });
 
-      if (!response.ok) {
-        setError("Invalid PIN");
+      if (response.status === 401 || response.status === 429) {
+        setError(
+          response.status === 401
+            ? "Invalid PIN"
+            : "Too many attempts. Please try again later."
+        );
+
+        setShake(true);
         setPin("");
+
+        setTimeout(() => {
+          setShake(false);
+        }, 500);
+
+        return;
+      }
+      if (!response.ok) {
+        setError("Unable to log in");
         return;
       }
 
@@ -100,6 +115,7 @@ export default function LoginPage() {
             setPinAction={setPin}
             maxLength={6}
             disabled={loading}
+            shake={shake}
             onCompleteAction={handleLogin}
           />
         </section>

@@ -13,8 +13,9 @@ export default function Home() {
           credentials: "include",
           cache: "no-store",
         });
+        const data = await response.json();
 
-        if (response.ok) {
+        if (data.authenticated) {
           router.replace("/dashboard");
         } else {
           router.replace("/login");
