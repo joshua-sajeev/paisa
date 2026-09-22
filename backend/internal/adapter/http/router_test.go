@@ -38,6 +38,7 @@ func (m *mockRouterAccountService) Update(
 	_ context.Context,
 	_ uuid.UUID,
 	_ *string,
+	_ *string,
 	_ *bool,
 ) error {
 	return nil

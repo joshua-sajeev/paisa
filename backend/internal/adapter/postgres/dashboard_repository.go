@@ -85,6 +85,7 @@ func (r *dashboardRepository) GetAccountBalances(ctx context.Context) ([]*ports.
 		SELECT
 			id,
 			name,
+			icon_key,
 			balance
 		FROM accounts
 		WHERE is_archived = FALSE
@@ -105,6 +106,7 @@ func (r *dashboardRepository) GetAccountBalances(ctx context.Context) ([]*ports.
 		if err := rows.Scan(
 			&account.ID,
 			&account.Name,
+			&account.IconKey,
 			&account.Balance,
 		); err != nil {
 			return nil, err

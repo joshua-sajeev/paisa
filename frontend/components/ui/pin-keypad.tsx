@@ -19,12 +19,11 @@ const keys = [
 ];
 
 const pinColors = [
-  "#FF5C67",
-  "#6C47FF",
-  "#05D69E",
+  "#ff6700",
+  "#ffb7f1",
   "#FFB800",
-  "#FF5C67",
-  "#6C47FF",
+  "#36dbd5",
+  "#002fa7",
 ];
 
 type PinKeypadProps = {

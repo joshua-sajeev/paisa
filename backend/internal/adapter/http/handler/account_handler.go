@@ -21,7 +21,7 @@ const maxBodyBytes = 1_048_576
 type AccountService interface {
 	Create(ctx context.Context, name string) (*account.Account, error)
 	List(ctx context.Context) ([]*account.Account, error)
-	Update(ctx context.Context, id uuid.UUID, name *string, isArchived *bool) error
+	Update(ctx context.Context, id uuid.UUID, name *string, iconKey *string, isArchived *bool) error
 }
 
 type AccountHandler struct {
@@ -43,7 +43,8 @@ type CreateAccountRequest struct {
 }
 
 type PatchAccountRequest struct {
-	Name       *string `json:"name"        validate:"omitempty,min=1,max=100"`
+	Name       *string `json:"name"         validate:"omitempty,min=1,max=100"`
+	IconKey    *string `json:"icon_key"     validate:"omitempty,min=1,max=50"`
 	IsArchived *bool   `json:"is_archived"`
 }
 
@@ -52,6 +53,7 @@ func NewAccountResponse(a *account.Account) AccountResponse {
 		ID:         a.ID,
 		Name:       a.Name,
 		Balance:    a.Balance,
+		IconKey:    a.IconKey,
 		IsArchived: a.IsArchived,
 		UpdatedAt:  a.UpdatedAt,
 	}
@@ -238,7 +240,7 @@ func (h *AccountHandler) Patch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Name == nil && req.IsArchived == nil {
+	if req.Name == nil && req.IconKey == nil && req.IsArchived == nil {
 		writeErrorJSON(
 			w,
 			http.StatusBadRequest,
@@ -252,6 +254,11 @@ func (h *AccountHandler) Patch(w http.ResponseWriter, r *http.Request) {
 	if req.Name != nil {
 		trimmedName := strings.TrimSpace(*req.Name)
 		req.Name = &trimmedName
+	}
+
+	if req.IconKey != nil {
+		trimmedIconKey := strings.TrimSpace(*req.IconKey)
+		req.IconKey = &trimmedIconKey
 	}
 
 	if err := h.validate.Struct(req); err != nil {
@@ -275,6 +282,7 @@ func (h *AccountHandler) Patch(w http.ResponseWriter, r *http.Request) {
 		r.Context(),
 		id,
 		req.Name,
+		req.IconKey,
 		req.IsArchived,
 	); err != nil {
 		switch {

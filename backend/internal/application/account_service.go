@@ -102,6 +102,7 @@ func (s *AccountService) Update(
 	ctx context.Context,
 	id uuid.UUID,
 	name *string,
+	iconKey *string,
 	isArchived *bool,
 ) error {
 	s.logger.DebugContext(
@@ -134,6 +135,11 @@ func (s *AccountService) Update(
 			return err
 		}
 
+		changed = true
+	}
+
+	if iconKey != nil {
+		acc.UpdateIcon(*iconKey)
 		changed = true
 	}
 

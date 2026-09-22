@@ -9,13 +9,34 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var accountDefinitions = []string{
-	"HDFC",
-	"ICICI",
-	"HSBC",
-	"SBI",
-	"FBI",
-	"Cash",
+var accountDefinitions = []struct {
+	name    string
+	iconKey string
+}{
+	{
+		name:    "HDFC",
+		iconKey: "hdfc",
+	},
+	{
+		name:    "ICICI",
+		iconKey: "icici",
+	},
+	{
+		name:    "HSBC",
+		iconKey: "hsbc",
+	},
+	{
+		name:    "SBI",
+		iconKey: "sbi",
+	},
+	{
+		name:    "FBI",
+		iconKey: "bank",
+	},
+	{
+		name:    "Cash",
+		iconKey: "cash",
+	},
 }
 
 func seedAccounts(
@@ -25,7 +46,7 @@ func seedAccounts(
 	ids := make([]uuid.UUID, 0, len(accountDefinitions))
 	now := time.Now()
 
-	for i, name := range accountDefinitions {
+	for i, account := range accountDefinitions {
 		id := uuid.New()
 
 		_, err := db.Exec(
@@ -34,14 +55,16 @@ func seedAccounts(
 			INSERT INTO accounts (
 				id,
 				name,
+				icon_key,
 				is_archived,
 				created_at,
 				updated_at
 			)
-			VALUES ($1, $2, FALSE, $3, $3)
+			VALUES ($1, $2, $3, FALSE, $4, $4)
 			`,
 			id,
-			name,
+			account.name,
+			account.iconKey,
 			now,
 		)
 		if err != nil {

@@ -18,6 +18,7 @@ type DashboardSummaryResponse struct {
 type DashboardAccountResponse struct {
 	ID      uuid.UUID `json:"id"`
 	Name    string    `json:"name"`
+	IconKey string    `json:"icon_key"`
 	Balance int64     `json:"balance"`
 }
 
@@ -68,6 +69,7 @@ func NewDashboardResponse(dash *application.DashboardResponse) *DashboardRespons
 		accountsResp[i] = &DashboardAccountResponse{
 			ID:      a.ID,
 			Name:    a.Name,
+			IconKey: a.IconKey,
 			Balance: a.Balance,
 		}
 	}

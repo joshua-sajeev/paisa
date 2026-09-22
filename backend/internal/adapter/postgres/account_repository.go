@@ -31,6 +31,7 @@ func accountValues(a *account.Account) []any {
 	return []any{
 		a.ID,
 		a.Name,
+		a.IconKey,
 		a.Balance,
 		a.IsArchived,
 		a.CreatedAt,
@@ -42,6 +43,7 @@ func accountScanArgs(a *account.Account) []any {
 	return []any{
 		&a.ID,
 		&a.Name,
+		&a.IconKey,
 		&a.Balance,
 		&a.IsArchived,
 		&a.CreatedAt,
@@ -54,18 +56,20 @@ const (
 		INSERT INTO accounts (
 			id,
 			name,
+			icon_key,
 			balance,
 			is_archived,
 			created_at,
 			updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
 
 	listAccountsQuery = `
 		SELECT
 			id,
 			name,
+			icon_key,
 			balance,
 			is_archived,
 			created_at,
@@ -78,6 +82,7 @@ const (
 		SELECT
 			id,
 			name,
+			icon_key,
 			balance,
 			is_archived,
 			created_at,
@@ -90,8 +95,9 @@ const (
 		UPDATE accounts
 		SET
 			name = $2,
-			is_archived = $3,
-			updated_at = $4
+			icon_key = $3,
+			is_archived = $4,
+			updated_at = $5
 		WHERE id = $1
 	`
 
@@ -194,6 +200,7 @@ func (r *accountRepository) Save(
 		saveAccountQuery,
 		a.ID,
 		a.Name,
+		a.IconKey,
 		a.IsArchived,
 		a.UpdatedAt,
 	)

@@ -27,6 +27,7 @@ type mockAccountService struct {
 		context.Context,
 		uuid.UUID,
 		*string,
+		*string,
 		*bool,
 	) error
 }
@@ -48,9 +49,10 @@ func (m *mockAccountService) Update(
 	ctx context.Context,
 	id uuid.UUID,
 	name *string,
+	iconKey *string,
 	isArchived *bool,
 ) error {
-	return m.updateFn(ctx, id, name, isArchived)
+	return m.updateFn(ctx, id, name, iconKey, isArchived)
 }
 
 func newTestLogger() *slog.Logger {
@@ -371,7 +373,7 @@ func TestAccountHandler_Patch(t *testing.T) {
 	tests := []struct {
 		name         string
 		body         string
-		updateFn     func(context.Context, uuid.UUID, *string, *bool) error
+		updateFn     func(context.Context, uuid.UUID, *string, *string, *bool) error
 		wantStatus   int
 		wantName     *string
 		wantArchived *bool
@@ -383,6 +385,7 @@ func TestAccountHandler_Patch(t *testing.T) {
 				_ context.Context,
 				id uuid.UUID,
 				name *string,
+				iconKey *string,
 				isArchived *bool,
 			) error {
 				assert.Equal(t, testID, id)
@@ -399,6 +402,7 @@ func TestAccountHandler_Patch(t *testing.T) {
 				_ context.Context,
 				id uuid.UUID,
 				name *string,
+				iconKey *string,
 				isArchived *bool,
 			) error {
 				assert.Equal(t, testID, id)
@@ -415,6 +419,7 @@ func TestAccountHandler_Patch(t *testing.T) {
 				_ context.Context,
 				_ uuid.UUID,
 				name *string,
+				iconKey *string,
 				isArchived *bool,
 			) error {
 				assert.Equal(t, "<nil>", stringPtrValue(name))
@@ -430,6 +435,7 @@ func TestAccountHandler_Patch(t *testing.T) {
 				_ context.Context,
 				id uuid.UUID,
 				name *string,
+				iconKey *string,
 				isArchived *bool,
 			) error {
 				assert.Equal(t, testID, id)
@@ -446,6 +452,7 @@ func TestAccountHandler_Patch(t *testing.T) {
 				_ context.Context,
 				_ uuid.UUID,
 				_ *string,
+				_ *string,
 				_ *bool,
 			) error {
 				return account.ErrAccountNotFound
@@ -458,6 +465,7 @@ func TestAccountHandler_Patch(t *testing.T) {
 			updateFn: func(
 				_ context.Context,
 				_ uuid.UUID,
+				_ *string,
 				_ *string,
 				_ *bool,
 			) error {
@@ -472,6 +480,7 @@ func TestAccountHandler_Patch(t *testing.T) {
 				_ context.Context,
 				_ uuid.UUID,
 				_ *string,
+				_ *string,
 				_ *bool,
 			) error {
 				t.Fatal("Update should not be called")
@@ -485,6 +494,7 @@ func TestAccountHandler_Patch(t *testing.T) {
 			updateFn: func(
 				_ context.Context,
 				_ uuid.UUID,
+				_ *string,
 				_ *string,
 				_ *bool,
 			) error {
@@ -528,6 +538,7 @@ func TestAccountHandler_Patch_InvalidID(t *testing.T) {
 			_ context.Context,
 			_ uuid.UUID,
 			_ *string,
+			_ *string,
 			_ *bool,
 		) error {
 			t.Fatal("Update should not be called")
@@ -570,6 +581,7 @@ func TestAccountHandler_Patch_NoFields(t *testing.T) {
 			_ context.Context,
 			_ uuid.UUID,
 			_ *string,
+			_ *string,
 			_ *bool,
 		) error {
 			t.Fatal("Update should not be called")
@@ -605,6 +617,7 @@ func TestAccountHandler_Patch_InvalidJSON(t *testing.T) {
 			_ context.Context,
 			_ uuid.UUID,
 			_ *string,
+			_ *string,
 			_ *bool,
 		) error {
 			t.Fatal("Update should not be called")
@@ -639,6 +652,7 @@ func TestAccountHandler_Patch_UnknownField(t *testing.T) {
 		updateFn: func(
 			_ context.Context,
 			_ uuid.UUID,
+			_ *string,
 			_ *string,
 			_ *bool,
 		) error {

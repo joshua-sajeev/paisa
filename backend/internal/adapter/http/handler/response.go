@@ -20,6 +20,7 @@ type ErrorResponse struct {
 type AccountResponse struct {
 	ID         uuid.UUID `json:"id"`
 	Name       string    `json:"name"`
+	IconKey    string    `json:"icon_key"`
 	Balance    int64     `json:"balance"`
 	IsArchived bool      `json:"is_archived"`
 	UpdatedAt  time.Time `json:"updated_at"`

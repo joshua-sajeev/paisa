@@ -3,6 +3,7 @@
 CREATE TABLE accounts (
     id UUID PRIMARY KEY,
     name TEXT NOT NULL,
+    icon_key TEXT NOT NULL DEFAULT 'bank',
     balance BIGINT NOT NULL DEFAULT 0,
     is_archived BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

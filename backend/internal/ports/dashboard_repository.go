@@ -20,6 +20,7 @@ type DashboardSummary struct {
 type AccountBalance struct {
 	ID      uuid.UUID
 	Name    string
+	IconKey string
 	Balance int64
 }
 

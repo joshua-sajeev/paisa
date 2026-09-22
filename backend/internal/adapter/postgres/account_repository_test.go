@@ -17,6 +17,7 @@ func newTestAccount(name string) *account.Account {
 	return &account.Account{
 		ID:         uuid.New(),
 		Name:       name + " " + uuid.NewString(),
+		IconKey:    "bank",
 		IsArchived: false,
 		CreatedAt:  now,
 		UpdatedAt:  now,
@@ -32,6 +33,10 @@ func assertAccount(t *testing.T, got, want *account.Account) {
 
 	if got.Name != want.Name {
 		t.Errorf("Name = %q, want %q", got.Name, want.Name)
+	}
+
+	if got.IconKey != want.IconKey {
+		t.Errorf("IconKey = %q, want %q", got.IconKey, want.IconKey)
 	}
 
 	if got.Balance != want.Balance {
@@ -68,6 +73,7 @@ func queryAccount(t *testing.T, id uuid.UUID) *account.Account {
 		SELECT
 			id,
 			name,
+			icon_key,
 			balance,
 			is_archived,
 			created_at,
@@ -79,6 +85,7 @@ func queryAccount(t *testing.T, id uuid.UUID) *account.Account {
 	).Scan(
 		&a.ID,
 		&a.Name,
+		&a.IconKey,
 		&a.Balance,
 		&a.IsArchived,
 		&a.CreatedAt,
@@ -321,6 +328,7 @@ func TestAccountSave(t *testing.T) {
 		update       func(*account.Account)
 		wantName     string
 		wantArchived bool
+		wantIcon     string
 		wantErr      error
 	}{
 		{
@@ -340,6 +348,24 @@ func TestAccountSave(t *testing.T) {
 			},
 			wantName:     "Updated Name",
 			wantArchived: false,
+		},
+		{
+			name: "update icon",
+			setup: func(t *testing.T) *account.Account {
+				acc := newTestAccount("Original")
+
+				if err := accountRepo.Create(ctx, acc); err != nil {
+					t.Fatalf("Create() error = %v", err)
+				}
+
+				return acc
+			},
+			update: func(a *account.Account) {
+				a.UpdateIcon("credit-card")
+			},
+			wantName:     "",
+			wantArchived: false,
+			wantIcon:     "credit-card",
 		},
 		{
 			name: "archive",
@@ -490,6 +516,19 @@ func TestAccountSave(t *testing.T) {
 					"IsArchived = %v, want %v",
 					got.IsArchived,
 					tt.wantArchived,
+				)
+			}
+
+			wantIcon := tt.wantIcon
+			if wantIcon == "" {
+				wantIcon = acc.IconKey
+			}
+
+			if got.IconKey != wantIcon {
+				t.Errorf(
+					"IconKey = %q, want %q",
+					got.IconKey,
+					wantIcon,
 				)
 			}
 
