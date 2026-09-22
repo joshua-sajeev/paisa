@@ -5,7 +5,9 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -74,30 +76,99 @@ func NewRouter(h *HandlerRegistry, logger *slog.Logger) http.Handler {
 	// Static frontend.
 	staticDir := "../frontend/out"
 
-	r.Handle("/*", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		path := req.URL.Path
+	r.Handle("/*", newStaticFrontendHandler(
+		staticDir,
+		h.SessionStore,
+		h.DemoMode,
+		logger,
+	))
+	return r
+}
 
-		if path == "/" {
-			path = "/index.html"
-		} else {
-			path += ".html"
-		}
+var protectedHTMLRoutes = map[string]struct{}{
+	"/dashboard":    {},
+	"/transactions": {},
+	"/accounts":     {},
+	"/jars":         {},
+	"/goals":        {},
+}
 
-		file := filepath.Join(staticDir, filepath.Clean(path))
+func newStaticFrontendHandler(
+	staticDir string,
+	sessionStore session.SessionStore,
+	demoMode bool,
+	logger *slog.Logger,
+) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		cleanPath := cleanURLPath(req.URL.Path)
 
-		if _, err := os.Stat(file); err == nil {
-			http.ServeFile(w, req, file)
+		if _, ok := protectedHTMLRoutes[cleanPath]; ok &&
+			!hasValidSession(req, sessionStore, demoMode, logger) {
+			http.Redirect(w, req, "/login", http.StatusFound)
 			return
 		}
 
-		asset := filepath.Join(staticDir, filepath.Clean(req.URL.Path))
+		file, ok := staticFilePath(staticDir, htmlPath(cleanPath))
+		if ok {
+			if _, err := os.Stat(file); err == nil {
+				http.ServeFile(w, req, file)
+				return
+			}
+		}
 
-		if _, err := os.Stat(asset); err == nil {
-			http.ServeFile(w, req, asset)
-			return
+		asset, ok := staticFilePath(staticDir, cleanPath)
+		if ok {
+			if _, err := os.Stat(asset); err == nil {
+				http.ServeFile(w, req, asset)
+				return
+			}
 		}
 
 		http.NotFound(w, req)
-	}))
-	return r
+	})
+}
+
+func hasValidSession(
+	req *http.Request,
+	sessionStore session.SessionStore,
+	demoMode bool,
+	logger *slog.Logger,
+) bool {
+	if demoMode {
+		return true
+	}
+
+	cookie, err := req.Cookie(sessionCookieName)
+	if err != nil {
+		logger.WarnContext(req.Context(), "authentication required")
+		return false
+	}
+
+	if _, err := sessionStore.Get(req.Context(), cookie.Value); err != nil {
+		logger.WarnContext(req.Context(), "invalid or expired session")
+		return false
+	}
+
+	return true
+}
+
+func htmlPath(requestPath string) string {
+	if requestPath == "/" {
+		return "/index.html"
+	}
+
+	return requestPath + ".html"
+}
+
+func cleanURLPath(requestPath string) string {
+	return path.Clean("/" + requestPath)
+}
+
+func staticFilePath(staticDir string, requestPath string) (string, bool) {
+	relativePath := strings.TrimPrefix(cleanURLPath(requestPath), "/")
+	if relativePath == "." || strings.HasPrefix(relativePath, "../") {
+		return "", false
+	}
+
+	return filepath.Join(staticDir, filepath.FromSlash(relativePath)), true
 }

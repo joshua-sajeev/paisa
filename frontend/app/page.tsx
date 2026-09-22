@@ -2,27 +2,16 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { getAuthenticatedSession } from "@/lib/session";
 
 export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
     async function checkSession() {
-      try {
-        const response = await fetch("/api/v1/session", {
-          credentials: "include",
-          cache: "no-store",
-        });
-        const data = await response.json();
+      const authenticated = await getAuthenticatedSession();
 
-        if (data.authenticated) {
-          router.replace("/dashboard");
-        } else {
-          router.replace("/login");
-        }
-      } catch {
-        router.replace("/login");
-      }
+      router.replace(authenticated ? "/dashboard" : "/login");
     }
 
     checkSession();
