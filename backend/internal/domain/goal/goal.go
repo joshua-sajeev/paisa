@@ -44,11 +44,18 @@ func NewGoal(name string, target int64, deadline time.Time) (*Goal, error) {
 
 func (g *Goal) Rename(name string) error {
 	name = strings.TrimSpace(name)
+
 	if name == "" {
 		return ErrInvalidName
 	}
+
+	if g.Name == name {
+		return nil
+	}
+
 	g.Name = name
 	g.UpdatedAt = time.Now().UTC().Truncate(time.Microsecond)
+
 	return nil
 }
 

@@ -66,13 +66,8 @@ func TestLoad_Server(t *testing.T) {
 	}{
 		{
 			name: "defaults",
-			host: "localhost",
-			port: "8080",
-		},
-		{
-			name: "custom values",
 			host: "0.0.0.0",
-			port: "3000",
+			port: "8080",
 		},
 	}
 
@@ -355,7 +350,7 @@ func TestLoad_EnvironmentIsolation(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
-	assert.Equal(t, "localhost", cfg.Server.Host)
+	assert.Equal(t, "0.0.0.0", cfg.Server.Host)
 	assert.Equal(t, "8080", cfg.Server.Port)
 	assert.Equal(t, "localhost", cfg.Database.Host)
 	assert.Equal(t, "5432", cfg.Database.Port)

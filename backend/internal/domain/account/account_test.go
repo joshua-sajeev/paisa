@@ -11,20 +11,23 @@ import (
 
 func TestNewAccount(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    string
-		wantName string
-		wantErr  error
+		name        string
+		input       string
+		wantName    string
+		wantIconKey string
+		wantErr     error
 	}{
 		{
-			name:     "valid name",
-			input:    "Checking",
-			wantName: "Checking",
+			name:        "valid name",
+			input:       "Checking",
+			wantName:    "Checking",
+			wantIconKey: "bank",
 		},
 		{
-			name:     "trims whitespace",
-			input:    "  Checking  ",
-			wantName: "Checking",
+			name:        "trims whitespace",
+			input:       "  Checking  ",
+			wantName:    "Checking",
+			wantIconKey: "bank",
 		},
 		{
 			name:    "empty name",
@@ -65,8 +68,20 @@ func TestNewAccount(t *testing.T) {
 				t.Errorf("Name = %q, want %q", got.Name, tt.wantName)
 			}
 
+			if got.IconKey != tt.wantIconKey {
+				t.Errorf(
+					"IconKey = %q, want %q",
+					got.IconKey,
+					tt.wantIconKey,
+				)
+			}
+
 			if got.ID == uuid.Nil {
 				t.Error("ID should not be uuid.Nil")
+			}
+
+			if got.Balance != 0 {
+				t.Errorf("Balance = %d, want 0", got.Balance)
 			}
 
 			if got.IsArchived {
@@ -327,5 +342,78 @@ func TestAccountUnarchive_NotArchived(t *testing.T) {
 			acc.UpdatedAt,
 			originalUpdatedAt,
 		)
+	}
+}
+
+func TestAccount_UpdateIcon(t *testing.T) {
+	tests := []struct {
+		name     string
+		initial  string
+		input    string
+		wantIcon string
+	}{
+		{
+			name:     "updates icon",
+			initial:  "bank",
+			input:    "hdfc",
+			wantIcon: "hdfc",
+		},
+		{
+			name:     "trims whitespace",
+			initial:  "bank",
+			input:    "  hdfc  ",
+			wantIcon: "hdfc",
+		},
+		{
+			name:     "empty icon defaults to bank",
+			initial:  "hdfc",
+			input:    "",
+			wantIcon: "bank",
+		},
+		{
+			name:     "whitespace only icon defaults to bank",
+			initial:  "hdfc",
+			input:    "   ",
+			wantIcon: "bank",
+		},
+		{
+			name:     "same icon does not change",
+			initial:  "hdfc",
+			input:    "hdfc",
+			wantIcon: "hdfc",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := account.NewAccount("Checking")
+			if err != nil {
+				t.Fatalf("NewAccount() error = %v", err)
+			}
+
+			got.UpdateIcon(tt.initial)
+
+			before := got.UpdatedAt
+
+			got.UpdateIcon(tt.input)
+
+			if got.IconKey != tt.wantIcon {
+				t.Errorf(
+					"IconKey = %q, want %q",
+					got.IconKey,
+					tt.wantIcon,
+				)
+			}
+
+			if tt.input == tt.initial {
+				if !got.UpdatedAt.Equal(before) {
+					t.Error("UpdatedAt changed when icon was unchanged")
+				}
+			} else {
+				if got.UpdatedAt.Before(before) {
+					t.Error("UpdatedAt should not move backwards")
+				}
+			}
+		})
 	}
 }

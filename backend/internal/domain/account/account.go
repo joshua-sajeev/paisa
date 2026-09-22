@@ -12,6 +12,7 @@ type Account struct {
 	ID         uuid.UUID
 	Name       string
 	Balance    int64
+	IconKey    string
 	IsArchived bool
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
@@ -31,6 +32,7 @@ func NewAccount(name string) (*Account, error) {
 		ID:         uuid.New(),
 		Name:       name,
 		Balance:    0,
+		IconKey:    "bank",
 		IsArchived: false,
 		CreatedAt:  now,
 		UpdatedAt:  now,
@@ -86,5 +88,21 @@ func (a *Account) touch() {
 // UpdateBalance changes the account balance by the given amount.
 func (a *Account) UpdateBalance(amount int64) {
 	a.Balance += amount
+	a.touch()
+}
+
+// UpdateIcon changes the account icon.
+func (a *Account) UpdateIcon(iconKey string) {
+	iconKey = strings.TrimSpace(iconKey)
+
+	if iconKey == "" {
+		iconKey = "bank"
+	}
+
+	if a.IconKey == iconKey {
+		return
+	}
+
+	a.IconKey = iconKey
 	a.touch()
 }
