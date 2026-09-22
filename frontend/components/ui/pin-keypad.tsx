@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import type { Dispatch, SetStateAction } from "react";
 
 const keys = [
@@ -19,11 +19,11 @@ const keys = [
 ];
 
 const pinColors = [
+  "#ff6361",
   "#ff6700",
-  "#ffb7f1",
   "#FFB800",
   "#36dbd5",
-  "#002fa7",
+  "#1A48B2",
 ];
 
 type PinKeypadProps = {
@@ -45,34 +45,71 @@ export function PinKeypad({
   shake = false,
   onCompleteAction,
 }: PinKeypadProps) {
+  const handleKeyPress = useCallback(
+    (key: string) => {
+      if (disabled) {
+        return;
+      }
+
+      if (key === "backspace") {
+        setPinAction((current) => current.slice(0, -1));
+        return;
+      }
+
+      if (key === ".") {
+        return;
+      }
+
+      setPinAction((current) => {
+        if (current.length >= maxLength) {
+          return current;
+        }
+
+        return current + key;
+      });
+    },
+    [disabled, maxLength, setPinAction]
+  );
+
+  // Automatically submit when the final digit is entered.
   useEffect(() => {
     if (pin.length === maxLength && !disabled) {
       onCompleteAction?.();
     }
   }, [pin, maxLength, disabled, onCompleteAction]);
 
-  function handleKeyPress(key: string) {
-    if (disabled) {
-      return;
-    }
-
-    if (key === "backspace") {
-      setPinAction((current) => current.slice(0, -1));
-      return;
-    }
-
-    if (key === ".") {
-      return;
-    }
-
-    setPinAction((current) => {
-      if (current.length >= maxLength) {
-        return current;
+  // Support physical keyboard input.
+  useEffect(() => {
+    function handleKeyboard(event: KeyboardEvent) {
+      if (disabled) {
+        return;
       }
 
-      return current + key;
-    });
-  }
+      // Number keys and numpad keys.
+      if (/^[0-9]$/.test(event.key)) {
+        event.preventDefault();
+        handleKeyPress(event.key);
+
+        if (navigator.vibrate) {
+          navigator.vibrate(12);
+        }
+
+        return;
+      }
+
+      // Backspace.
+      if (event.key === "Backspace") {
+        event.preventDefault();
+        handleKeyPress("backspace");
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyboard);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyboard);
+    };
+  }, [disabled, handleKeyPress]);
 
   return (
     <div
@@ -176,9 +213,7 @@ export function PinKeypad({
                     <line x1="12" y1="9" x2="18" y2="15" />
                   </svg>
                 ) : key === "." ? (
-                  <span className="leading-none text-slate-400">
-                    •
-                  </span>
+                  <span className="leading-none text-slate-400">•</span>
                 ) : (
                   <span className="leading-none">{key}</span>
                 )}
