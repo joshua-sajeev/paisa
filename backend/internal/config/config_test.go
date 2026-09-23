@@ -37,6 +37,8 @@ func TestLoad_RequiredEnvVars(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("DEMO_MODE", "false")
+
 			if tt.dbPassword == "" {
 				t.Setenv("DB_PASSWORD", "")
 			} else {

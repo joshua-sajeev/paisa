@@ -18,10 +18,11 @@ type DashboardSummary struct {
 
 // AccountBalance represents an account's balance
 type AccountBalance struct {
-	ID      uuid.UUID
-	Name    string
-	IconKey string
-	Balance int64
+	ID        uuid.UUID
+	Name      string
+	IconKey   string
+	Balance   int64
+	IsPrimary bool
 }
 
 // JarSummary represents jar allocation and spending

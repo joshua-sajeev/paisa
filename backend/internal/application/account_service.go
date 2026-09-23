@@ -26,14 +26,19 @@ func NewAccountService(repo ports.AccountRepository, logger *slog.Logger) *Accou
 }
 
 // Create creates a new account.
-func (s *AccountService) Create(ctx context.Context, name string) (*account.Account, error) {
+func (s *AccountService) Create(
+	ctx context.Context,
+	name string,
+	isPrimary bool,
+) (*account.Account, error) {
 	s.logger.DebugContext(
 		ctx,
 		"creating new account",
 		slog.String("name", name),
+		slog.Bool("is_primary", isPrimary),
 	)
 
-	acc, err := account.NewAccount(name)
+	acc, err := account.NewAccount(name, isPrimary)
 	if err != nil {
 		s.logger.WarnContext(
 			ctx,
@@ -45,6 +50,15 @@ func (s *AccountService) Create(ctx context.Context, name string) (*account.Acco
 	}
 
 	if err := s.repo.Create(ctx, acc); err != nil {
+		if errors.Is(err, account.ErrAccountPrimaryExists) {
+			s.logger.WarnContext(
+				ctx,
+				"primary account already exists",
+				slog.String("name", acc.Name),
+			)
+			return nil, err
+		}
+
 		if errors.Is(err, account.ErrAccountNameExists) {
 			s.logger.WarnContext(
 				ctx,
@@ -103,6 +117,7 @@ func (s *AccountService) Update(
 	id uuid.UUID,
 	name *string,
 	iconKey *string,
+	isPrimary *bool,
 	isArchived *bool,
 ) error {
 	s.logger.DebugContext(
@@ -140,6 +155,11 @@ func (s *AccountService) Update(
 
 	if iconKey != nil {
 		acc.UpdateIcon(*iconKey)
+		changed = true
+	}
+
+	if isPrimary != nil {
+		acc.SetPrimary(*isPrimary)
 		changed = true
 	}
 
@@ -182,6 +202,15 @@ func (s *AccountService) Update(
 	}
 
 	if err := s.repo.Save(ctx, acc); err != nil {
+		if errors.Is(err, account.ErrAccountPrimaryExists) {
+			s.logger.WarnContext(
+				ctx,
+				"primary account already exists",
+				slog.String("id", id.String()),
+			)
+			return err
+		}
+
 		s.logger.ErrorContext(
 			ctx,
 			"failed to save account",

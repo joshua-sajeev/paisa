@@ -80,7 +80,7 @@ func TestJarExpenseAllocationAndReassignment(t *testing.T) {
 	svc := setupTestTransactionService(t)
 
 	// Create test account
-	acc, err := account.NewAccount("Main Account")
+	acc, err := account.NewAccount("Main Account", false)
 	if err != nil {
 		t.Fatalf("NewAccount error: %v", err)
 	}

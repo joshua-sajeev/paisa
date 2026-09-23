@@ -21,7 +21,7 @@ import (
 )
 
 type mockAccountService struct {
-	createFn func(context.Context, string) (*account.Account, error)
+	createFn func(context.Context, string, bool) (*account.Account, error)
 	listFn   func(context.Context) ([]*account.Account, error)
 	updateFn func(
 		context.Context,
@@ -29,14 +29,16 @@ type mockAccountService struct {
 		*string,
 		*string,
 		*bool,
+		*bool,
 	) error
 }
 
 func (m *mockAccountService) Create(
 	ctx context.Context,
 	name string,
+	isPrimary bool,
 ) (*account.Account, error) {
-	return m.createFn(ctx, name)
+	return m.createFn(ctx, name, isPrimary)
 }
 
 func (m *mockAccountService) List(
@@ -50,9 +52,10 @@ func (m *mockAccountService) Update(
 	id uuid.UUID,
 	name *string,
 	iconKey *string,
+	isPrimary *bool,
 	isArchived *bool,
 ) error {
-	return m.updateFn(ctx, id, name, iconKey, isArchived)
+	return m.updateFn(ctx, id, name, iconKey, isPrimary, isArchived)
 }
 
 func newTestLogger() *slog.Logger {
@@ -78,21 +81,24 @@ func TestAccountHandler_Create(t *testing.T) {
 	tests := []struct {
 		name       string
 		body       string
-		createFn   func(context.Context, string) (*account.Account, error)
+		createFn   func(context.Context, string, bool) (*account.Account, error)
 		wantStatus int
 		wantName   string
 	}{
 		{
 			name: "success",
-			body: `{"name":"Savings"}`,
+			body: `{"name":"Savings","is_primary":true}`,
 			createFn: func(
 				_ context.Context,
 				name string,
+				isPrimary bool,
 			) (*account.Account, error) {
+				assert.True(t, isPrimary)
 				return &account.Account{
-					ID:      uuid.New(),
-					Name:    name,
-					Balance: 125000,
+					ID:        uuid.New(),
+					Name:      name,
+					Balance:   125000,
+					IsPrimary: isPrimary,
 				}, nil
 			},
 			wantStatus: http.StatusCreated,
@@ -104,8 +110,21 @@ func TestAccountHandler_Create(t *testing.T) {
 			createFn: func(
 				_ context.Context,
 				_ string,
+				_ bool,
 			) (*account.Account, error) {
 				return nil, account.ErrAccountNameExists
+			},
+			wantStatus: http.StatusConflict,
+		},
+		{
+			name: "primary already exists",
+			body: `{"name":"Savings","is_primary":true}`,
+			createFn: func(
+				_ context.Context,
+				_ string,
+				_ bool,
+			) (*account.Account, error) {
+				return nil, account.ErrAccountPrimaryExists
 			},
 			wantStatus: http.StatusConflict,
 		},
@@ -115,6 +134,7 @@ func TestAccountHandler_Create(t *testing.T) {
 			createFn: func(
 				_ context.Context,
 				_ string,
+				_ bool,
 			) (*account.Account, error) {
 				return nil, account.ErrInvalidName
 			},
@@ -126,6 +146,7 @@ func TestAccountHandler_Create(t *testing.T) {
 			createFn: func(
 				_ context.Context,
 				_ string,
+				_ bool,
 			) (*account.Account, error) {
 				return nil, repoErr
 			},
@@ -178,6 +199,7 @@ func TestAccountHandler_Create_InvalidJSON(t *testing.T) {
 		createFn: func(
 			_ context.Context,
 			_ string,
+			_ bool,
 		) (*account.Account, error) {
 			t.Fatal("Create should not be called")
 			return nil, nil
@@ -373,7 +395,7 @@ func TestAccountHandler_Patch(t *testing.T) {
 	tests := []struct {
 		name         string
 		body         string
-		updateFn     func(context.Context, uuid.UUID, *string, *string, *bool) error
+		updateFn     func(context.Context, uuid.UUID, *string, *string, *bool, *bool) error
 		wantStatus   int
 		wantName     *string
 		wantArchived *bool
@@ -386,10 +408,31 @@ func TestAccountHandler_Patch(t *testing.T) {
 				id uuid.UUID,
 				name *string,
 				iconKey *string,
+				isPrimary *bool,
 				isArchived *bool,
 			) error {
 				assert.Equal(t, testID, id)
 				assert.Equal(t, "Updated Savings", stringPtrValue(name))
+				assert.Equal(t, "<nil>", boolPtrValue(isPrimary))
+				assert.Equal(t, "<nil>", boolPtrValue(isArchived))
+				return nil
+			},
+			wantStatus: http.StatusOK,
+		},
+		{
+			name: "update primary status",
+			body: `{"is_primary":true}`,
+			updateFn: func(
+				_ context.Context,
+				id uuid.UUID,
+				name *string,
+				iconKey *string,
+				isPrimary *bool,
+				isArchived *bool,
+			) error {
+				assert.Equal(t, testID, id)
+				assert.Equal(t, "<nil>", stringPtrValue(name))
+				assert.Equal(t, "true", boolPtrValue(isPrimary))
 				assert.Equal(t, "<nil>", boolPtrValue(isArchived))
 				return nil
 			},
@@ -403,10 +446,12 @@ func TestAccountHandler_Patch(t *testing.T) {
 				id uuid.UUID,
 				name *string,
 				iconKey *string,
+				isPrimary *bool,
 				isArchived *bool,
 			) error {
 				assert.Equal(t, testID, id)
 				assert.Equal(t, "<nil>", stringPtrValue(name))
+				assert.Equal(t, "<nil>", boolPtrValue(isPrimary))
 				assert.Equal(t, "true", boolPtrValue(isArchived))
 				return nil
 			},
@@ -420,26 +465,30 @@ func TestAccountHandler_Patch(t *testing.T) {
 				_ uuid.UUID,
 				name *string,
 				iconKey *string,
+				isPrimary *bool,
 				isArchived *bool,
 			) error {
 				assert.Equal(t, "<nil>", stringPtrValue(name))
+				assert.Equal(t, "<nil>", boolPtrValue(isPrimary))
 				assert.Equal(t, "false", boolPtrValue(isArchived))
 				return nil
 			},
 			wantStatus: http.StatusOK,
 		},
 		{
-			name: "update name and archive",
-			body: `{"name":"Archived Savings","is_archived":true}`,
+			name: "update name and primary and archive",
+			body: `{"name":"Archived Savings","is_primary":false,"is_archived":true}`,
 			updateFn: func(
 				_ context.Context,
 				id uuid.UUID,
 				name *string,
 				iconKey *string,
+				isPrimary *bool,
 				isArchived *bool,
 			) error {
 				assert.Equal(t, testID, id)
 				assert.Equal(t, "Archived Savings", stringPtrValue(name))
+				assert.Equal(t, "false", boolPtrValue(isPrimary))
 				assert.Equal(t, "true", boolPtrValue(isArchived))
 				return nil
 			},
@@ -454,10 +503,26 @@ func TestAccountHandler_Patch(t *testing.T) {
 				_ *string,
 				_ *string,
 				_ *bool,
+				_ *bool,
 			) error {
 				return account.ErrAccountNotFound
 			},
 			wantStatus: http.StatusNotFound,
+		},
+		{
+			name: "primary already exists",
+			body: `{"is_primary":true}`,
+			updateFn: func(
+				_ context.Context,
+				_ uuid.UUID,
+				_ *string,
+				_ *string,
+				_ *bool,
+				_ *bool,
+			) error {
+				return account.ErrAccountPrimaryExists
+			},
+			wantStatus: http.StatusConflict,
 		},
 		{
 			name: "duplicate name",
@@ -467,6 +532,7 @@ func TestAccountHandler_Patch(t *testing.T) {
 				_ uuid.UUID,
 				_ *string,
 				_ *string,
+				_ *bool,
 				_ *bool,
 			) error {
 				return account.ErrAccountNameExists
@@ -482,6 +548,7 @@ func TestAccountHandler_Patch(t *testing.T) {
 				_ *string,
 				_ *string,
 				_ *bool,
+				_ *bool,
 			) error {
 				t.Fatal("Update should not be called")
 				return nil
@@ -496,6 +563,7 @@ func TestAccountHandler_Patch(t *testing.T) {
 				_ uuid.UUID,
 				_ *string,
 				_ *string,
+				_ *bool,
 				_ *bool,
 			) error {
 				return repoErr
@@ -540,6 +608,7 @@ func TestAccountHandler_Patch_InvalidID(t *testing.T) {
 			_ *string,
 			_ *string,
 			_ *bool,
+			_ *bool,
 		) error {
 			t.Fatal("Update should not be called")
 			return nil
@@ -583,6 +652,7 @@ func TestAccountHandler_Patch_NoFields(t *testing.T) {
 			_ *string,
 			_ *string,
 			_ *bool,
+			_ *bool,
 		) error {
 			t.Fatal("Update should not be called")
 			return nil
@@ -619,6 +689,7 @@ func TestAccountHandler_Patch_InvalidJSON(t *testing.T) {
 			_ *string,
 			_ *string,
 			_ *bool,
+			_ *bool,
 		) error {
 			t.Fatal("Update should not be called")
 			return nil
@@ -654,6 +725,7 @@ func TestAccountHandler_Patch_UnknownField(t *testing.T) {
 			_ uuid.UUID,
 			_ *string,
 			_ *string,
+			_ *bool,
 			_ *bool,
 		) error {
 			t.Fatal("Update should not be called")

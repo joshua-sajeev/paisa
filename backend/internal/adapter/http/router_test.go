@@ -24,6 +24,7 @@ type mockRouterAccountService struct {
 func (m *mockRouterAccountService) Create(
 	_ context.Context,
 	_ string,
+	_ bool,
 ) (*account.Account, error) {
 	return nil, nil
 }
@@ -39,6 +40,7 @@ func (m *mockRouterAccountService) Update(
 	_ uuid.UUID,
 	_ *string,
 	_ *string,
+	_ *bool,
 	_ *bool,
 ) error {
 	return nil

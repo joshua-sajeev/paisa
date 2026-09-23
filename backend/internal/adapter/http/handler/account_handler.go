@@ -19,9 +19,9 @@ import (
 const maxBodyBytes = 1_048_576
 
 type AccountService interface {
-	Create(ctx context.Context, name string) (*account.Account, error)
+	Create(ctx context.Context, name string, isPrimary bool) (*account.Account, error)
 	List(ctx context.Context) ([]*account.Account, error)
-	Update(ctx context.Context, id uuid.UUID, name *string, iconKey *string, isArchived *bool) error
+	Update(ctx context.Context, id uuid.UUID, name *string, iconKey *string, isPrimary *bool, isArchived *bool) error
 }
 
 type AccountHandler struct {
@@ -39,12 +39,14 @@ func NewAccountHandler(service AccountService, logger *slog.Logger) *AccountHand
 }
 
 type CreateAccountRequest struct {
-	Name string `json:"name" validate:"required,max=100"`
+	Name      string `json:"name"       validate:"required,max=100"`
+	IsPrimary bool   `json:"is_primary"`
 }
 
 type PatchAccountRequest struct {
 	Name       *string `json:"name"         validate:"omitempty,min=1,max=100"`
 	IconKey    *string `json:"icon_key"     validate:"omitempty,min=1,max=50"`
+	IsPrimary  *bool   `json:"is_primary"`
 	IsArchived *bool   `json:"is_archived"`
 }
 
@@ -54,6 +56,7 @@ func NewAccountResponse(a *account.Account) AccountResponse {
 		Name:       a.Name,
 		Balance:    a.Balance,
 		IconKey:    a.IconKey,
+		IsPrimary:  a.IsPrimary,
 		IsArchived: a.IsArchived,
 		UpdatedAt:  a.UpdatedAt,
 	}
@@ -105,9 +108,24 @@ func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a, err := h.service.Create(r.Context(), req.Name)
+	a, err := h.service.Create(r.Context(), req.Name, req.IsPrimary)
 	if err != nil {
 		switch {
+		case errors.Is(err, account.ErrAccountPrimaryExists):
+			h.logger.WarnContext(
+				r.Context(),
+				"primary account already exists",
+				slog.String("name", req.Name),
+			)
+
+			writeErrorJSON(
+				w,
+				http.StatusConflict,
+				"CONFLICT",
+				"Primary account already exists",
+				"ERR_PRIMARY_EXISTS",
+			)
+
 		case errors.Is(err, account.ErrAccountNameExists):
 			h.logger.WarnContext(
 				r.Context(),
@@ -240,7 +258,7 @@ func (h *AccountHandler) Patch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Name == nil && req.IconKey == nil && req.IsArchived == nil {
+	if req.Name == nil && req.IconKey == nil && req.IsPrimary == nil && req.IsArchived == nil {
 		writeErrorJSON(
 			w,
 			http.StatusBadRequest,
@@ -283,6 +301,7 @@ func (h *AccountHandler) Patch(w http.ResponseWriter, r *http.Request) {
 		id,
 		req.Name,
 		req.IconKey,
+		req.IsPrimary,
 		req.IsArchived,
 	); err != nil {
 		switch {
@@ -293,6 +312,15 @@ func (h *AccountHandler) Patch(w http.ResponseWriter, r *http.Request) {
 				"NOT_FOUND",
 				"Account not found",
 				"ERR_ACCOUNT_NOT_FOUND",
+			)
+
+		case errors.Is(err, account.ErrAccountPrimaryExists):
+			writeErrorJSON(
+				w,
+				http.StatusConflict,
+				"CONFLICT",
+				"Primary account already exists",
+				"ERR_PRIMARY_EXISTS",
 			)
 
 		case errors.Is(err, account.ErrAccountNameExists):

@@ -86,7 +86,8 @@ func (r *dashboardRepository) GetAccountBalances(ctx context.Context) ([]*ports.
 			id,
 			name,
 			icon_key,
-			balance
+			balance,
+			is_primary
 		FROM accounts
 		WHERE is_archived = FALSE
 		ORDER BY created_at, id
@@ -108,6 +109,7 @@ func (r *dashboardRepository) GetAccountBalances(ctx context.Context) ([]*ports.
 			&account.Name,
 			&account.IconKey,
 			&account.Balance,
+			&account.IsPrimary,
 		); err != nil {
 			return nil, err
 		}

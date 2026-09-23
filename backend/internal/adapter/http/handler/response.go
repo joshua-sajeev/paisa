@@ -22,6 +22,7 @@ type AccountResponse struct {
 	Name       string    `json:"name"`
 	IconKey    string    `json:"icon_key"`
 	Balance    int64     `json:"balance"`
+	IsPrimary  bool      `json:"is_primary"`
 	IsArchived bool      `json:"is_archived"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }

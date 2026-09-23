@@ -16,10 +16,11 @@ type DashboardSummaryResponse struct {
 }
 
 type DashboardAccountResponse struct {
-	ID      uuid.UUID `json:"id"`
-	Name    string    `json:"name"`
-	IconKey string    `json:"icon_key"`
-	Balance int64     `json:"balance"`
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	IconKey   string    `json:"icon_key"`
+	Balance   int64     `json:"balance"`
+	IsPrimary bool      `json:"is_primary"`
 }
 
 type DashboardJarResponse struct {
@@ -67,10 +68,11 @@ func NewDashboardResponse(dash *application.DashboardResponse) *DashboardRespons
 	accountsResp := make([]*DashboardAccountResponse, len(dash.Accounts))
 	for i, a := range dash.Accounts {
 		accountsResp[i] = &DashboardAccountResponse{
-			ID:      a.ID,
-			Name:    a.Name,
-			IconKey: a.IconKey,
-			Balance: a.Balance,
+			ID:        a.ID,
+			Name:      a.Name,
+			IconKey:   a.IconKey,
+			IsPrimary: a.IsPrimary,
+			Balance:   a.Balance,
 		}
 	}
 

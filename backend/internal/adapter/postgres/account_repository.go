@@ -33,6 +33,7 @@ func accountValues(a *account.Account) []any {
 		a.Name,
 		a.IconKey,
 		a.Balance,
+		a.IsPrimary,
 		a.IsArchived,
 		a.CreatedAt,
 		a.UpdatedAt,
@@ -45,6 +46,7 @@ func accountScanArgs(a *account.Account) []any {
 		&a.Name,
 		&a.IconKey,
 		&a.Balance,
+		&a.IsPrimary,
 		&a.IsArchived,
 		&a.CreatedAt,
 		&a.UpdatedAt,
@@ -58,11 +60,12 @@ const (
 			name,
 			icon_key,
 			balance,
+			is_primary,
 			is_archived,
 			created_at,
 			updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 
 	listAccountsQuery = `
@@ -71,6 +74,7 @@ const (
 			name,
 			icon_key,
 			balance,
+			is_primary,
 			is_archived,
 			created_at,
 			updated_at
@@ -84,6 +88,7 @@ const (
 			name,
 			icon_key,
 			balance,
+			is_primary,
 			is_archived,
 			created_at,
 			updated_at
@@ -96,8 +101,9 @@ const (
 		SET
 			name = $2,
 			icon_key = $3,
-			is_archived = $4,
-			updated_at = $5
+			is_primary = $4,
+			is_archived = $5,
+			updated_at = $6
 		WHERE id = $1
 	`
 
@@ -122,6 +128,13 @@ func (r *accountRepository) Create(ctx context.Context, a *account.Account) erro
 		var pgErr *pgconn.PgError
 
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			if pgErr.ConstraintName == "uq_accounts_primary" {
+				return fmt.Errorf(
+					"create account: %w",
+					account.ErrAccountPrimaryExists,
+				)
+			}
+
 			return fmt.Errorf(
 				"create account: %w",
 				account.ErrAccountNameExists,
@@ -201,6 +214,7 @@ func (r *accountRepository) Save(
 		a.ID,
 		a.Name,
 		a.IconKey,
+		a.IsPrimary,
 		a.IsArchived,
 		a.UpdatedAt,
 	)
@@ -208,6 +222,13 @@ func (r *accountRepository) Save(
 		var pgErr *pgconn.PgError
 
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			if pgErr.ConstraintName == "uq_accounts_primary" {
+				return fmt.Errorf(
+					"save account: %w",
+					account.ErrAccountPrimaryExists,
+				)
+			}
+
 			return fmt.Errorf(
 				"save account: %w",
 				account.ErrAccountNameExists,

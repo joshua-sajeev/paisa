@@ -13,13 +13,14 @@ type Account struct {
 	Name       string
 	Balance    int64
 	IconKey    string
+	IsPrimary  bool
 	IsArchived bool
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }
 
 // NewAccount creates a new active account.
-func NewAccount(name string) (*Account, error) {
+func NewAccount(name string, isPrimary bool) (*Account, error) {
 	name = strings.TrimSpace(name)
 
 	if name == "" {
@@ -33,6 +34,7 @@ func NewAccount(name string) (*Account, error) {
 		Name:       name,
 		Balance:    0,
 		IconKey:    "bank",
+		IsPrimary:  isPrimary,
 		IsArchived: false,
 		CreatedAt:  now,
 		UpdatedAt:  now,
@@ -55,6 +57,16 @@ func (a *Account) Rename(name string) error {
 	a.touch()
 
 	return nil
+}
+
+// SetPrimary sets the account as primary or not.
+func (a *Account) SetPrimary(v bool) {
+	if a.IsPrimary == v {
+		return
+	}
+
+	a.IsPrimary = v
+	a.touch()
 }
 
 // Archive archives the account.

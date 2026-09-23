@@ -116,6 +116,7 @@ func TestAccountService_Create(t *testing.T) {
 			got, err := service.Create(
 				context.Background(),
 				tt.accountName,
+				false,
 			)
 
 			if !errors.Is(err, tt.wantErr) {
@@ -246,12 +247,14 @@ func TestAccountService_Update(t *testing.T) {
 		initial        *account.Account
 		updateName     *string
 		updateIconKey  *string
+		updatePrimary  *bool
 		updateArchived *bool
 		findErr        error
 		saveErr        error
 		wantErr        error
 		wantName       string
 		wantIconKey    string
+		wantPrimary    bool
 		wantArchived   bool
 		wantSave       bool
 	}{
@@ -261,6 +264,7 @@ func TestAccountService_Update(t *testing.T) {
 				ID:         uuid.New(),
 				Name:       "Checking",
 				IconKey:    "bank",
+				IsPrimary:  true,
 				IsArchived: false,
 			},
 			updateName: func() *string {
@@ -269,6 +273,26 @@ func TestAccountService_Update(t *testing.T) {
 			}(),
 			wantName:     "Savings",
 			wantIconKey:  "bank",
+			wantPrimary:  true,
+			wantArchived: false,
+			wantSave:     true,
+		},
+		{
+			name: "update primary",
+			initial: &account.Account{
+				ID:         uuid.New(),
+				Name:       "Checking",
+				IconKey:    "bank",
+				IsPrimary:  false,
+				IsArchived: false,
+			},
+			updatePrimary: func() *bool {
+				primary := true
+				return &primary
+			}(),
+			wantName:     "Checking",
+			wantIconKey:  "bank",
+			wantPrimary:  true,
 			wantArchived: false,
 			wantSave:     true,
 		},
@@ -278,6 +302,7 @@ func TestAccountService_Update(t *testing.T) {
 				ID:         uuid.New(),
 				Name:       "Checking",
 				IconKey:    "bank",
+				IsPrimary:  false,
 				IsArchived: false,
 			},
 			updateIconKey: func() *string {
@@ -286,6 +311,7 @@ func TestAccountService_Update(t *testing.T) {
 			}(),
 			wantName:     "Checking",
 			wantIconKey:  "wallet",
+			wantPrimary:  false,
 			wantArchived: false,
 			wantSave:     true,
 		},
@@ -295,6 +321,7 @@ func TestAccountService_Update(t *testing.T) {
 				ID:         uuid.New(),
 				Name:       "Checking",
 				IconKey:    "bank",
+				IsPrimary:  false,
 				IsArchived: false,
 			},
 			updateName: func() *string {
@@ -307,6 +334,7 @@ func TestAccountService_Update(t *testing.T) {
 			}(),
 			wantName:     "Savings",
 			wantIconKey:  "wallet",
+			wantPrimary:  false,
 			wantArchived: false,
 			wantSave:     true,
 		},
@@ -316,6 +344,7 @@ func TestAccountService_Update(t *testing.T) {
 				ID:         uuid.New(),
 				Name:       "Savings",
 				IconKey:    "bank",
+				IsPrimary:  false,
 				IsArchived: false,
 			},
 			updateArchived: func() *bool {
@@ -324,6 +353,7 @@ func TestAccountService_Update(t *testing.T) {
 			}(),
 			wantName:     "Savings",
 			wantIconKey:  "bank",
+			wantPrimary:  false,
 			wantArchived: true,
 			wantSave:     true,
 		},
@@ -333,6 +363,7 @@ func TestAccountService_Update(t *testing.T) {
 				ID:         uuid.New(),
 				Name:       "Savings",
 				IconKey:    "bank",
+				IsPrimary:  false,
 				IsArchived: true,
 			},
 			updateArchived: func() *bool {
@@ -341,6 +372,7 @@ func TestAccountService_Update(t *testing.T) {
 			}(),
 			wantName:     "Savings",
 			wantIconKey:  "bank",
+			wantPrimary:  false,
 			wantArchived: false,
 			wantSave:     true,
 		},
@@ -350,6 +382,7 @@ func TestAccountService_Update(t *testing.T) {
 				ID:         uuid.New(),
 				Name:       "Savings",
 				IconKey:    "bank",
+				IsPrimary:  false,
 				IsArchived: false,
 			},
 			updateName: func() *string {
@@ -362,6 +395,7 @@ func TestAccountService_Update(t *testing.T) {
 			}(),
 			wantName:     "Archived Savings",
 			wantIconKey:  "bank",
+			wantPrimary:  false,
 			wantArchived: true,
 			wantSave:     true,
 		},
@@ -371,6 +405,7 @@ func TestAccountService_Update(t *testing.T) {
 				ID:         uuid.New(),
 				Name:       "Savings",
 				IconKey:    "bank",
+				IsPrimary:  false,
 				IsArchived: true,
 			},
 			updateArchived: func() *bool {
@@ -379,6 +414,7 @@ func TestAccountService_Update(t *testing.T) {
 			}(),
 			wantName:     "Savings",
 			wantIconKey:  "bank",
+			wantPrimary:  false,
 			wantArchived: true,
 			wantSave:     false,
 		},
@@ -388,6 +424,7 @@ func TestAccountService_Update(t *testing.T) {
 				ID:         uuid.New(),
 				Name:       "Savings",
 				IconKey:    "bank",
+				IsPrimary:  false,
 				IsArchived: false,
 			},
 			updateArchived: func() *bool {
@@ -396,6 +433,7 @@ func TestAccountService_Update(t *testing.T) {
 			}(),
 			wantName:     "Savings",
 			wantIconKey:  "bank",
+			wantPrimary:  false,
 			wantArchived: false,
 			wantSave:     false,
 		},
@@ -419,6 +457,7 @@ func TestAccountService_Update(t *testing.T) {
 				ID:         uuid.New(),
 				Name:       "Checking",
 				IconKey:    "bank",
+				IsPrimary:  false,
 				IsArchived: false,
 			},
 			updateName: func() *string {
@@ -429,6 +468,7 @@ func TestAccountService_Update(t *testing.T) {
 			wantErr:      repoErr,
 			wantName:     "Savings",
 			wantIconKey:  "bank",
+			wantPrimary:  false,
 			wantArchived: false,
 			wantSave:     true,
 		},
@@ -438,6 +478,7 @@ func TestAccountService_Update(t *testing.T) {
 				ID:         uuid.New(),
 				Name:       "Checking",
 				IconKey:    "bank",
+				IsPrimary:  false,
 				IsArchived: false,
 			},
 			updateName: func() *string {
@@ -447,6 +488,7 @@ func TestAccountService_Update(t *testing.T) {
 			wantErr:      account.ErrInvalidName,
 			wantName:     "Checking",
 			wantIconKey:  "bank",
+			wantPrimary:  false,
 			wantArchived: false,
 			wantSave:     false,
 		},
@@ -495,6 +537,7 @@ func TestAccountService_Update(t *testing.T) {
 				id,
 				tt.updateName,
 				tt.updateIconKey,
+				tt.updatePrimary,
 				tt.updateArchived,
 			)
 
@@ -543,6 +586,14 @@ func TestAccountService_Update(t *testing.T) {
 					"saved IconKey = %q, want %q",
 					saved.IconKey,
 					tt.wantIconKey,
+				)
+			}
+
+			if saved.IsPrimary != tt.wantPrimary {
+				t.Errorf(
+					"saved IsPrimary = %v, want %v",
+					saved.IsPrimary,
+					tt.wantPrimary,
 				)
 			}
 
