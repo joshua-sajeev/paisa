@@ -21,8 +21,8 @@ export function Navbar() {
             height={32}
             priority
           />
-          <span className="font-bold text-lg tracking-tight text-neutral-900">
-            Paisa
+          <span className="font-bold text-sm tracking-tight text-neutral-900">
+            PAISA
           </span>
         </Link>
       </div>
