@@ -1,7 +1,12 @@
+"use client";
 import Image from "next/image";
 import Link from "next/link";
-
+import { usePathname } from "next/navigation";
 export function Navbar() {
+  const pathname = usePathname();
+  if (pathname === "/login") {
+    return null;
+  }
   return (
     <header className="sticky top-0 z-50 bg-[#FFFAF0] px-6 py-3">
       <div className="flex items-center justify-between max-w-7xl mx-auto">
