@@ -1,3 +1,4 @@
+import { PrivacyProvider } from "@/context/PrivacyContext";
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { Navbar } from "@/components/Navbar";
@@ -24,8 +25,10 @@ export default function RootLayout({
       className={`${jakarta.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <Navbar />
-        <div className="flex-1">{children}</div>
+        <PrivacyProvider>
+          <Navbar />
+          <div className="flex-1">{children}</div>
+        </PrivacyProvider>
       </body>
     </html>
   );
