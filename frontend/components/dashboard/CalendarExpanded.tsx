@@ -113,10 +113,16 @@ export default function CalendarExpanded({
           const isToday = isSameDay(date, today);
           const isSelected = isSameDay(date, selectedDate);
 
-          let btnStyle = "flex flex-col items-center justify-center py-2 rounded-xl transition cursor-pointer ";
-          if (isSelected) btnStyle += "bg-blue-600 text-white font-bold shadow";
-          else if (isToday) btnStyle += "bg-rose-500 text-white font-bold shadow";
-          else btnStyle += "bg-gray-50 hover:bg-gray-100 text-gray-800";
+          let btnStyle =
+            "flex flex-col items-center justify-center py-2 rounded-xl transition cursor-pointer ";
+
+          if (isSelected) {
+            btnStyle += "bg-blue-500 text-white font-bold shadow";
+          } else if (isToday) {
+            btnStyle += "bg-[#EB2849] text-white font-bold shadow";
+          } else {
+            btnStyle += "text-gray-800 hover:bg-gray-50";
+          }
 
           return (
             <button
@@ -125,9 +131,13 @@ export default function CalendarExpanded({
               onClick={() => onDateChange(date)}
               className={btnStyle}
             >
-              <span className={`text-[10px] uppercase ${isSelected || isToday ? 'text-white' : 'text-gray-400'}`}>
-                {date.toLocaleDateString('en-GB', { weekday: 'short' })}
+              <span
+                className={`text-[10px] uppercase ${isSelected || isToday ? "text-white" : "text-gray-400"
+                  }`}
+              >
+                {date.toLocaleDateString("en-GB", { weekday: "short" })}
               </span>
+
               <span className="text-sm mt-0.5">{date.getDate()}</span>
             </button>
           );
@@ -139,14 +149,14 @@ export default function CalendarExpanded({
         <button
           type="button"
           onClick={() => onDateChange(new Date())}
-          className="px-3 py-1.5 rounded-full text-xs font-bold text-white bg-rose-500 shrink-0 transition active:scale-95"
+          className="px-3 py-1.5 rounded-full text-xs font-bold text-white bg-[#EB2849] shrink-0 transition active:scale-95"
         >
           Today ({today.getDate()} {today.toLocaleDateString('en-GB', { month: 'short' })})
         </button>
         <button
           type="button"
           onClick={() => onDateChange(new Date())}
-          className="px-3 py-1.5 rounded-full text-xs font-bold text-white bg-blue-600 shrink-0 transition active:scale-95"
+          className="px-3 py-1.5 rounded-full text-xs font-bold text-white bg-blue-500 shrink-0 transition active:scale-95"
         >
           This Week
         </button>
@@ -162,6 +172,6 @@ export default function CalendarExpanded({
           Last Week
         </button>
       </div>
-    </div>
+    </div >
   );
 }

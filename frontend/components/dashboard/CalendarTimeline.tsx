@@ -83,13 +83,13 @@ export default function CalendarTimeline() {
           </button>
 
           {/* Date Navigation */}
-          <div className="flex items-center gap-1 md:gap-2 bg-gray-50/80 border border-gray-100 p-1 rounded-xl">
+          <div className="flex items-center gap-1 md:gap-2">
             {/* Previous Day */}
             <button
               type="button"
               aria-label="Previous day"
               onClick={goToPreviousDay}
-              className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-500 hover:text-[#005bb2] hover:bg-white shadow-xs cursor-pointer active:scale-95 transition-all"
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-500 hover:text-[#005bb2] cursor-pointer active:scale-95 transition-all"
             >
               <ChevronLeft width="20" height="20" />
             </button>
@@ -109,7 +109,7 @@ export default function CalendarTimeline() {
               type="button"
               aria-label="Next day"
               onClick={goToNextDay}
-              className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-500 hover:text-[#005bb2] hover:bg-white shadow-xs cursor-pointer active:scale-95 transition-all"
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-500 hover:text-[#005bb2] cursor-pointer active:scale-95 transition-all"
             >
               <ChevronRight width="20" height="20" />
             </button>
