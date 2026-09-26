@@ -1,6 +1,11 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import {
+  Today,
+  ChevronLeft,
+  ChevronRight,
+} from '@material-symbols-svg/react/w400';
 import CalendarExpanded from './CalendarExpanded';
 
 export default function CalendarTimeline() {
@@ -65,19 +70,11 @@ export default function CalendarTimeline() {
             className="flex items-center gap-2.5 md:gap-3 cursor-pointer group"
           >
             <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-[#e3eeff] flex items-center justify-center text-[#005bb2] transition-colors group-hover:bg-[#d0e4ff]">
-              <svg
-                className="w-4 h-4 md:w-5 md:h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
+              <Today
+                width="20"
+                height="20"
+                className="md:w-6 md:h-6"
+              />
             </div>
 
             <span className="text-[14px] md:text-[17px] font-bold text-[#1c1b1f] tracking-tight">
@@ -94,19 +91,7 @@ export default function CalendarTimeline() {
               onClick={goToPreviousDay}
               className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-500 hover:text-[#005bb2] hover:bg-white shadow-xs cursor-pointer active:scale-95 transition-all"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
+              <ChevronLeft width="20" height="20" />
             </button>
 
             {/* Selected Date */}
@@ -126,19 +111,7 @@ export default function CalendarTimeline() {
               onClick={goToNextDay}
               className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-500 hover:text-[#005bb2] hover:bg-white shadow-xs cursor-pointer active:scale-95 transition-all"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
+              <ChevronRight width="20" height="20" />
             </button>
           </div>
         </div>

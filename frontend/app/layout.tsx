@@ -24,6 +24,7 @@ export default function RootLayout({
       lang="en"
       className={`${jakarta.variable} h-full antialiased`}
     >
+      <head />
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <PrivacyProvider>
           <Navbar />
