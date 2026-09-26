@@ -10,7 +10,7 @@ interface PrivacyContextType {
 const PrivacyContext = createContext<PrivacyContextType | undefined>(undefined);
 
 export function PrivacyProvider({ children }: { children: ReactNode }) {
-  const [isPrivate, setIsPrivate] = useState<boolean>(false);
+  const [isPrivate, setIsPrivate] = useState(true);
 
   const togglePrivacy = () => {
     setIsPrivate((prev) => !prev);
