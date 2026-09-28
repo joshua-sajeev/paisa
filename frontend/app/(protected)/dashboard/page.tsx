@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import CalendarTimeline from "@/components/dashboard/CalendarTimeline";
 import SummaryCard from "@/components/dashboard/SummmaryCard";
 import AccountsList from "@/components/dashboard/AccountsList";
+import JarsList from "@/components/dashboard/JarsList";
 import { getDashboardData, DashboardData } from "@/lib/dashboard";
 
 export default function DashboardPage() {
@@ -23,6 +24,7 @@ export default function DashboardPage() {
         <CalendarTimeline />
         <SummaryCard summary={data?.summary ?? null} />
         <AccountsList accounts={data?.accounts ?? []} />
+        <JarsList jars={data?.jars ?? []} />
       </div>
     </main>
   );
