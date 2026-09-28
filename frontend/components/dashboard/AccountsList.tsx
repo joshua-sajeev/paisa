@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import { DashboardAccount } from '@/lib/dashboard';
 import { formatMoney } from '@/lib/utils';
@@ -23,6 +24,7 @@ interface AccountsListProps {
 
 export default function AccountsList({ accounts }: AccountsListProps) {
   const { isPrivate } = usePrivacy();
+  const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
 
   const sortedAccounts = [...accounts].sort((a, b) => {
     if (a.is_primary && !b.is_primary) return -1;
@@ -30,8 +32,26 @@ export default function AccountsList({ accounts }: AccountsListProps) {
     return 0;
   });
 
-  const formatBalance = (amount: number) => {
-    if (isPrivate) {
+  const toggleReveal = (id: string) => {
+    if (!isPrivate) return;
+
+    setRevealedIds((prev) => {
+      const next = new Set(prev);
+
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+
+      return next;
+    });
+  };
+
+  const formatBalance = (amount: number, accountId: string) => {
+    const isRevealed = revealedIds.has(accountId);
+
+    if (isPrivate && !isRevealed) {
       return (
         <span className="inline-flex w-fit items-center rounded-md border border-slate-200/70 bg-slate-100/70 px-1.5 py-0.5 text-slate-400 backdrop-blur-sm">
           ₹••••
@@ -108,10 +128,17 @@ export default function AccountsList({ accounts }: AccountsListProps) {
         }}
       >
         {sortedAccounts.map((account, index) => (
-          <div
+          <button
             key={account.id}
-            className="flex flex-shrink-0 flex-col justify-between rounded-xl bg-white p-3 shadow-sm"
+            type="button"
+            onClick={() => toggleReveal(account.id)}
+            className="flex flex-shrink-0 flex-col justify-between rounded-xl bg-white p-3 text-left shadow-sm transition-transform active:scale-[0.98]"
             style={{ width: '190px' }}
+            aria-label={
+              isPrivate
+                ? `Toggle balance visibility for ${account.name}`
+                : `${account.name} account`
+            }
           >
             {/* Account info */}
             <div className="flex items-center gap-2">
@@ -135,10 +162,10 @@ export default function AccountsList({ accounts }: AccountsListProps) {
               </span>
 
               <span className="mt-0.5 text-[15px] font-bold tracking-tight text-on-surface">
-                {formatBalance(account.balance)}
+                {formatBalance(account.balance, account.id)}
               </span>
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </section>

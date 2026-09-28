@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { DashboardSummary } from '@/lib/dashboard';
 import { formatMoney } from '@/lib/utils';
 import { usePrivacy } from '@/context/PrivacyContext';
@@ -15,29 +16,50 @@ interface SummaryCardProps {
 
 export default function SummaryCard({ summary }: SummaryCardProps) {
   const { isPrivate } = usePrivacy();
+  const [isRevealed, setIsRevealed] = useState(false);
 
-  const formatAmount = (amount: number, size: 'large' | 'small' = 'small') =>
-    isPrivate ? (
-      <span
-        className={
-          size === 'large'
-            ? 'inline-flex w-fit items-center rounded-lg border border-slate-200/70 bg-slate-100/70 px-2.5 py-1 text-slate-400 backdrop-blur-sm'
-            : 'inline-flex w-fit items-center rounded-md border border-slate-200/70 bg-slate-100/70 px-1.5 py-0.5 text-slate-400 backdrop-blur-sm'
-        }
-      >
-        ₹••••
-      </span>
-    ) : (
-      <>₹{formatMoney(amount)}</>
-    );
+  const toggleReveal = () => {
+    if (!isPrivate) return;
+    setIsRevealed((prev) => !prev);
+  };
+
+  const formatAmount = (
+    amount: number,
+    size: 'large' | 'small' = 'small',
+  ) => {
+    if (isPrivate && !isRevealed) {
+      return (
+        <span
+          className={
+            size === 'large'
+              ? 'inline-flex w-fit items-center rounded-lg border border-slate-200/70 bg-slate-100/70 px-2.5 py-1 text-slate-400 backdrop-blur-sm'
+              : 'inline-flex w-fit items-center rounded-md border border-slate-200/70 bg-slate-100/70 px-1.5 py-0.5 text-slate-400 backdrop-blur-sm'
+          }
+        >
+          ₹••••
+        </span>
+      );
+    }
+
+    return <>₹{formatMoney(amount)}</>;
+  };
 
   return (
-    <section className="relative flex flex-col gap-4 overflow-hidden rounded-xl border border-gray-200/80 bg-white p-5 shadow-sm transition-all hover:shadow-md">
+    <button
+      type="button"
+      onClick={toggleReveal}
+      className="relative flex w-full flex-col gap-4 overflow-hidden rounded-xl border border-gray-200/80 bg-white p-5 text-left shadow-sm transition-all hover:shadow-md"
+      aria-label={
+        isPrivate
+          ? 'Toggle summary amounts visibility'
+          : 'Financial summary'
+      }
+    >
       {/* Decorative background blurs */}
       <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-amber-100 opacity-40 blur-2xl" />
       <div className="pointer-events-none absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-orange-100 opacity-30 blur-2xl" />
 
-      {/* Top Net Worth Section */}
+      {/* Total Net Worth */}
       <div className="relative z-10 flex flex-col gap-1">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
           Total Net Worth
@@ -48,7 +70,7 @@ export default function SummaryCard({ summary }: SummaryCardProps) {
         </span>
       </div>
 
-      {/* Breakdown Section */}
+      {/* Breakdown */}
       <div className="relative z-10 flex flex-col gap-2 pt-1">
         <div className="grid grid-cols-2 gap-2">
           {/* Monthly Income */}
@@ -90,7 +112,7 @@ export default function SummaryCard({ summary }: SummaryCardProps) {
           </div>
         </div>
 
-        {/* Monthly Savings Bar */}
+        {/* Monthly Savings */}
         <div className="flex items-center justify-between rounded-lg bg-[rgb(238,242,255)] px-3 py-2">
           <div className="flex items-center gap-2">
             <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[rgba(99,102,241,0.2)] text-[rgb(55,48,163)]">
@@ -108,6 +130,7 @@ export default function SummaryCard({ summary }: SummaryCardProps) {
             </div>
           </div>
 
+          {/* Percentage stays visible */}
           <span
             className="rounded-full px-1.5 py-0.5 text-[10px] font-bold"
             style={{
@@ -120,6 +143,6 @@ export default function SummaryCard({ summary }: SummaryCardProps) {
           </span>
         </div>
       </div>
-    </section>
+    </button>
   );
 }
