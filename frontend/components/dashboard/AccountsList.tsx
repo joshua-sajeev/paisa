@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { DashboardAccount } from '@/lib/dashboard';
+import { formatMoney } from '@/lib/utils';
 import { usePrivacy } from '@/context/PrivacyContext';
 import {
   AccountBalanceFill,
@@ -9,6 +10,12 @@ import {
 } from '@material-symbols-svg/react/w400';
 
 const AVAILABLE_ICONS = ['fbi', 'hdfc', 'sbi'];
+
+const ACCOUNT_COLORS = [
+  '#4F46E5',
+  '#059669',
+  '#F59E0B',
+];
 
 interface AccountsListProps {
   accounts: DashboardAccount[];
@@ -24,19 +31,17 @@ export default function AccountsList({ accounts }: AccountsListProps) {
   });
 
   const formatBalance = (amount: number) => {
-    if (isPrivate) return '₹••••••••';
+    if (isPrivate) {
+      return (
+        <span className="inline-flex w-fit items-center rounded-md border border-slate-200/70 bg-slate-100/70 px-1.5 py-0.5 text-slate-400 backdrop-blur-sm">
+          ₹••••
+        </span>
+      );
+    }
 
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(amount);
+    return <>₹{formatMoney(amount)}</>;
   };
-  const ACCOUNT_COLORS = [
-    '#4F46E5',
-    '#059669',
-    '#F59E0B',
-  ];
+
   const getIcon = (iconKey: string, name: string, index: number) => {
     const key = iconKey?.toLowerCase().trim();
     const bankName = name?.toLowerCase().trim();
@@ -81,22 +86,22 @@ export default function AccountsList({ accounts }: AccountsListProps) {
     <section className="flex flex-col gap-2">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-[15px] font-bold text-on-surface tracking-tight">
+        <h2 className="text-[15px] font-bold tracking-tight text-on-surface">
           Active Accounts
         </h2>
 
         <button
           type="button"
-          className="text-xs font-semibold text-primary flex items-center gap-0.5 hover:underline"
+          className="flex items-center gap-0.5 text-xs font-semibold text-primary hover:underline"
         >
           View All ({accounts.length})
-          <ChevronRight width={14} height={14} />
+          <ChevronRight size={14} color="currentColor" />
         </button>
       </div>
 
       {/* Horizontal cards */}
       <div
-        className="flex gap-2.5 overflow-x-auto pb-1 -mx-margin px-margin"
+        className="-mx-margin flex gap-2.5 overflow-x-auto pb-1 px-margin"
         style={{
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
@@ -105,19 +110,19 @@ export default function AccountsList({ accounts }: AccountsListProps) {
         {sortedAccounts.map((account, index) => (
           <div
             key={account.id}
-            className="flex flex-col justify-between flex-shrink-0 bg-white rounded-xl p-3 shadow-sm"
+            className="flex flex-shrink-0 flex-col justify-between rounded-xl bg-white p-3 shadow-sm"
             style={{ width: '190px' }}
           >
             {/* Account info */}
             <div className="flex items-center gap-2">
               {getIcon(account.icon_key, account.name, index)}
 
-              <div className="flex flex-col min-w-0">
-                <span className="text-[13px] font-bold text-on-surface truncate">
+              <div className="flex min-w-0 flex-col">
+                <span className="truncate text-[13px] font-bold text-on-surface">
                   {account.name}
                 </span>
 
-                <span className="text-[10px] text-on-surface-variant truncate">
+                <span className="truncate text-[10px] text-on-surface-variant">
                   {account.is_primary ? 'Primary Account' : 'Account'}
                 </span>
               </div>
@@ -125,11 +130,11 @@ export default function AccountsList({ accounts }: AccountsListProps) {
 
             {/* Balance */}
             <div className="flex flex-col pt-2">
-              <span className="text-[9px] uppercase tracking-wider text-gray-500 font-medium">
+              <span className="text-[9px] font-medium uppercase tracking-wider text-gray-500">
                 AVAILABLE
               </span>
 
-              <span className="text-[15px] font-bold text-on-surface tracking-tight mt-0.5">
+              <span className="mt-0.5 text-[15px] font-bold tracking-tight text-on-surface">
                 {formatBalance(account.balance)}
               </span>
             </div>
