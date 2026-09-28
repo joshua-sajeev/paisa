@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import CalendarTimeline from "@/components/dashboard/CalendarTimeline";
 import SummaryCard from "@/components/dashboard/SummmaryCard";
+import AccountsList from "@/components/dashboard/AccountsList";
 import { getDashboardData, DashboardData } from "@/lib/dashboard";
 
 export default function DashboardPage() {
@@ -21,6 +22,7 @@ export default function DashboardPage() {
       <div className="flex flex-col gap-3 w-full">
         <CalendarTimeline />
         <SummaryCard summary={data?.summary ?? null} />
+        <AccountsList accounts={data?.accounts ?? []} />
       </div>
     </main>
   );

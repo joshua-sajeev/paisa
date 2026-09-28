@@ -2,6 +2,10 @@
 
 @theme {
   --font-jakarta: var(--font-jakarta);
+
+  --color-primary: #4F46E5;
+  --color-on-surface: #171717;
+  --color-on-surface-variant: #6B7280;
 }
 
 :root {
