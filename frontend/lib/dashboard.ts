@@ -40,14 +40,23 @@ export interface DashboardTransaction {
   id: string;
   name: string;
   date: string;
-  type: "income" | "expense";
+  type: 'income' | 'expense' | 'transfer';
   amount: number;
   jar_name: string | null;
   account: string;
-  account_balance: number;
-  category: string;
+  account_balance: number | null;
+  category:
+  | 'food'
+  | 'transport'
+  | 'entertainment'
+  | 'groceries'
+  | 'health'
+  | 'transfer'
+  | 'donation'
+  | 'investment'
+  | 'housing'
+  | 'other';
 }
-
 export interface DashboardData {
   summary: DashboardSummary;
   accounts: DashboardAccount[];

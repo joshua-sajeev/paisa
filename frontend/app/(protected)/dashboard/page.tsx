@@ -7,6 +7,7 @@ import SummaryCard from "@/components/dashboard/SummmaryCard";
 import AccountsList from "@/components/dashboard/AccountsList";
 import JarsList from "@/components/dashboard/JarsList";
 import GoalsList from "@/components/dashboard/GoalsList";
+import RecentActivity from "@/components/dashboard/RecentActivity";
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -27,6 +28,15 @@ export default function DashboardPage() {
         <AccountsList accounts={data?.accounts ?? []} />
         <JarsList jars={data?.jars ?? []} />
         <GoalsList goals={data?.goals ?? []} />
+        <RecentActivity
+          transactions={data?.recent_transactions ?? []}
+          onEditTransaction={(transaction) => {
+            console.log('Edit:', transaction);
+          }}
+          onDeleteTransaction={(transaction) => {
+            console.log('Delete:', transaction);
+          }}
+        />
       </div>
     </main>
   );
