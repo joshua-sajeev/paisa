@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { getDashboardData, DashboardData } from "@/lib/dashboard";
 import CalendarTimeline from "@/components/dashboard/CalendarTimeline";
 import SummaryCard from "@/components/dashboard/SummmaryCard";
 import AccountsList from "@/components/dashboard/AccountsList";
 import JarsList from "@/components/dashboard/JarsList";
-import { getDashboardData, DashboardData } from "@/lib/dashboard";
+import GoalsList from "@/components/dashboard/GoalsList";
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -25,6 +26,7 @@ export default function DashboardPage() {
         <SummaryCard summary={data?.summary ?? null} />
         <AccountsList accounts={data?.accounts ?? []} />
         <JarsList jars={data?.jars ?? []} />
+        <GoalsList goals={data?.goals ?? []} />
       </div>
     </main>
   );
