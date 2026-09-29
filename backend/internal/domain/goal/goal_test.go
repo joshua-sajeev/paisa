@@ -144,3 +144,71 @@ func TestNewGoal(t *testing.T) {
 		})
 	}
 }
+
+func TestNewContribution(t *testing.T) {
+	goalID := uuid.New()
+	occurredAt := time.Date(2026, 9, 29, 0, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name       string
+		goalID     uuid.UUID
+		amount     int64
+		occurredAt time.Time
+		wantErr    error
+	}{
+		{
+			name:       "valid contribution",
+			goalID:     goalID,
+			amount:     5000,
+			occurredAt: occurredAt,
+		},
+		{
+			name:       "zero amount",
+			goalID:     goalID,
+			amount:     0,
+			occurredAt: occurredAt,
+			wantErr:    goal.ErrInvalidAmount,
+		},
+		{
+			name:       "negative amount",
+			goalID:     goalID,
+			amount:     -100,
+			occurredAt: occurredAt,
+			wantErr:    goal.ErrInvalidAmount,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := goal.NewContribution(tt.goalID, tt.amount, tt.occurredAt)
+
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("NewContribution() error = %v, wantErr = %v", err, tt.wantErr)
+			}
+
+			if tt.wantErr != nil {
+				return
+			}
+
+			if got.ID == uuid.Nil {
+				t.Error("ID should not be uuid.Nil")
+			}
+
+			if got.GoalID != tt.goalID {
+				t.Errorf("GoalID = %v, want %v", got.GoalID, tt.goalID)
+			}
+
+			if got.Amount != tt.amount {
+				t.Errorf("Amount = %d, want %d", got.Amount, tt.amount)
+			}
+
+			if !got.OccurredAt.Equal(tt.occurredAt) {
+				t.Errorf("OccurredAt = %v, want %v", got.OccurredAt, tt.occurredAt)
+			}
+
+			if got.CreatedAt.IsZero() || got.UpdatedAt.IsZero() {
+				t.Error("timestamps should be set")
+			}
+		})
+	}
+}

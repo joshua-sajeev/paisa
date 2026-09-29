@@ -82,3 +82,29 @@ func (g *Goal) Unarchive() {
 	g.IsArchived = false
 	g.UpdatedAt = time.Now().UTC().Truncate(time.Microsecond)
 }
+
+type Contribution struct {
+	ID         uuid.UUID
+	GoalID     uuid.UUID
+	Amount     int64
+	OccurredAt time.Time
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
+
+func NewContribution(goalID uuid.UUID, amount int64, occurredAt time.Time) (*Contribution, error) {
+	if amount <= 0 {
+		return nil, ErrInvalidAmount
+	}
+
+	now := time.Now().UTC().Truncate(time.Microsecond)
+
+	return &Contribution{
+		ID:         uuid.New(),
+		GoalID:     goalID,
+		Amount:     amount,
+		OccurredAt: occurredAt,
+		CreatedAt:  now,
+		UpdatedAt:  now,
+	}, nil
+}
