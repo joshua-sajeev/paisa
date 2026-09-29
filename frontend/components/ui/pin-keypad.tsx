@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect } from "react";
 import type { Dispatch, SetStateAction } from "react";
+import { BackspaceW400 } from "@material-symbols-svg/react/icons/backspace";
 
 const keys = [
   "1",
@@ -199,19 +200,7 @@ export function PinKeypad({
                 }
               >
                 {key === "backspace" ? (
-                  <svg
-                    className="h-6 w-6"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2.2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" />
-                    <line x1="18" y1="9" x2="12" y2="15" />
-                    <line x1="12" y1="9" x2="18" y2="15" />
-                  </svg>
+                  <BackspaceW400 className="w-[24px] h-[24px]" />
                 ) : key === "." ? (
                   <span className="leading-none text-slate-400">•</span>
                 ) : (

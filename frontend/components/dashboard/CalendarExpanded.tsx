@@ -1,6 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import {
+  CalendarToday,
+  ExpandCircleUp,
+  ChevronLeft,
+  ChevronRight,
+} from '@material-symbols-svg/react/w400';
 
 type CalendarExpandedProps = {
   selectedDate: Date;
@@ -56,29 +62,16 @@ export default function CalendarExpanded({
   };
 
   return (
-    <div className="w-full max-w-md mx-auto flex flex-col gap-3 p-4 bg-white border border-gray-200 rounded-2xl shadow-sm">
+    <div className="w-full flex flex-col gap-3 p-4 bg-white border border-gray-200 rounded-2xl shadow-sm">
       {/* Header */}
       <div className="flex items-center justify-between pb-2 border-b border-gray-100">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8" y1="2" x2="8" y2="6" />
-              <line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
+            <CalendarToday width={16} height={16} />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-gray-900 leading-tight">Calendar</h3>
+            <h3 className="text-sm font-bold text-gray-900 leading-tight">Calendar &amp; Timeline</h3>
+            <p className="text-[10px] text-gray-500">Select day or navigate weekly</p>
           </div>
         </div>
         {onCollapse && (
@@ -88,83 +81,47 @@ export default function CalendarExpanded({
             aria-label="Collapse calendar"
             className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="18 15 12 9 6 15" />
-            </svg>
+            <ExpandCircleUp width={20} height={20} />
           </button>
         )}
       </div>
 
       {/* Week Navigation */}
-      <div className="flex items-center justify-between bg-gray-50 rounded-xl px-2 py-1.5 border border-gray-200/40">
+      <div className="flex items-center justify-between bg-gray-50 rounded-xl px-2 py-1.5 border border-gray-100">
         <button
           type="button"
           onClick={() => shiftWeek(-7)}
           aria-label="Previous week"
-          className="flex items-center gap-1 px-2 py-1 rounded-lg text-[12px] font-bold text-blue-600 hover:bg-gray-200/60 active:scale-95 transition-all"
+          className="p-1 rounded-md text-blue-600 hover:bg-gray-200 transition"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-4 h-4"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
+          <ChevronLeft width={20} height={20} />
         </button>
-        <span className="text-[14px] font-extrabold text-gray-900 tracking-tight">
-          {formatWeek()}
-        </span>
+        <span className="text-xs font-bold text-gray-800">{formatWeek()}</span>
         <button
           type="button"
           onClick={() => shiftWeek(7)}
           aria-label="Next week"
-          className="flex items-center gap-1 px-2 py-1 rounded-lg text-[12px] font-bold text-blue-600 hover:bg-gray-200/60 active:scale-95 transition-all"
+          className="p-1 rounded-md text-blue-600 hover:bg-gray-200 transition"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-4 h-4"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          <ChevronRight width={20} height={20} />
         </button>
       </div>
 
       {/* Week Days */}
-      <div className="grid grid-cols-7 gap-1 pt-1">
+      <div className="grid grid-cols-7 gap-1">
         {weekDays.map((date) => {
           const isToday = isSameDay(date, today);
           const isSelected = isSameDay(date, selectedDate);
 
-          let btnStyle = "flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all cursor-pointer ";
+          let btnStyle =
+            "flex flex-col items-center justify-center py-2 rounded-xl transition cursor-pointer ";
 
-          if (isSelected && isToday) {
-            btnStyle += "bg-rose-500 shadow-sm";
-          } else if (isSelected) {
-            btnStyle += "bg-blue-600 text-white shadow-sm";
+          if (isSelected) {
+            btnStyle += "bg-blue-500 text-white font-bold shadow";
           } else if (isToday) {
-            btnStyle += "bg-rose-500 shadow-sm";
+            btnStyle += "bg-[#EB2849] text-white font-bold shadow";
           } else {
-            btnStyle += "bg-white hover:bg-gray-100/60 border border-transparent";
+            btnStyle += "text-gray-800 hover:bg-gray-50";
           }
 
           return (
@@ -174,30 +131,32 @@ export default function CalendarExpanded({
               onClick={() => onDateChange(date)}
               className={btnStyle}
             >
-              <span className={`text-[14px] sm:text-[12px] font-semibold uppercase tracking-wider ${isSelected || isToday ? 'text-white font-extrabold' : 'text-gray-500'}`}>
-                {date.toLocaleDateString('en-GB', { weekday: 'short' })}
+              <span
+                className={`text-[10px] uppercase ${isSelected || isToday ? "text-white" : "text-gray-400"
+                  }`}
+              >
+                {date.toLocaleDateString("en-GB", { weekday: "short" })}
               </span>
-              <span className={`text-[14px] mt-1 ${isSelected || isToday ? 'text-white font-extrabold' : 'font-bold text-gray-900'}`}>
-                {date.getDate()}
-              </span>
+
+              <span className="text-sm mt-0.5">{date.getDate()}</span>
             </button>
           );
         })}
       </div>
 
-      {/* Quick Actions (Centered) */}
-      <div className="flex items-center justify-center gap-1.5 pt-1 flex-wrap pb-0.5">
+      {/* Quick Actions */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
         <button
           type="button"
           onClick={() => onDateChange(new Date())}
-          className="px-3 py-1.5 rounded-full text-[12px] font-bold text-white bg-rose-500 flex-shrink-0 transition-transform active:scale-95 shadow-sm"
+          className="px-3 py-1.5 rounded-full text-xs font-bold text-white bg-[#EB2849] shrink-0 transition active:scale-95"
         >
           Today ({today.getDate()} {today.toLocaleDateString('en-GB', { month: 'short' })})
         </button>
         <button
           type="button"
           onClick={() => onDateChange(new Date())}
-          className="px-3 py-1.5 rounded-full text-[12px] font-bold bg-blue-600 text-white flex-shrink-0 transition-transform active:scale-95 shadow-sm"
+          className="px-3 py-1.5 rounded-full text-xs font-bold text-white bg-blue-500 shrink-0 transition active:scale-95"
         >
           This Week
         </button>
@@ -208,11 +167,11 @@ export default function CalendarExpanded({
             d.setDate(d.getDate() - 7);
             onDateChange(d);
           }}
-          className="px-3 py-1.5 rounded-full text-[12px] font-semibold bg-gray-100/70 text-gray-600 hover:text-gray-900 flex-shrink-0 border border-gray-200/40 active:scale-95"
+          className="px-3 py-1.5 rounded-full text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 shrink-0 transition active:scale-95"
         >
           Last Week
         </button>
       </div>
-    </div>
+    </div >
   );
 }

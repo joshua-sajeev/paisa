@@ -24,6 +24,7 @@ var (
 	transactionRepo ports.TransactionRepository
 	dashboardRepo   ports.DashboardRepository
 	allocationRepo  ports.AllocationRepository
+	goalRepo        ports.GoalRepository
 	txManager       ports.TxManager
 	ctx             = context.Background()
 )
@@ -34,7 +35,7 @@ func truncateTables(t testing.TB, ctx context.Context, db *pgxpool.Pool) {
 
 	_, err := db.Exec(
 		ctx,
-		"TRUNCATE TABLE accounts, jars CASCADE",
+		"TRUNCATE TABLE accounts, jars, goals CASCADE",
 	)
 	if err != nil {
 		t.Fatalf("truncate tables: %v", err)
@@ -90,6 +91,7 @@ func TestMain(m *testing.M) {
 	transactionRepo = postgres.NewTransactionRepository(db)
 	dashboardRepo = postgres.NewDashboardRepository(db)
 	allocationRepo = postgres.NewAllocationRepository(db)
+	goalRepo = postgres.NewGoalRepository(db)
 	txManager = postgres.NewTxManager(db)
 	os.Exit(m.Run())
 }

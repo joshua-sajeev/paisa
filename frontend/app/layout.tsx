@@ -1,6 +1,9 @@
+import { PrivacyProvider } from "@/context/PrivacyContext";
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { Navbar } from "@/components/Navbar";
+import  BottomNav  from "@/components/BottomNav";
+import  AddTransactionButton  from "@/components/AddTransactionButton";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -16,16 +19,25 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
-}) {
+    children: React.ReactNode;
+  }) {
   return (
     <html
       lang="en"
       className={`${jakarta.variable} h-full antialiased`}
     >
+      <head />
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <Navbar />
-        <div className="flex-1">{children}</div>
+        <PrivacyProvider>
+          <Navbar />
+
+          <main className="flex-1 pb-24">
+            {children}
+          </main>
+        </PrivacyProvider>
+
+        <AddTransactionButton />
+        <BottomNav />
       </body>
     </html>
   );

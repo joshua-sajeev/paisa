@@ -10,5 +10,8 @@ func registerGoalRoutes(r chi.Router, h *handler.GoalHandler) {
 		sub.Post("/", h.Create)
 		sub.Get("/", h.List)
 		sub.Patch("/{id}", h.Patch)
+		sub.Delete("/{id}", h.Delete)
+		sub.Post("/{id}/contributions", h.AddContribution)
+		sub.Get("/{id}/contributions", h.ListContributions)
 	})
 }
