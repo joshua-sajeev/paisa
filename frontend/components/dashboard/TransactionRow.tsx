@@ -158,11 +158,17 @@ export default function TransactionRow({
 }: TransactionRowProps) {
   const { isPrivate } = usePrivacy();
 
+  // Controls privacy for this row only.
+  const [isRevealed, setIsRevealed] = useState(false);
+
   const [offset, setOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
 
   const startX = useRef(0);
   const startOffset = useRef(0);
+
+  // Used to distinguish a tap from a swipe.
+  const didSwipe = useRef(false);
 
   const isTransfer = transaction.type === 'transfer';
   const isIncome = transaction.type === 'income';
@@ -170,7 +176,7 @@ export default function TransactionRow({
   const style = isTransfer
     ? TRANSACTION_STYLES.transfer
     : TRANSACTION_STYLES[transaction.category] ??
-      TRANSACTION_STYLES.other;
+    TRANSACTION_STYLES.other;
 
   const Icon = style.icon;
 
@@ -182,6 +188,9 @@ export default function TransactionRow({
   ) => {
     startX.current = event.clientX;
     startOffset.current = offset;
+
+    didSwipe.current = false;
+
     setDragging(true);
 
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -193,6 +202,12 @@ export default function TransactionRow({
     if (!dragging) return;
 
     const delta = event.clientX - startX.current;
+
+    // Once the finger/mouse has moved enough,
+    // consider this a swipe instead of a tap.
+    if (Math.abs(delta) > 5) {
+      didSwipe.current = true;
+    }
 
     let nextOffset = startOffset.current + delta;
 
@@ -209,6 +224,14 @@ export default function TransactionRow({
       setOffset(-ACTION_WIDTH);
     } else {
       setOffset(0);
+    }
+  };
+
+  const handleClick = () => {
+    // Only reveal when privacy mode is enabled.
+    // A swipe should not trigger the reveal.
+    if (isPrivate && !didSwipe.current) {
+      setIsRevealed((prev) => !prev);
     }
   };
 
@@ -237,6 +260,10 @@ export default function TransactionRow({
   const accountInfo = transaction.jar_name
     ? `${transaction.jar_name} • ${transaction.account}`
     : transaction.account;
+
+  // When privacy is disabled, always show the information.
+  // When privacy is enabled, only show it if this row is revealed.
+  const showPrivateData = !isPrivate || isRevealed;
 
   return (
     <div className="relative overflow-hidden rounded-xl">
@@ -270,6 +297,7 @@ export default function TransactionRow({
             ? 'none'
             : 'transform 180ms ease-out',
         }}
+        onClick={handleClick}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -306,9 +334,7 @@ export default function TransactionRow({
         {/* Amount + Jar + Bank */}
         <div className="ml-2 flex shrink-0 flex-col items-end text-right">
           {/* Amount */}
-          {isPrivate ? (
-            <PrivacyPill size="amount">₹••••</PrivacyPill>
-          ) : (
+          {showPrivateData ? (
             <span
               className="text-[14px] font-bold leading-tight"
               style={{
@@ -317,16 +343,18 @@ export default function TransactionRow({
             >
               {displayAmount}
             </span>
+          ) : (
+            <PrivacyPill size="amount">₹••••</PrivacyPill>
           )}
 
           {/* Jar + Bank */}
           <div className="mt-1 max-w-[150px] truncate">
-            {isPrivate ? (
-              <PrivacyPill size="account">••••</PrivacyPill>
-            ) : (
+            {showPrivateData ? (
               <span className="text-[11px] font-medium leading-tight text-slate-500">
                 {accountInfo}
               </span>
+            ) : (
+              <PrivacyPill size="account">••••</PrivacyPill>
             )}
           </div>
         </div>
