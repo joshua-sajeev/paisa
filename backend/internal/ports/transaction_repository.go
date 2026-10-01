@@ -19,6 +19,8 @@ type ListParams struct {
 	AccountID *uuid.UUID
 	Type      *transaction.TransactionType
 	Category  *transaction.TransactionCategory
+	// JarID restricts results to transactions assigned to a single jar.
+	JarID *uuid.UUID
 	// FromDate is an inclusive lower bound on occurred_at.
 	FromDate *time.Time
 	// ToDate is an exclusive upper bound on occurred_at.
@@ -38,6 +40,26 @@ type TransactionListItem struct {
 	AccountBalance *int64
 	Category       transaction.TransactionCategory
 	OccurredAt     time.Time
+}
+
+// StatementSummary holds balance aggregates for one account over a date range.
+// All values are in paise. Outflow is reported as a positive number.
+//
+// OpeningBalance + Inflow - Outflow == ClosingBalance always holds.
+type StatementSummary struct {
+	// OpeningBalance is the account balance immediately before the range starts.
+	OpeningBalance int64
+	// ClosingBalance is the account balance at the end of the range.
+	ClosingBalance int64
+	// Inflow is the total money received by the account within the range.
+	Inflow int64
+	// Outflow is the total money leaving the account within the range.
+	Outflow int64
+}
+
+// Net returns the net change in balance over the range.
+func (s StatementSummary) Net() int64 {
+	return s.Inflow - s.Outflow
 }
 
 // TransactionRepository defines the persistence port for transactions.
@@ -61,6 +83,24 @@ type TransactionRepository interface {
 		accountID uuid.UUID,
 		params ListParams,
 	) ([]*TransactionListItem, error)
+
+	// CountByAccount returns how many transactions for the account match the
+	// filters in params. Limit and Offset are ignored.
+	CountByAccount(
+		ctx context.Context,
+		accountID uuid.UUID,
+		params ListParams,
+	) (int, error)
+
+	// SummarizeByAccount returns balance aggregates for the account within
+	// [from, to). A nil bound is open-ended. Only the date range applies;
+	// search/type/category/jar filters are intentionally not part of this.
+	SummarizeByAccount(
+		ctx context.Context,
+		accountID uuid.UUID,
+		from *time.Time,
+		to *time.Time,
+	) (StatementSummary, error)
 
 	// FindByID retrieves a single transaction by ID.
 	FindByID(ctx context.Context, id uuid.UUID) (*transaction.Transaction, error)

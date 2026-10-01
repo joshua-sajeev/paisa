@@ -45,6 +45,7 @@ func main() {
 		JarHandler:         container.JarHandler,
 		AuthHandler:        container.AuthHandler,
 		TransactionHandler: container.TransactionHandler,
+		StatementHandler:   container.StatementHandler,
 		SessionStore:       container.SessionStore,
 		SessionHandler:     container.SessionHandler,
 		DemoMode:           cfg.DemoMode,

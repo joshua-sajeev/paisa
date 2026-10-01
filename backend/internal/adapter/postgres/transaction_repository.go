@@ -5,7 +5,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -448,62 +450,7 @@ func (r *transactionRepository) buildListByAccountQuery(
 			WHERE 1 = 1
 	`)
 
-	if params.Search != nil && *params.Search != "" {
-		query.WriteString(
-			" AND name ILIKE '%' || $" +
-				fmt.Sprintf("%d", len(queryParams)+1) +
-				" || '%'",
-		)
-		queryParams = append(queryParams, *params.Search)
-	}
-
-	if params.Type != nil {
-		query.WriteString(
-			" AND type = $" +
-				fmt.Sprintf("%d", len(queryParams)+1),
-		)
-		queryParams = append(queryParams, *params.Type)
-	}
-
-	if params.Category != nil {
-		query.WriteString(
-			" AND category = $" +
-				fmt.Sprintf("%d", len(queryParams)+1),
-		)
-		queryParams = append(queryParams, *params.Category)
-	}
-
-	if params.FromDate != nil {
-		query.WriteString(
-			" AND occurred_at >= $" +
-				fmt.Sprintf("%d", len(queryParams)+1),
-		)
-		queryParams = append(queryParams, *params.FromDate)
-	}
-
-	if params.ToDate != nil {
-		query.WriteString(
-			" AND occurred_at < $" +
-				fmt.Sprintf("%d", len(queryParams)+1),
-		)
-		queryParams = append(queryParams, *params.ToDate)
-	}
-
-	if params.MinAmount != nil {
-		query.WriteString(
-			" AND amount >= $" +
-				fmt.Sprintf("%d", len(queryParams)+1),
-		)
-		queryParams = append(queryParams, *params.MinAmount)
-	}
-
-	if params.MaxAmount != nil {
-		query.WriteString(
-			" AND amount <= $" +
-				fmt.Sprintf("%d", len(queryParams)+1),
-		)
-		queryParams = append(queryParams, *params.MaxAmount)
-	}
+	queryParams = appendAccountFilters(&query, queryParams, params)
 
 	query.WriteString(`
 		)
@@ -554,6 +501,178 @@ func (r *transactionRepository) buildListByAccountQuery(
 	)
 
 	return query.String(), queryParams
+}
+
+// appendAccountFilters appends AND-ed filter clauses for params to query and
+// returns the extended argument slice. Column names are unqualified, so the
+// clauses work against the transactions table and any CTE exposing the same
+// columns. It never adds LIMIT/OFFSET.
+func appendAccountFilters(
+	query *strings.Builder,
+	queryParams []any,
+	params ports.ListParams,
+) []any {
+	add := func(clause string, value any) {
+		queryParams = append(queryParams, value)
+		query.WriteString(
+			" AND " + clause + " $" + strconv.Itoa(len(queryParams)),
+		)
+	}
+
+	if params.Search != nil && *params.Search != "" {
+		queryParams = append(queryParams, *params.Search)
+		query.WriteString(
+			" AND name ILIKE '%' || $" +
+				strconv.Itoa(len(queryParams)) +
+				" || '%'",
+		)
+	}
+
+	if params.Type != nil {
+		add("type =", *params.Type)
+	}
+
+	if params.Category != nil {
+		add("category =", *params.Category)
+	}
+
+	if params.JarID != nil {
+		add("jar_id =", *params.JarID)
+	}
+
+	if params.FromDate != nil {
+		add("occurred_at >=", *params.FromDate)
+	}
+
+	if params.ToDate != nil {
+		add("occurred_at <", *params.ToDate)
+	}
+
+	if params.MinAmount != nil {
+		add("amount >=", *params.MinAmount)
+	}
+
+	if params.MaxAmount != nil {
+		add("amount <=", *params.MaxAmount)
+	}
+
+	return queryParams
+}
+
+// CountByAccount returns the number of account transactions matching params.
+func (r *transactionRepository) CountByAccount(
+	ctx context.Context,
+	accountID uuid.UUID,
+	params ports.ListParams,
+) (int, error) {
+	exec := dbExecutor(ctx, r.db)
+
+	var query strings.Builder
+
+	query.WriteString(`
+		SELECT COUNT(*)
+		FROM transactions
+		WHERE (from_account_id = $1 OR to_account_id = $1)
+	`)
+
+	queryParams := appendAccountFilters(
+		&query,
+		[]any{accountID},
+		params,
+	)
+
+	var total int
+	if err := exec.QueryRow(
+		ctx,
+		query.String(),
+		queryParams...,
+	).Scan(&total); err != nil {
+		return 0, fmt.Errorf("count transactions by account: %w", err)
+	}
+
+	return total, nil
+}
+
+const summarizeByAccountQuery = `
+	WITH t AS (
+		SELECT
+			amount,
+			(to_account_id = $1) IS TRUE AS is_in,
+			(
+				($2::timestamptz IS NULL OR occurred_at >= $2)
+				AND ($3::timestamptz IS NULL OR occurred_at < $3)
+			) AS in_range,
+			(
+				$2::timestamptz IS NOT NULL
+				AND occurred_at < $2
+			) AS before_range
+		FROM transactions
+		WHERE from_account_id = $1
+		   OR to_account_id = $1
+	)
+	SELECT
+		COALESCE(
+			SUM(
+				CASE
+					WHEN is_in THEN amount
+					ELSE -amount
+				END
+			) FILTER (WHERE before_range),
+			0
+		)::bigint AS opening_balance,
+
+		COALESCE(
+			SUM(amount) FILTER (
+				WHERE in_range
+				  AND is_in
+			),
+			0
+		)::bigint AS inflow,
+
+		COALESCE(
+			SUM(amount) FILTER (
+				WHERE in_range
+				  AND NOT is_in
+			),
+			0
+		)::bigint AS outflow
+	FROM t
+`
+
+// SummarizeByAccount returns opening/closing balance, inflow and outflow for
+// the account within [from, to).
+func (r *transactionRepository) SummarizeByAccount(
+	ctx context.Context,
+	accountID uuid.UUID,
+	from *time.Time,
+	to *time.Time,
+) (ports.StatementSummary, error) {
+	exec := dbExecutor(ctx, r.db)
+
+	var summary ports.StatementSummary
+
+	if err := exec.QueryRow(
+		ctx,
+		summarizeByAccountQuery,
+		accountID,
+		from,
+		to,
+	).Scan(
+		&summary.OpeningBalance,
+		&summary.Inflow,
+		&summary.Outflow,
+	); err != nil {
+		return ports.StatementSummary{}, fmt.Errorf(
+			"summarize transactions by account: %w",
+			err,
+		)
+	}
+
+	summary.ClosingBalance = summary.OpeningBalance +
+		summary.Inflow -
+		summary.Outflow
+
+	return summary, nil
 }
 
 func (r *transactionRepository) FindByID(

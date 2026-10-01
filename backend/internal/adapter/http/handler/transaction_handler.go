@@ -410,6 +410,7 @@ type ListAccountTransactionsResponse struct {
 	Total        int                           `json:"total"`
 }
 
+// TODO:  Delete this and dependencies
 // HandleListByAccount handles GET /accounts/{id}/transactions.
 // Returns transactions for the specified account with running balance.
 func (h *TransactionHandler) HandleListByAccount(

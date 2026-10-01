@@ -22,6 +22,7 @@ type Container struct {
 	AccountHandler     *handler.AccountHandler
 	JarHandler         *handler.JarHandler
 	TransactionHandler *handler.TransactionHandler
+	StatementHandler   *handler.StatementHandler
 	AuthHandler        *handler.AuthHandler
 	GoalHandler        *handler.GoalHandler
 	SessionHandler     *handler.SessionHandler
@@ -47,6 +48,7 @@ type Container struct {
 	accountService     *application.AccountService
 	jarService         *application.JarService
 	transactionService *application.TransactionService
+	statementService   *application.StatementService
 	authService        *application.AuthService
 	goalService        *application.GoalService
 }
@@ -55,6 +57,7 @@ var (
 	_ handler.AccountService     = (*application.AccountService)(nil)
 	_ handler.JarService         = (*application.JarService)(nil)
 	_ handler.TransactionService = (*application.TransactionService)(nil)
+	_ handler.StatementService   = (*application.StatementService)(nil)
 )
 
 // New creates and initializes the dependency container
@@ -144,6 +147,11 @@ func (c *Container) initServices() {
 
 		c.logger,
 	)
+	c.statementService = application.NewStatementService(
+		c.accountRepository,
+		c.transactionRepository,
+		c.logger,
+	)
 	c.authService = application.NewAuthService(
 		c.SessionStore,
 		c.cfg.AppLock.PINHash,
@@ -173,6 +181,11 @@ func (c *Container) initHandlers() {
 
 	c.TransactionHandler = handler.NewTransactionHandler(
 		c.transactionService,
+		c.logger,
+	)
+
+	c.StatementHandler = handler.NewStatementHandler(
+		c.statementService,
 		c.logger,
 	)
 
