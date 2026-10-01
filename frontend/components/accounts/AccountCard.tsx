@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { ArchiveFillW700 } from "@material-symbols-svg/react/icons/archive";
@@ -22,12 +23,15 @@ export default function AccountCard({
   index,
   onUpdatedAction,
 }: Props) {
+  const router = useRouter();
+
   const [showArchiveModal, setShowArchiveModal] =
-  useState(false);
+    useState(false);
   const [archiving, setArchiving] = useState(false);
   const [error, setError] = useState("");
   const [showEditModal, setShowEditModal] =
-  useState(false);
+    useState(false);
+
   const formattedBalance = new Intl.NumberFormat(
     "en-IN",
     {
@@ -38,32 +42,35 @@ export default function AccountCard({
   ).format(account.balance);
 
   async function handleArchive() {
-  if (archiving) {
-    return;
-  }
+    if (archiving) {
+      return;
+    }
 
-  setArchiving(true);
-  setError("");
+    setArchiving(true);
+    setError("");
 
-  const updatedAccount = await updateAccount(account.id, {
-    is_archived: true,
-    ...(account.isPrimary && {
-      is_primary: false,
-    }),
-  });
+    const updatedAccount = await updateAccount(
+      account.id,
+      {
+        is_archived: true,
+        ...(account.isPrimary && {
+          is_primary: false,
+        }),
+      },
+    );
 
-  if (!updatedAccount) {
-    setError("Failed to archive account.");
+    if (!updatedAccount) {
+      setError("Failed to archive account.");
+      setArchiving(false);
+      return;
+    }
+
+    setShowArchiveModal(false);
+
+    await onUpdatedAction?.();
+
     setArchiving(false);
-    return;
   }
-
-  setShowArchiveModal(false);
-
-  await onUpdatedAction?.();
-
-  setArchiving(false);
-}
 
   return (
     <>
@@ -92,10 +99,10 @@ export default function AccountCard({
           <div className="shrink-0 text-right">
             <div
               className={`text-lg font-extrabold tabular-nums tracking-tight ${
-account.balance < 0
-? "text-error"
-: "text-on-surface"
-}`}
+                account.balance < 0
+                  ? "text-error"
+                  : "text-on-surface"
+              }`}
             >
               {formattedBalance}
             </div>
@@ -142,15 +149,22 @@ account.balance < 0
                 width={16}
                 height={16}
               />
+
               <span>Archive</span>
             </button>
           </div>
 
           <button
             type="button"
+            onClick={() =>
+              router.push(
+                `/accounts/statement?accountId=${account.id}`,
+              )
+            }
             className="flex items-center gap-0.5 rounded-lg px-2 py-1 text-xs font-semibold text-[#2563eb] transition hover:bg-surface-container"
           >
             <span>Statement</span>
+
             <ChevronRight
               width={16}
               height={16}
@@ -158,12 +172,16 @@ account.balance < 0
           </button>
         </div>
       </article>
+
       <EditAccountModal
         account={account}
         open={showEditModal}
         onCloseAction={() => setShowEditModal(false)}
-        onUpdatedAction={() => onUpdatedAction?.()}
+        onUpdatedAction={() =>
+          onUpdatedAction?.()
+        }
       />
+
       {showArchiveModal && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 px-4 backdrop-blur-sm"

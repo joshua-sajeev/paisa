@@ -91,24 +91,24 @@ export default function AccountsPage() {
               Loading accounts...
             </div>
           ) : (
-            <>
-              <TotalBalanceCard
-                balance={totalBalance}
-                activeCount={activeAccounts.length}
-                archivedCount={archivedAccounts.length}
-              />
+              <>
+                <TotalBalanceCard
+                  balance={totalBalance}
+                  activeCount={activeAccounts.length}
+                  archivedCount={archivedAccounts.length}
+                />
 
-<AccountSection
-  title="Active Accounts"
-  accounts={activeAccounts}
-  onUpdatedAction={loadAccounts}
-/>
+                <AccountSection
+                  title="Active Accounts"
+                  accounts={activeAccounts}
+                  onUpdatedAction={loadAccounts}
+                />
 
-<ArchivedAccounts
-  accounts={archivedAccounts}
-  onUpdatedAction={loadAccounts}
-/>
-            </>
+                <ArchivedAccounts
+                  accounts={archivedAccounts}
+                  onUpdatedAction={loadAccounts}
+                />
+              </>
           )}
         </div>
       </main>

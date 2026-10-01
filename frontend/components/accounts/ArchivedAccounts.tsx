@@ -34,8 +34,8 @@ export default function ArchivedAccounts({
             width={17}
             height={17}
             className={`shrink-0 text-secondary transition-transform ${
-              open ? "" : "-rotate-90"
-            }`}
+open ? "" : "-rotate-90"
+}`}
           />
 
           <h2 className="text-base font-bold text-secondary">
@@ -73,12 +73,12 @@ function ArchivedAccountCard({
   index,
   onUpdatedAction,
 }: {
-  account: Account;
-  index: number;
-  onUpdatedAction?: () => void;
-}) {
+    account: Account;
+    index: number;
+    onUpdatedAction?: () => void;
+  }) {
   const [showUnarchiveModal, setShowUnarchiveModal] =
-    useState(false);
+  useState(false);
   const [unarchiving, setUnarchiving] = useState(false);
   const [error, setError] = useState("");
 
@@ -99,30 +99,30 @@ function ArchivedAccountCard({
     }
   }
 
-async function handleUnarchive() {
-  if (unarchiving) {
-    return;
-  }
+  async function handleUnarchive() {
+    if (unarchiving) {
+      return;
+    }
 
-  setUnarchiving(true);
-  setError("");
+    setUnarchiving(true);
+    setError("");
 
-  const updatedAccount = await updateAccount(account.id, {
-    is_archived: false,
-  });
+    const updatedAccount = await updateAccount(account.id, {
+      is_archived: false,
+    });
 
-  if (!updatedAccount) {
-    setError("Failed to unarchive account.");
+    if (!updatedAccount) {
+      setError("Failed to unarchive account.");
+      setUnarchiving(false);
+      return;
+    }
+
+    setShowUnarchiveModal(false);
+
+    await onUpdatedAction?.();
+
     setUnarchiving(false);
-    return;
   }
-
-  setShowUnarchiveModal(false);
-
-  await onUpdatedAction?.();
-
-  setUnarchiving(false);
-}
 
   return (
     <>
@@ -142,10 +142,10 @@ async function handleUnarchive() {
 
           <span
             className={`shrink-0 text-lg font-extrabold tabular-nums tracking-tight ${
-              account.balance < 0
-                ? "text-error"
-                : "text-on-surface"
-            }`}
+account.balance < 0
+? "text-error"
+: "text-on-surface"
+}`}
           >
             {formattedBalance}
           </span>
