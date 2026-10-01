@@ -9,7 +9,7 @@ CREATE TABLE transactions (
     to_account_id UUID,
     jar_id UUID,
     amount BIGINT NOT NULL,
-    occurred_at DATE NOT NULL,
+    occurred_at TIMESTAMPTZ NOT NULL,
     is_master_income BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -34,9 +34,16 @@ CREATE TABLE transactions (
 
     CONSTRAINT chk_transactions_category
         CHECK (category IN (
-            'food', 'transport', 'entertainment', 'groceries', 
-            'health', 'transfer', 'donation', 'investment', 
-            'housing', 'other'
+            'food',
+            'transport',
+            'entertainment',
+            'groceries',
+            'health',
+            'transfer',
+            'donation',
+            'investment',
+            'housing',
+            'other'
         )),
 
     CONSTRAINT chk_transactions_amount
@@ -71,6 +78,7 @@ CREATE TABLE transactions (
         )
 );
 
+
 CREATE TABLE templates (
     id UUID PRIMARY KEY,
     name TEXT NOT NULL,
@@ -80,6 +88,7 @@ CREATE TABLE templates (
     to_account_id UUID,
     jar_id UUID,
     amount BIGINT,
+
     is_archived BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -104,18 +113,27 @@ CREATE TABLE templates (
 
     CONSTRAINT chk_templates_category
         CHECK (category IN (
-            'food', 'transport', 'entertainment', 'groceries', 
-            'health', 'transfer', 'donation', 'investment', 
-            'housing', 'other'
+            'food',
+            'transport',
+            'entertainment',
+            'groceries',
+            'health',
+            'transfer',
+            'donation',
+            'investment',
+            'housing',
+            'other'
         )),
 
     CONSTRAINT chk_templates_amount
         CHECK (amount IS NULL OR amount > 0)
 );
 
+
 CREATE UNIQUE INDEX uq_templates_active_name
-ON templates (name)
-WHERE is_archived = FALSE;
+    ON templates (name)
+    WHERE is_archived = FALSE;
+
 
 CREATE TABLE jar_allocations (
     id UUID PRIMARY KEY,
@@ -142,7 +160,6 @@ CREATE TABLE jar_allocations (
 );
 
 
-
 CREATE INDEX idx_transactions_from_account
     ON transactions (from_account_id);
 
@@ -155,7 +172,8 @@ CREATE INDEX idx_transactions_jar
 CREATE INDEX idx_transactions_expense_jar_covering
     ON transactions (jar_id)
     INCLUDE (amount)
-    WHERE type = 'expense' AND jar_id IS NOT NULL;
+    WHERE type = 'expense'
+      AND jar_id IS NOT NULL;
 
 CREATE INDEX idx_transactions_occurred_at
     ON transactions (occurred_at);
@@ -163,8 +181,8 @@ CREATE INDEX idx_transactions_occurred_at
 CREATE INDEX idx_jar_allocations_jar
     ON jar_allocations (jar_id);
 
--- +goose Down
 
+-- +goose Down
 
 DROP INDEX idx_jar_allocations_jar;
 
@@ -175,6 +193,9 @@ DROP INDEX idx_transactions_to_account;
 DROP INDEX idx_transactions_from_account;
 
 DROP TABLE jar_allocations;
+
 DROP INDEX uq_templates_active_name;
+
 DROP TABLE templates;
+
 DROP TABLE transactions;

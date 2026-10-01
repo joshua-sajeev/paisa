@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joshu-sajeev/paisa/internal/ports"
+	"github.com/joshu-sajeev/paisa/internal/timeutil"
 )
 
 type dashboardRepository struct {
@@ -43,8 +44,9 @@ func (r *dashboardRepository) GetTotalBalance(ctx context.Context) (int64, error
 func (r *dashboardRepository) GetMonthlySummary(ctx context.Context) (*ports.DashboardSummary, error) {
 	db := dbExecutor(ctx, r.db)
 
-	now := time.Now()
-	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	// Month boundaries follow IST, matching how dates are shown to the user.
+	now := time.Now().In(timeutil.IST)
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, timeutil.IST)
 	monthEnd := monthStart.AddDate(0, 1, 0)
 
 	const query = `

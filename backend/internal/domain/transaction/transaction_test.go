@@ -333,3 +333,32 @@ func uuidPtrEqual(a, b *uuid.UUID) bool {
 
 	return *a == *b
 }
+
+func TestNewTransaction_PreservesTimeOfDay(t *testing.T) {
+	accountID := uuid.New()
+	ist := time.FixedZone("IST", 5*60*60+30*60)
+	occurredAt := time.Date(2026, time.September, 5, 23, 45, 10, 0, ist)
+
+	txn, err := transaction.NewTransaction(
+		"Late dinner",
+		transaction.TransactionTypeExpense,
+		transaction.TransactionCategoryFood,
+		&accountID,
+		nil,
+		nil,
+		45000,
+		occurredAt,
+		false,
+	)
+	if err != nil {
+		t.Fatalf("NewTransaction() error = %v", err)
+	}
+
+	if !txn.OccurredAt.Equal(occurredAt) {
+		t.Fatalf("OccurredAt = %v, want instant %v", txn.OccurredAt, occurredAt)
+	}
+
+	if txn.OccurredAt.Location() != time.UTC {
+		t.Fatalf("OccurredAt should be stored in UTC, got %v", txn.OccurredAt.Location())
+	}
+}

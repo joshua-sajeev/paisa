@@ -12,6 +12,7 @@ import (
 	"github.com/joshu-sajeev/paisa/internal/adapter/http/handler"
 	"github.com/joshu-sajeev/paisa/internal/domain/transaction"
 	"github.com/joshu-sajeev/paisa/internal/ports"
+	"github.com/joshu-sajeev/paisa/internal/timeutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -127,14 +128,14 @@ func TestTransactionHandler_HandleListReturnsDisplayFields(t *testing.T) {
 	got := body.Transactions[0]
 	require.Equal(t, itemID.String(), got["id"])
 	require.Equal(t, "Move to savings", got["name"])
-	require.Equal(t, "2026-01-03", got["date"])
+	require.Equal(t, "2026-01-03T14:30:00+05:30", got["occurred_at"])
+	require.NotContains(t, got, "date")
 	require.Equal(t, "transfer", got["type"])
 	require.Equal(t, float64(300), got["amount"])
 	require.Equal(t, "Needs", got["jar_name"])
 	require.Equal(t, "Checking -> Savings", got["account"])
 	require.Nil(t, got["account_balance"])
 	require.Equal(t, "transfer", got["category"])
-	require.NotContains(t, got, "occurred_at")
 	require.NotContains(t, got, "balance_after")
 }
 
@@ -187,11 +188,72 @@ func TestTransactionHandler_HandleListByAccountReturnsAccountProjection(t *testi
 
 	got := body.Transactions[0]
 	require.Equal(t, itemID.String(), got["id"])
-	require.Equal(t, "2026-01-03", got["date"])
+	require.Equal(t, "2026-01-03T14:30:00+05:30", got["occurred_at"])
+	require.NotContains(t, got, "date")
 	require.Equal(t, "Savings", got["account"])
 	require.Equal(t, float64(-300), got["amount"])
 	require.Equal(t, float64(500), got["account_balance"])
 	require.Equal(t, "transfer", got["category"])
-	require.NotContains(t, got, "occurred_at")
 	require.NotContains(t, got, "balance_after")
+}
+
+func TestTransactionHandler_HandleListDateFiltersUseISTDays(t *testing.T) {
+	var got ports.ListParams
+
+	service := &mockTransactionService{
+		listFn: func(
+			_ context.Context,
+			params ports.ListParams,
+		) ([]*ports.TransactionListItem, error) {
+			got = params
+			return nil, nil
+		},
+	}
+
+	h := handler.NewTransactionHandler(service, newTestLogger())
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/transactions?from_date=2026-01-03&to_date=2026-01-03",
+		nil,
+	)
+	rec := httptest.NewRecorder()
+
+	h.HandleList(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.NotNil(t, got.FromDate)
+	require.NotNil(t, got.ToDate)
+
+	// A plain date means the whole IST day: [00:00 IST, next 00:00 IST).
+	require.True(t, got.FromDate.Equal(time.Date(2026, 1, 3, 0, 0, 0, 0, timeutil.IST)))
+	require.True(t, got.ToDate.Equal(time.Date(2026, 1, 4, 0, 0, 0, 0, timeutil.IST)))
+}
+
+func TestTransactionHandler_HandleListDateFiltersAcceptTimestamps(t *testing.T) {
+	var got ports.ListParams
+
+	service := &mockTransactionService{
+		listFn: func(
+			_ context.Context,
+			params ports.ListParams,
+		) ([]*ports.TransactionListItem, error) {
+			got = params
+			return nil, nil
+		},
+	}
+
+	h := handler.NewTransactionHandler(service, newTestLogger())
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/transactions?from_date=2026-01-03T09:00:00%2B05:30",
+		nil,
+	)
+	rec := httptest.NewRecorder()
+
+	h.HandleList(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.NotNil(t, got.FromDate)
+	require.True(t, got.FromDate.Equal(time.Date(2026, 1, 3, 3, 30, 0, 0, time.UTC)))
+	require.Nil(t, got.ToDate)
 }

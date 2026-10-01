@@ -290,7 +290,7 @@ func (r *transactionRepository) buildListQuery(
 
 	if params.ToDate != nil {
 		query.WriteString(
-			" AND t.occurred_at <= $" +
+			" AND t.occurred_at < $" +
 				fmt.Sprintf("%d", len(queryParams)+1),
 		)
 		queryParams = append(queryParams, *params.ToDate)
@@ -483,7 +483,7 @@ func (r *transactionRepository) buildListByAccountQuery(
 
 	if params.ToDate != nil {
 		query.WriteString(
-			" AND occurred_at <= $" +
+			" AND occurred_at < $" +
 				fmt.Sprintf("%d", len(queryParams)+1),
 		)
 		queryParams = append(queryParams, *params.ToDate)

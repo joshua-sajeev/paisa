@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/joshu-sajeev/paisa/internal/domain/transaction"
 	"github.com/joshu-sajeev/paisa/internal/ports"
+	"github.com/joshu-sajeev/paisa/internal/timeutil"
 )
 
 // TransactionService defines the interface required by the handler.
@@ -78,6 +79,9 @@ func NewTransactionHandler(
 }
 
 // CreateTransactionRequest represents the request payload for creating a transaction.
+//
+// occurred_at is an RFC 3339 timestamp with an offset, e.g.
+// "2026-01-03T14:30:00+05:30". If omitted, the current time is used.
 type CreateTransactionRequest struct {
 	Name           string    `json:"name"`
 	Type           string    `json:"type"`
@@ -129,7 +133,7 @@ func transactionToResponse(
 		Type:           string(t.Type),
 		Category:       string(t.Category),
 		Amount:         t.Amount,
-		OccurredAt:     t.OccurredAt,
+		OccurredAt:     t.OccurredAt.In(timeutil.IST),
 		IsMasterIncome: t.IsMasterIncome,
 		CreatedAt:      t.CreatedAt,
 		UpdatedAt:      t.UpdatedAt,
@@ -156,15 +160,15 @@ func transactionToResponse(
 
 // TransactionListItemResponse represents a transaction in list responses.
 type TransactionListItemResponse struct {
-	ID             string  `json:"id"`
-	Name           string  `json:"name"`
-	Date           string  `json:"date"`
-	Type           string  `json:"type"`
-	Amount         int64   `json:"amount"`
-	JarName        *string `json:"jar_name"`
-	Account        string  `json:"account"`
-	AccountBalance *int64  `json:"account_balance"`
-	Category       string  `json:"category"`
+	ID             string    `json:"id"`
+	Name           string    `json:"name"`
+	OccurredAt     time.Time `json:"occurred_at"`
+	Type           string    `json:"type"`
+	Amount         int64     `json:"amount"`
+	JarName        *string   `json:"jar_name"`
+	Account        string    `json:"account"`
+	AccountBalance *int64    `json:"account_balance"`
+	Category       string    `json:"category"`
 }
 
 func transactionListItemToResponse(
@@ -173,7 +177,7 @@ func transactionListItemToResponse(
 	return TransactionListItemResponse{
 		ID:             item.ID.String(),
 		Name:           item.Name,
-		Date:           item.OccurredAt.Format(time.DateOnly),
+		OccurredAt:     item.OccurredAt.In(timeutil.IST),
 		Type:           string(item.Type),
 		Amount:         item.Amount,
 		JarName:        item.JarName,
@@ -181,6 +185,32 @@ func transactionListItemToResponse(
 		AccountBalance: item.AccountBalance,
 		Category:       string(item.Category),
 	}
+}
+
+// parseFilterTime parses a from_date / to_date query value.
+//
+// Two formats are accepted:
+//   - RFC 3339 timestamp (e.g. 2026-01-03T14:30:00+05:30), used as-is.
+//   - Plain date (e.g. 2026-01-03), interpreted as a whole day in IST.
+//
+// Filters are half-open: from is inclusive, to is exclusive. For a plain date,
+// upperBound=true therefore resolves to the start of the *next* IST day, so
+// to_date=2026-01-03 still includes everything that happened on 3 Jan.
+func parseFilterTime(value string, upperBound bool) (time.Time, bool) {
+	if ts, err := time.Parse(time.RFC3339, value); err == nil {
+		return ts.UTC(), true
+	}
+
+	day, err := time.ParseInLocation(time.DateOnly, value, timeutil.IST)
+	if err != nil {
+		return time.Time{}, false
+	}
+
+	if upperBound {
+		day = day.AddDate(0, 0, 1)
+	}
+
+	return day.UTC(), true
 }
 
 // parseOptionalUUID parses an optional UUID string.
@@ -325,15 +355,13 @@ func (h *TransactionHandler) HandleList(
 	}
 
 	if fromDateStr := r.URL.Query().Get("from_date"); fromDateStr != "" {
-		fromDate, err := time.Parse(time.DateOnly, fromDateStr)
-		if err == nil {
+		if fromDate, ok := parseFilterTime(fromDateStr, false); ok {
 			params.FromDate = &fromDate
 		}
 	}
 
 	if toDateStr := r.URL.Query().Get("to_date"); toDateStr != "" {
-		toDate, err := time.Parse(time.DateOnly, toDateStr)
-		if err == nil {
+		if toDate, ok := parseFilterTime(toDateStr, true); ok {
 			params.ToDate = &toDate
 		}
 	}
@@ -436,15 +464,13 @@ func (h *TransactionHandler) HandleListByAccount(
 	}
 
 	if fromDateStr := r.URL.Query().Get("from_date"); fromDateStr != "" {
-		fromDate, err := time.Parse(time.DateOnly, fromDateStr)
-		if err == nil {
+		if fromDate, ok := parseFilterTime(fromDateStr, false); ok {
 			params.FromDate = &fromDate
 		}
 	}
 
 	if toDateStr := r.URL.Query().Get("to_date"); toDateStr != "" {
-		toDate, err := time.Parse(time.DateOnly, toDateStr)
-		if err == nil {
+		if toDate, ok := parseFilterTime(toDateStr, true); ok {
 			params.ToDate = &toDate
 		}
 	}

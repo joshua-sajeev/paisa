@@ -358,3 +358,47 @@ func TestJarExpenseAllocationAndReassignment(t *testing.T) {
 		}
 	})
 }
+
+func TestTransactionRepository_PreservesTimeOfDay(t *testing.T) {
+	t.Cleanup(func() {
+		truncateTables(t, ctx, db)
+	})
+
+	acc, err := account.NewAccount("Time Test", false, "")
+	if err != nil {
+		t.Fatalf("NewAccount error: %v", err)
+	}
+	if err := accountRepo.Create(ctx, acc); err != nil {
+		t.Fatalf("AccountRepo.Create error: %v", err)
+	}
+
+	ist := time.FixedZone("IST", 5*60*60+30*60)
+	// 00:15 IST on 3 Jan is still 2 Jan in UTC: the day must not shift on a round trip.
+	occurredAt := time.Date(2026, time.January, 3, 0, 15, 30, 0, ist)
+
+	txn, err := transaction.NewTransaction(
+		"Midnight snack",
+		transaction.TransactionTypeExpense,
+		transaction.TransactionCategoryFood,
+		&acc.ID,
+		nil,
+		nil,
+		12000,
+		occurredAt,
+		false,
+	)
+	if err != nil {
+		t.Fatalf("NewTransaction error: %v", err)
+	}
+	if err := transactionRepo.Create(ctx, txn); err != nil {
+		t.Fatalf("Create error: %v", err)
+	}
+
+	got, err := transactionRepo.FindByID(ctx, txn.ID)
+	if err != nil {
+		t.Fatalf("FindByID error: %v", err)
+	}
+	if !got.OccurredAt.Equal(occurredAt) {
+		t.Fatalf("OccurredAt = %v, want %v", got.OccurredAt, occurredAt)
+	}
+}

@@ -19,7 +19,9 @@ type ListParams struct {
 	AccountID *uuid.UUID
 	Type      *transaction.TransactionType
 	Category  *transaction.TransactionCategory
-	FromDate  *time.Time
+	// FromDate is an inclusive lower bound on occurred_at.
+	FromDate *time.Time
+	// ToDate is an exclusive upper bound on occurred_at.
 	ToDate    *time.Time
 	MinAmount *int64
 	MaxAmount *int64

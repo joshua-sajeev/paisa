@@ -199,7 +199,7 @@ func generateTransaction(
 		0,
 		0,
 		rng.Intn(365*3),
-	)
+	).Add(time.Duration(rng.Intn(24*60)) * time.Minute)
 
 	var fromID *uuid.UUID
 	var toID *uuid.UUID
