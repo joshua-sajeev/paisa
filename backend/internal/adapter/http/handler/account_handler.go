@@ -19,7 +19,7 @@ import (
 const maxBodyBytes = 1_048_576
 
 type AccountService interface {
-	Create(ctx context.Context, name string, isPrimary bool) (*account.Account, error)
+	Create(ctx context.Context, name string, isPrimary bool, iconKey *string) (*account.Account, error)
 	List(ctx context.Context) ([]*account.Account, error)
 	Update(ctx context.Context, id uuid.UUID, name *string, iconKey *string, isPrimary *bool, isArchived *bool) error
 }
@@ -39,8 +39,9 @@ func NewAccountHandler(service AccountService, logger *slog.Logger) *AccountHand
 }
 
 type CreateAccountRequest struct {
-	Name      string `json:"name"       validate:"required,max=100"`
-	IsPrimary bool   `json:"is_primary"`
+	Name      string  `json:"name"       validate:"required,max=100"`
+	IconKey   *string `json:"icon_key"   validate:"omitempty,min=1,max=50"`
+	IsPrimary bool    `json:"is_primary"`
 }
 
 type PatchAccountRequest struct {
@@ -91,12 +92,33 @@ func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	req.Name = strings.TrimSpace(req.Name)
 
+	if req.IconKey != nil {
+		trimmedIconKey := strings.TrimSpace(*req.IconKey)
+		req.IconKey = &trimmedIconKey
+	}
+
 	if err := h.validate.Struct(req); err != nil {
 		h.logger.WarnContext(
 			r.Context(),
 			"account validation failed",
 			slog.String("error", err.Error()),
 		)
+
+		var validationErrs validator.ValidationErrors
+		if errors.As(err, &validationErrs) {
+			for _, fe := range validationErrs {
+				if fe.Field() == "IconKey" {
+					writeErrorJSON(
+						w,
+						http.StatusBadRequest,
+						"VALIDATION_ERROR",
+						"Invalid icon key",
+						"ERR_INVALID_ICON_KEY",
+					)
+					return
+				}
+			}
+		}
 
 		writeErrorJSON(
 			w,
@@ -108,7 +130,7 @@ func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a, err := h.service.Create(r.Context(), req.Name, req.IsPrimary)
+	a, err := h.service.Create(r.Context(), req.Name, req.IsPrimary, req.IconKey)
 	if err != nil {
 		switch {
 		case errors.Is(err, account.ErrAccountPrimaryExists):

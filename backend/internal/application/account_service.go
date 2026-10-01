@@ -30,6 +30,7 @@ func (s *AccountService) Create(
 	ctx context.Context,
 	name string,
 	isPrimary bool,
+	iconKey *string,
 ) (*account.Account, error) {
 	s.logger.DebugContext(
 		ctx,
@@ -38,7 +39,12 @@ func (s *AccountService) Create(
 		slog.Bool("is_primary", isPrimary),
 	)
 
-	acc, err := account.NewAccount(name, isPrimary)
+	var icon string
+	if iconKey != nil {
+		icon = *iconKey
+	}
+
+	acc, err := account.NewAccount(name, isPrimary, icon)
 	if err != nil {
 		s.logger.WarnContext(
 			ctx,

@@ -21,7 +21,7 @@ import (
 )
 
 type mockAccountService struct {
-	createFn func(context.Context, string, bool) (*account.Account, error)
+	createFn func(context.Context, string, bool, *string) (*account.Account, error)
 	listFn   func(context.Context) ([]*account.Account, error)
 	updateFn func(
 		context.Context,
@@ -37,8 +37,9 @@ func (m *mockAccountService) Create(
 	ctx context.Context,
 	name string,
 	isPrimary bool,
+	iconKey *string,
 ) (*account.Account, error) {
-	return m.createFn(ctx, name, isPrimary)
+	return m.createFn(ctx, name, isPrimary, iconKey)
 }
 
 func (m *mockAccountService) List(
@@ -81,7 +82,7 @@ func TestAccountHandler_Create(t *testing.T) {
 	tests := []struct {
 		name       string
 		body       string
-		createFn   func(context.Context, string, bool) (*account.Account, error)
+		createFn   func(context.Context, string, bool, *string) (*account.Account, error)
 		wantStatus int
 		wantName   string
 	}{
@@ -92,6 +93,7 @@ func TestAccountHandler_Create(t *testing.T) {
 				_ context.Context,
 				name string,
 				isPrimary bool,
+				_ *string,
 			) (*account.Account, error) {
 				assert.True(t, isPrimary)
 				return &account.Account{
@@ -111,6 +113,7 @@ func TestAccountHandler_Create(t *testing.T) {
 				_ context.Context,
 				_ string,
 				_ bool,
+				_ *string,
 			) (*account.Account, error) {
 				return nil, account.ErrAccountNameExists
 			},
@@ -123,6 +126,7 @@ func TestAccountHandler_Create(t *testing.T) {
 				_ context.Context,
 				_ string,
 				_ bool,
+				_ *string,
 			) (*account.Account, error) {
 				return nil, account.ErrAccountPrimaryExists
 			},
@@ -135,6 +139,7 @@ func TestAccountHandler_Create(t *testing.T) {
 				_ context.Context,
 				_ string,
 				_ bool,
+				_ *string,
 			) (*account.Account, error) {
 				return nil, account.ErrInvalidName
 			},
@@ -147,6 +152,7 @@ func TestAccountHandler_Create(t *testing.T) {
 				_ context.Context,
 				_ string,
 				_ bool,
+				_ *string,
 			) (*account.Account, error) {
 				return nil, repoErr
 			},
@@ -200,6 +206,7 @@ func TestAccountHandler_Create_InvalidJSON(t *testing.T) {
 			_ context.Context,
 			_ string,
 			_ bool,
+			_ *string,
 		) (*account.Account, error) {
 			t.Fatal("Create should not be called")
 			return nil, nil
@@ -773,4 +780,109 @@ func boolPtrValue(value *bool) string {
 	}
 
 	return "false"
+}
+
+func TestAccountHandler_Create_IconKey(t *testing.T) {
+	t.Run("passes icon key to service", func(t *testing.T) {
+		var gotIcon *string
+
+		service := &mockAccountService{
+			createFn: func(
+				_ context.Context,
+				name string,
+				_ bool,
+				iconKey *string,
+			) (*account.Account, error) {
+				gotIcon = iconKey
+				return &account.Account{
+					ID:      uuid.New(),
+					Name:    name,
+					IconKey: *iconKey,
+				}, nil
+			},
+		}
+
+		h := handler.NewAccountHandler(service, newTestLogger())
+
+		req := httptest.NewRequest(
+			http.MethodPost,
+			"/accounts",
+			strings.NewReader(`{"name":"Savings","icon_key":"  hdfc "}`),
+		)
+		rec := httptest.NewRecorder()
+
+		h.Create(rec, req)
+
+		require.Equal(t, http.StatusCreated, rec.Code)
+		require.NotNil(t, gotIcon)
+		assert.Equal(t, "hdfc", *gotIcon)
+
+		var response handler.AccountResponse
+		require.NoError(t, json.NewDecoder(rec.Body).Decode(&response))
+		assert.Equal(t, "hdfc", response.IconKey)
+	})
+
+	t.Run("omitted icon key passes nil", func(t *testing.T) {
+		called := false
+
+		service := &mockAccountService{
+			createFn: func(
+				_ context.Context,
+				name string,
+				_ bool,
+				iconKey *string,
+			) (*account.Account, error) {
+				called = true
+				assert.Nil(t, iconKey)
+				return &account.Account{ID: uuid.New(), Name: name, IconKey: "bank"}, nil
+			},
+		}
+
+		h := handler.NewAccountHandler(service, newTestLogger())
+
+		req := httptest.NewRequest(
+			http.MethodPost,
+			"/accounts",
+			strings.NewReader(`{"name":"Savings"}`),
+		)
+		rec := httptest.NewRecorder()
+
+		h.Create(rec, req)
+
+		assert.True(t, called)
+		assert.Equal(t, http.StatusCreated, rec.Code)
+	})
+
+	for name, body := range map[string]string{
+		"blank icon key": `{"name":"Savings","icon_key":"   "}`,
+		"too long":       `{"name":"Savings","icon_key":"` + strings.Repeat("a", 51) + `"}`,
+	} {
+		t.Run("rejects "+name, func(t *testing.T) {
+			service := &mockAccountService{
+				createFn: func(
+					_ context.Context,
+					_ string,
+					_ bool,
+					_ *string,
+				) (*account.Account, error) {
+					t.Fatal("Create should not be called")
+					return nil, nil
+				},
+			}
+
+			h := handler.NewAccountHandler(service, newTestLogger())
+
+			req := httptest.NewRequest(
+				http.MethodPost,
+				"/accounts",
+				strings.NewReader(body),
+			)
+			rec := httptest.NewRecorder()
+
+			h.Create(rec, req)
+
+			assert.Equal(t, http.StatusBadRequest, rec.Code)
+			assert.Contains(t, rec.Body.String(), "ERR_INVALID_ICON_KEY")
+		})
+	}
 }

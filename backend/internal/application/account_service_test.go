@@ -117,6 +117,7 @@ func TestAccountService_Create(t *testing.T) {
 				context.Background(),
 				tt.accountName,
 				false,
+				nil,
 			)
 
 			if !errors.Is(err, tt.wantErr) {
@@ -152,6 +153,91 @@ func TestAccountService_Create(t *testing.T) {
 
 			if got.ID == uuid.Nil {
 				t.Error("Create() returned account with nil ID")
+			}
+
+			if got.IconKey != account.DefaultIconKey {
+				t.Errorf(
+					"Create() icon = %q, want %q",
+					got.IconKey,
+					account.DefaultIconKey,
+				)
+			}
+		})
+	}
+}
+
+func TestAccountService_Create_IconKey(t *testing.T) {
+	tests := []struct {
+		name     string
+		iconKey  *string
+		wantIcon string
+	}{
+		{
+			name:     "nil uses default",
+			iconKey:  nil,
+			wantIcon: "bank",
+		},
+		{
+			name:     "custom icon",
+			iconKey:  strPtr("hdfc"),
+			wantIcon: "hdfc",
+		},
+		{
+			name:     "trimmed icon",
+			iconKey:  strPtr("  sbi "),
+			wantIcon: "sbi",
+		},
+		{
+			name:     "blank icon uses default",
+			iconKey:  strPtr("  "),
+			wantIcon: "bank",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var saved *account.Account
+
+			repo := &mockAccountRepository{
+				createFn: func(
+					_ context.Context,
+					a *account.Account,
+				) error {
+					saved = a
+					return nil
+				},
+			}
+
+			service := newTestAccountService(repo)
+
+			got, err := service.Create(
+				context.Background(),
+				"Savings",
+				false,
+				tt.iconKey,
+			)
+			if err != nil {
+				t.Fatalf("Create() error = %v", err)
+			}
+
+			if got.IconKey != tt.wantIcon {
+				t.Errorf(
+					"Create() icon = %q, want %q",
+					got.IconKey,
+					tt.wantIcon,
+				)
+			}
+
+			if saved == nil {
+				t.Fatal("repository received nil account")
+			}
+
+			if saved.IconKey != tt.wantIcon {
+				t.Errorf(
+					"repository saw icon = %q, want %q",
+					saved.IconKey,
+					tt.wantIcon,
+				)
 			}
 		})
 	}
@@ -608,38 +694,6 @@ func TestAccountService_Update(t *testing.T) {
 	}
 }
 
-func equalStringPtr(a, b *string) bool {
-	if a == nil || b == nil {
-		return a == b
-	}
-
-	return *a == *b
-}
-
-func equalBoolPtr(a, b *bool) bool {
-	if a == nil || b == nil {
-		return a == b
-	}
-
-	return *a == *b
-}
-
-func stringPtrValue(value *string) string {
-	if value == nil {
-		return "<nil>"
-	}
-
-	return *value
-}
-
-func boolPtrValue(value *bool) string {
-	if value == nil {
-		return "<nil>"
-	}
-
-	if *value {
-		return "true"
-	}
-
-	return "false"
+func strPtr(s string) *string {
+	return &s
 }

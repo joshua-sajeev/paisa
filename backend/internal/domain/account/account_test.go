@@ -14,6 +14,7 @@ func TestNewAccount(t *testing.T) {
 		name        string
 		input       string
 		isPrimary   bool
+		iconKey     string
 		wantName    string
 		wantIconKey string
 		wantErr     error
@@ -22,6 +23,7 @@ func TestNewAccount(t *testing.T) {
 			name:        "valid name",
 			input:       "Checking",
 			isPrimary:   true,
+			iconKey:     "",
 			wantName:    "Checking",
 			wantIconKey: "bank",
 		},
@@ -29,24 +31,55 @@ func TestNewAccount(t *testing.T) {
 			name:        "trims whitespace",
 			input:       "  Checking  ",
 			isPrimary:   false,
+			iconKey:     "",
+			wantName:    "Checking",
+			wantIconKey: "bank",
+		},
+		{
+			name:        "custom icon",
+			input:       "HDFC",
+			isPrimary:   true,
+			iconKey:     "hdfc",
+			wantName:    "HDFC",
+			wantIconKey: "hdfc",
+		},
+		{
+			name:        "trims icon whitespace",
+			input:       "HDFC",
+			isPrimary:   false,
+			iconKey:     "  hdfc  ",
+			wantName:    "HDFC",
+			wantIconKey: "hdfc",
+		},
+		{
+			name:        "blank icon uses default",
+			input:       "Checking",
+			isPrimary:   false,
+			iconKey:     "   ",
 			wantName:    "Checking",
 			wantIconKey: "bank",
 		},
 		{
 			name:    "empty name",
 			input:   "",
+			iconKey: "bank",
 			wantErr: account.ErrInvalidName,
 		},
 		{
 			name:    "whitespace only name",
 			input:   "   ",
+			iconKey: "bank",
 			wantErr: account.ErrInvalidName,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := account.NewAccount(tt.input, tt.isPrimary)
+			got, err := account.NewAccount(
+				tt.input,
+				tt.isPrimary,
+				tt.iconKey,
+			)
 
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf(
@@ -80,7 +113,11 @@ func TestNewAccount(t *testing.T) {
 			}
 
 			if got.IsPrimary != tt.isPrimary {
-				t.Errorf("IsPrimary = %v, want %v", got.IsPrimary, tt.isPrimary)
+				t.Errorf(
+					"IsPrimary = %v, want %v",
+					got.IsPrimary,
+					tt.isPrimary,
+				)
 			}
 
 			if got.ID == uuid.Nil {
@@ -115,7 +152,7 @@ func TestNewAccount(t *testing.T) {
 }
 
 func TestAccountUpdateBalance(t *testing.T) {
-	acc, err := account.NewAccount("Checking", false)
+	acc, err := account.NewAccount("Checking", false, "")
 	if err != nil {
 		t.Fatalf("NewAccount() error = %v", err)
 	}
@@ -176,7 +213,7 @@ func TestAccountRename(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			acc, err := account.NewAccount("Checking", false)
+			acc, err := account.NewAccount("Checking", false, "")
 			if err != nil {
 				t.Fatalf("NewAccount() error = %v", err)
 			}
@@ -235,7 +272,7 @@ func TestAccountRename(t *testing.T) {
 }
 
 func TestAccountArchive(t *testing.T) {
-	acc, err := account.NewAccount("Checking", false)
+	acc, err := account.NewAccount("Checking", false, "")
 	if err != nil {
 		t.Fatalf("NewAccount() error = %v", err)
 	}
@@ -262,7 +299,7 @@ func TestAccountArchive(t *testing.T) {
 }
 
 func TestAccountArchive_AlreadyArchived(t *testing.T) {
-	acc, err := account.NewAccount("Checking", false)
+	acc, err := account.NewAccount("Checking", false, "")
 	if err != nil {
 		t.Fatalf("NewAccount() error = %v", err)
 	}
@@ -294,7 +331,7 @@ func TestAccountArchive_AlreadyArchived(t *testing.T) {
 }
 
 func TestAccountUnarchive(t *testing.T) {
-	acc, err := account.NewAccount("Checking", false)
+	acc, err := account.NewAccount("Checking", false, "")
 	if err != nil {
 		t.Fatalf("NewAccount() error = %v", err)
 	}
@@ -322,7 +359,7 @@ func TestAccountUnarchive(t *testing.T) {
 }
 
 func TestAccountUnarchive_NotArchived(t *testing.T) {
-	acc, err := account.NewAccount("Checking", false)
+	acc, err := account.NewAccount("Checking", false, "")
 	if err != nil {
 		t.Fatalf("NewAccount() error = %v", err)
 	}
@@ -353,7 +390,7 @@ func TestAccountUnarchive_NotArchived(t *testing.T) {
 }
 
 func TestAccountSetPrimary(t *testing.T) {
-	acc, err := account.NewAccount("Checking", false)
+	acc, err := account.NewAccount("Checking", false, "")
 	if err != nil {
 		t.Fatalf("NewAccount() error = %v", err)
 	}
@@ -384,6 +421,7 @@ func TestAccountSetPrimary(t *testing.T) {
 	}
 
 	acc.SetPrimary(false)
+
 	if acc.IsPrimary {
 		t.Error("IsPrimary = true, want false")
 	}
@@ -430,7 +468,7 @@ func TestAccount_UpdateIcon(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := account.NewAccount("Checking", false)
+			got, err := account.NewAccount("Checking", false, "")
 			if err != nil {
 				t.Fatalf("NewAccount() error = %v", err)
 			}

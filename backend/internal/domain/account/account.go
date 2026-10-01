@@ -19,12 +19,20 @@ type Account struct {
 	UpdatedAt  time.Time
 }
 
+// DefaultIconKey is the icon used when none is provided.
+const DefaultIconKey = "bank"
+
 // NewAccount creates a new active account.
-func NewAccount(name string, isPrimary bool) (*Account, error) {
+func NewAccount(name string, isPrimary bool, iconKey string) (*Account, error) {
 	name = strings.TrimSpace(name)
 
 	if name == "" {
 		return nil, ErrInvalidName
+	}
+
+	iconKey = strings.TrimSpace(iconKey)
+	if iconKey == "" {
+		iconKey = DefaultIconKey
 	}
 
 	now := time.Now().UTC().Truncate(time.Microsecond)
@@ -33,7 +41,7 @@ func NewAccount(name string, isPrimary bool) (*Account, error) {
 		ID:         uuid.New(),
 		Name:       name,
 		Balance:    0,
-		IconKey:    "bank",
+		IconKey:    iconKey,
 		IsPrimary:  isPrimary,
 		IsArchived: false,
 		CreatedAt:  now,
@@ -93,10 +101,6 @@ func (a *Account) Unarchive() error {
 	return nil
 }
 
-func (a *Account) touch() {
-	a.UpdatedAt = time.Now().UTC().Truncate(time.Microsecond)
-}
-
 // UpdateBalance changes the account balance by the given amount.
 func (a *Account) UpdateBalance(amount int64) {
 	a.Balance += amount
@@ -108,7 +112,7 @@ func (a *Account) UpdateIcon(iconKey string) {
 	iconKey = strings.TrimSpace(iconKey)
 
 	if iconKey == "" {
-		iconKey = "bank"
+		iconKey = DefaultIconKey
 	}
 
 	if a.IconKey == iconKey {
@@ -117,4 +121,8 @@ func (a *Account) UpdateIcon(iconKey string) {
 
 	a.IconKey = iconKey
 	a.touch()
+}
+
+func (a *Account) touch() {
+	a.UpdatedAt = time.Now().UTC().Truncate(time.Microsecond)
 }
