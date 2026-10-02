@@ -98,11 +98,10 @@ export default function AccountCard({
 
           <div className="shrink-0 text-right">
             <div
-              className={`text-lg font-extrabold tabular-nums tracking-tight ${
-                account.balance < 0
+              className={`text-lg font-extrabold tabular-nums tracking-tight ${account.balance < 0
                   ? "text-error"
                   : "text-on-surface"
-              }`}
+                }`}
             >
               {formattedBalance}
             </div>

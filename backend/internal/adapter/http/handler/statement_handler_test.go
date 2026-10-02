@@ -53,7 +53,7 @@ func doStatementRequest(
 	return rec
 }
 
-func TestStatementHandler_ReturnsAccountSummaryRowsAndPagination(t *testing.T) {
+func TestStatementHandler_ReturnsAccountRowsAndTotal(t *testing.T) {
 	accountID := uuid.New()
 	itemID := uuid.New()
 	jarName := "Needs"
@@ -77,12 +77,6 @@ func TestStatementHandler_ReturnsAccountSummaryRowsAndPagination(t *testing.T) {
 					IsPrimary: true,
 					Balance:   1122000,
 				},
-				Summary: ports.StatementSummary{
-					OpeningBalance: 0,
-					ClosingBalance: 1122000,
-					Inflow:         1200000,
-					Outflow:        78000,
-				},
 				Transactions: []*ports.TransactionListItem{{
 					ID:             itemID,
 					Name:           "Salary",
@@ -103,9 +97,8 @@ func TestStatementHandler_ReturnsAccountSummaryRowsAndPagination(t *testing.T) {
 
 	var body struct {
 		Account      map[string]any   `json:"account"`
-		Summary      map[string]any   `json:"summary"`
 		Transactions []map[string]any `json:"transactions"`
-		Pagination   map[string]any   `json:"pagination"`
+		Total        int              `json:"total"`
 	}
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
 
@@ -113,12 +106,7 @@ func TestStatementHandler_ReturnsAccountSummaryRowsAndPagination(t *testing.T) {
 	require.Equal(t, "sbi", body.Account["icon_key"])
 	require.Equal(t, true, body.Account["is_primary"])
 	require.Equal(t, float64(1122000), body.Account["balance"])
-
-	require.Equal(t, float64(0), body.Summary["opening_balance"])
-	require.Equal(t, float64(1122000), body.Summary["closing_balance"])
-	require.Equal(t, float64(1200000), body.Summary["inflow"])
-	require.Equal(t, float64(78000), body.Summary["outflow"])
-	require.Equal(t, float64(1122000), body.Summary["net"])
+	require.Equal(t, false, body.Account["is_archived"])
 
 	require.Len(t, body.Transactions, 1)
 	row := body.Transactions[0]
@@ -130,11 +118,8 @@ func TestStatementHandler_ReturnsAccountSummaryRowsAndPagination(t *testing.T) {
 	require.Equal(t, float64(1200000), row["amount"])
 	require.Equal(t, float64(1122000), row["balance_after"])
 
-	// 1 row returned out of 2 matching: there is a next page.
-	require.Equal(t, float64(20), body.Pagination["limit"])
-	require.Equal(t, float64(0), body.Pagination["offset"])
-	require.Equal(t, float64(2), body.Pagination["total"])
-	require.Equal(t, true, body.Pagination["has_next"])
+	// 1 row returned out of 2 matching.
+	require.Equal(t, 2, body.Total)
 }
 
 func TestStatementHandler_ParsesFilters(t *testing.T) {
@@ -179,37 +164,6 @@ func TestStatementHandler_ParsesFilters(t *testing.T) {
 	wantTo := time.Date(2026, 9, 10, 0, 0, 0, 0, timeutil.IST).UTC()
 	require.True(t, got.FromDate.Equal(wantFrom), "from = %v", got.FromDate)
 	require.True(t, got.ToDate.Equal(wantTo), "to = %v", got.ToDate)
-}
-
-func TestStatementHandler_HasNextFalseOnLastPage(t *testing.T) {
-	accountID := uuid.New()
-
-	svc := &mockStatementService{
-		getFn: func(
-			context.Context,
-			uuid.UUID,
-			ports.ListParams,
-		) (*application.Statement, error) {
-			return &application.Statement{
-				Account: &account.Account{ID: accountID},
-				Transactions: []*ports.TransactionListItem{
-					{ID: uuid.New(), OccurredAt: time.Now()},
-				},
-				Total: 21,
-			}, nil
-		},
-	}
-
-	rec := doStatementRequest(t, svc, accountID, "?limit=20&offset=20")
-	require.Equal(t, http.StatusOK, rec.Code)
-
-	var body struct {
-		Pagination struct {
-			HasNext bool `json:"has_next"`
-		} `json:"pagination"`
-	}
-	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
-	require.False(t, body.Pagination.HasNext)
 }
 
 func TestStatementHandler_RejectsInvalidParams(t *testing.T) {

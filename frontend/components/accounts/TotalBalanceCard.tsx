@@ -54,21 +54,13 @@ export default function TotalBalanceCard({
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
+      <div className="mt-4">
         <button
           type="button"
-          className="flex items-center justify-center gap-1.5 rounded-xl bg-[#eaf3ff] px-2 py-2.5 text-xs font-semibold text-[#2563eb] transition hover:bg-[#dbeafe] active:scale-95"
+          className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#eaf3ff] px-2 py-2.5 text-xs font-semibold text-[#2563eb] transition hover:bg-[#dbeafe] active:scale-95"
         >
           <SwapHoriz width={16} height={16} />
           <span>Transfer</span>
-        </button>
-
-        <button
-          type="button"
-          className="flex items-center justify-center gap-1.5 rounded-xl bg-[#f3eefa] px-2 py-2.5 text-xs font-semibold text-[#7c3aed] transition hover:bg-[#ede9fe] active:scale-95"
-        >
-          <ReceiptLong width={16} height={16} />
-          <span>Combined Statement</span>
         </button>
       </div>
     </section>

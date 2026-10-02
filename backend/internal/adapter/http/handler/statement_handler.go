@@ -47,52 +47,31 @@ func NewStatementHandler(
 
 // StatementAccountResponse is the account header of a statement.
 type StatementAccountResponse struct {
-	ID        uuid.UUID `json:"id"`
-	Name      string    `json:"name"`
-	IconKey   string    `json:"icon_key"`
-	IsPrimary bool      `json:"is_primary"`
-	// Balance is the account's current balance (not range-dependent).
-	Balance int64 `json:"balance"`
-}
-
-// StatementSummaryResponse holds range aggregates, in paise.
-type StatementSummaryResponse struct {
-	OpeningBalance int64 `json:"opening_balance"`
-	ClosingBalance int64 `json:"closing_balance"`
-	Inflow         int64 `json:"inflow"`
-	// Outflow is a positive number.
-	Outflow int64 `json:"outflow"`
-	Net     int64 `json:"net"`
+	ID         uuid.UUID `json:"id"`
+	Name       string    `json:"name"`
+	IconKey    string    `json:"icon_key"`
+	Balance    int64     `json:"balance"`
+	IsPrimary  bool      `json:"is_primary"`
+	IsArchived bool      `json:"is_archived"`
 }
 
 // StatementTransactionResponse is one statement row.
 type StatementTransactionResponse struct {
-	ID         string    `json:"id"`
-	Name       string    `json:"name"`
-	OccurredAt time.Time `json:"occurred_at"`
-	Type       string    `json:"type"`
-	Category   string    `json:"category"`
-	JarName    *string   `json:"jar_name"`
-	// Amount is signed relative to the account: positive in, negative out.
-	Amount int64 `json:"amount"`
-	// BalanceAfter is the account balance after this transaction.
-	BalanceAfter *int64 `json:"balance_after"`
-}
-
-// PaginationResponse describes the current page.
-type PaginationResponse struct {
-	Limit   int  `json:"limit"`
-	Offset  int  `json:"offset"`
-	Total   int  `json:"total"`
-	HasNext bool `json:"has_next"`
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	OccurredAt   time.Time `json:"occurred_at"`
+	Type         string    `json:"type"`
+	Category     string    `json:"category"`
+	JarName      *string   `json:"jar_name"`
+	Amount       int64     `json:"amount"`
+	BalanceAfter *int64    `json:"balance_after"`
 }
 
 // StatementResponse is the body of GET /accounts/{id}/statement.
 type StatementResponse struct {
 	Account      StatementAccountResponse       `json:"account"`
-	Summary      StatementSummaryResponse       `json:"summary"`
 	Transactions []StatementTransactionResponse `json:"transactions"`
-	Pagination   PaginationResponse             `json:"pagination"`
+	Total        int                            `json:"total"`
 }
 
 // HandleGet handles GET /accounts/{id}/statement.
@@ -160,26 +139,15 @@ func (h *StatementHandler) HandleGet(
 
 	writeJSON(w, http.StatusOK, StatementResponse{
 		Account: StatementAccountResponse{
-			ID:        stmt.Account.ID,
-			Name:      stmt.Account.Name,
-			IconKey:   stmt.Account.IconKey,
-			IsPrimary: stmt.Account.IsPrimary,
-			Balance:   stmt.Account.Balance,
-		},
-		Summary: StatementSummaryResponse{
-			OpeningBalance: stmt.Summary.OpeningBalance,
-			ClosingBalance: stmt.Summary.ClosingBalance,
-			Inflow:         stmt.Summary.Inflow,
-			Outflow:        stmt.Summary.Outflow,
-			Net:            stmt.Summary.Net(),
+			ID:         stmt.Account.ID,
+			Name:       stmt.Account.Name,
+			IconKey:    stmt.Account.IconKey,
+			Balance:    stmt.Account.Balance,
+			IsPrimary:  stmt.Account.IsPrimary,
+			IsArchived: stmt.Account.IsArchived,
 		},
 		Transactions: rows,
-		Pagination: PaginationResponse{
-			Limit:   params.Limit,
-			Offset:  params.Offset,
-			Total:   stmt.Total,
-			HasNext: params.Offset+len(rows) < stmt.Total,
-		},
+		Total:        stmt.Total,
 	})
 }
 
