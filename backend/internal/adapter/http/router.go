@@ -25,6 +25,7 @@ type HandlerRegistry struct {
 	StatementHandler   *handler.StatementHandler
 	AuthHandler        *handler.AuthHandler
 	GoalHandler        *handler.GoalHandler
+	AllocationHandler  *handler.AllocationHandler
 	SessionStore       session.SessionStore
 	SessionHandler     *handler.SessionHandler
 	DemoMode           bool
@@ -73,6 +74,7 @@ func NewRouter(h *HandlerRegistry, logger *slog.Logger) http.Handler {
 			registerTransactionRoutes(r, h.TransactionHandler)
 			registerStatementRoutes(r, h.StatementHandler)
 			registerDashboardRoutes(r, h.DashboardHandler)
+			registerAllocationRoutes(r, h.AllocationHandler)
 		})
 	})
 	// Static frontend.
@@ -93,6 +95,7 @@ var protectedHTMLRoutes = map[string]struct{}{
 	"/accounts":     {},
 	"/jars":         {},
 	"/goals":        {},
+	"/allocations":  {},
 }
 
 func newStaticFrontendHandler(

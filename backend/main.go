@@ -42,6 +42,7 @@ func main() {
 		DashboardHandler:   container.DashboardHandler,
 		AccountHandler:     container.AccountHandler,
 		GoalHandler:        container.GoalHandler,
+		AllocationHandler:  container.AllocationHandler,
 		JarHandler:         container.JarHandler,
 		AuthHandler:        container.AuthHandler,
 		TransactionHandler: container.TransactionHandler,

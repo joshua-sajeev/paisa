@@ -25,6 +25,7 @@ type Container struct {
 	StatementHandler   *handler.StatementHandler
 	AuthHandler        *handler.AuthHandler
 	GoalHandler        *handler.GoalHandler
+	AllocationHandler  *handler.AllocationHandler
 	SessionHandler     *handler.SessionHandler
 	// Internal dependencies
 	logger *slog.Logger
@@ -49,6 +50,7 @@ type Container struct {
 	jarService         *application.JarService
 	transactionService *application.TransactionService
 	statementService   *application.StatementService
+	allocationService  *application.AllocationService
 	authService        *application.AuthService
 	goalService        *application.GoalService
 }
@@ -58,6 +60,7 @@ var (
 	_ handler.JarService         = (*application.JarService)(nil)
 	_ handler.TransactionService = (*application.TransactionService)(nil)
 	_ handler.StatementService   = (*application.StatementService)(nil)
+	_ handler.AllocationService  = (*application.AllocationService)(nil)
 )
 
 // New creates and initializes the dependency container
@@ -161,6 +164,10 @@ func (c *Container) initServices() {
 		c.goalRepository,
 		c.logger,
 	)
+	c.allocationService = application.NewAllocationService(
+		c.allocationRepository,
+		c.logger,
+	)
 }
 
 // initHandlers creates all handler instances with service dependencies.
@@ -196,6 +203,11 @@ func (c *Container) initHandlers() {
 
 	c.GoalHandler = handler.NewGoalHandler(
 		c.goalService,
+		c.logger,
+	)
+
+	c.AllocationHandler = handler.NewAllocationHandler(
+		c.allocationService,
 		c.logger,
 	)
 
