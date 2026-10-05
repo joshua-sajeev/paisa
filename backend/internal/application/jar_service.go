@@ -3,7 +3,9 @@ package application
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/joshu-sajeev/paisa/internal/domain/jar"
@@ -12,15 +14,23 @@ import (
 
 // JarService handles jar application use cases.
 type JarService struct {
-	repo   ports.JarRepository
-	logger *slog.Logger
+	repo            ports.JarRepository
+	allocationRepo  ports.AllocationRepository
+	transactionRepo ports.TransactionRepository
+	logger          *slog.Logger
 }
 
-// NewJarService creates a new JarService.
-func NewJarService(repo ports.JarRepository, logger *slog.Logger) *JarService {
+func NewJarService(
+	repo ports.JarRepository,
+	allocationRepo ports.AllocationRepository,
+	transactionRepo ports.TransactionRepository,
+	logger *slog.Logger,
+) *JarService {
 	return &JarService{
-		repo:   repo,
-		logger: logger,
+		repo:            repo,
+		allocationRepo:  allocationRepo,
+		transactionRepo: transactionRepo,
+		logger:          logger,
 	}
 }
 
@@ -103,27 +113,96 @@ func (s *JarService) Create(ctx context.Context, name string, allocationType jar
 	return newJar, nil
 }
 
-// List gets all jars.
-func (s *JarService) List(ctx context.Context) ([]*jar.Jar, error) {
-	s.logger.DebugContext(ctx, "listing all active jars")
+func (s *JarService) calculateJarStats(
+	ctx context.Context,
+	jarID uuid.UUID,
+	startDate *time.Time,
+	endDate *time.Time,
+) (int64, int64, error) {
+	allocated, err := s.allocationRepo.SumByJar(
+		ctx,
+		jarID,
+		startDate,
+		endDate,
+	)
+	if err != nil {
+		return 0, 0, fmt.Errorf("get allocated amount: %w", err)
+	}
+
+	used, err := s.transactionRepo.SumTransactionsByJarAndType(
+		ctx,
+		jarID,
+		"expense",
+		startDate,
+		endDate,
+	)
+	if err != nil {
+		return 0, 0, fmt.Errorf("get used amount: %w", err)
+	}
+
+	return allocated, used, nil
+}
+
+// ListWithStats returns jars with their allocated and used amounts for a given date range.
+// If startDate and endDate are nil, returns all-time statistics.
+func (s *JarService) ListWithStats(
+	ctx context.Context,
+	startDate *time.Time,
+	endDate *time.Time,
+) ([]*jar.Jar, map[uuid.UUID]int64, map[uuid.UUID]int64, error) {
+	s.logger.DebugContext(
+		ctx,
+		"listing jars with statistics",
+		slog.String("start_date", fmt.Sprintf("%v", startDate)),
+		slog.String("end_date", fmt.Sprintf("%v", endDate)),
+	)
 
 	jars, err := s.repo.List(ctx)
 	if err != nil {
 		s.logger.ErrorContext(
 			ctx,
-			"repository list failed",
+			"failed to fetch jars",
 			slog.String("error", err.Error()),
 		)
-		return nil, err
+		return nil, nil, nil, err
+	}
+
+	allocatedMap := make(map[uuid.UUID]int64, len(jars))
+	usedMap := make(map[uuid.UUID]int64, len(jars))
+
+	for _, j := range jars {
+		allocated, used, err := s.calculateJarStats(
+			ctx,
+			j.ID,
+			startDate,
+			endDate,
+		)
+		if err != nil {
+			s.logger.ErrorContext(
+				ctx,
+				"failed to calculate jar statistics",
+				slog.String("jar_id", j.ID.String()),
+				slog.String("error", err.Error()),
+			)
+
+			return nil, nil, nil, fmt.Errorf(
+				"calculate statistics for jar %s: %w",
+				j.ID,
+				err,
+			)
+		}
+
+		allocatedMap[j.ID] = allocated
+		usedMap[j.ID] = used
 	}
 
 	s.logger.InfoContext(
 		ctx,
-		"active jars listed",
+		"jars with statistics retrieved",
 		slog.Int("count", len(jars)),
 	)
 
-	return jars, nil
+	return jars, allocatedMap, usedMap, nil
 }
 
 // Update updates the name and archive state of a jar.

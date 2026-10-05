@@ -29,13 +29,18 @@ type AccountResponse struct {
 
 // JarResponse represents a jar in an HTTP response.
 type JarResponse struct {
-	ID              uuid.UUID          `json:"id"`
-	Name            string             `json:"name"`
-	AllocationType  jar.AllocationType `json:"allocation_type"`
-	AllocationValue int64              `json:"allocation_value"`
-	IsArchived      bool               `json:"is_archived"`
-	CreatedAt       time.Time          `json:"created_at"`
-	UpdatedAt       time.Time          `json:"updated_at"`
+	ID                  uuid.UUID          `json:"id"`
+	Name                string             `json:"name"`
+	AllocationType      jar.AllocationType `json:"allocation_type"`
+	AllocationValue     int64              `json:"allocation_value"`
+	AllocatedAmount     int64              `json:"allocated_amount"`
+	UsedAmount          int64              `json:"used_amount"`
+	AvailableAmount     int64              `json:"available_amount"`
+	UsedPercentage      float64            `json:"used_percentage"`
+	AvailablePercentage float64            `json:"available_percentage"`
+	IsArchived          bool               `json:"is_archived"`
+	CreatedAt           time.Time          `json:"created_at"`
+	UpdatedAt           time.Time          `json:"updated_at"`
 }
 
 // SuccessResponse represents a successful HTTP response.

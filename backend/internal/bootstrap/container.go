@@ -138,6 +138,8 @@ func (c *Container) initServices() {
 
 	c.jarService = application.NewJarService(
 		c.jarRepository,
+		c.allocationRepository,
+		c.transactionRepository,
 		c.logger,
 	)
 

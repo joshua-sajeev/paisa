@@ -704,6 +704,57 @@ func (r *transactionRepository) FindByID(
 	return &t, nil
 }
 
+// SumTransactionsByJarAndType returns the sum of transactions for a jar of a specific type
+func (r *transactionRepository) SumTransactionsByJarAndType(
+	ctx context.Context,
+	jarID uuid.UUID,
+	txnType string,
+	startDate *time.Time,
+	endDate *time.Time,
+) (int64, error) {
+	query := `
+		SELECT COALESCE(SUM(amount), 0)
+		FROM transactions
+		WHERE jar_id = $1
+		AND type = $2
+	`
+
+	args := []interface{}{jarID, txnType}
+	argIndex := 3
+
+	if startDate != nil {
+		query += fmt.Sprintf(
+			" AND occurred_at >= $%d",
+			argIndex,
+		)
+		args = append(args, *startDate)
+		argIndex++
+	}
+
+	if endDate != nil {
+		query += fmt.Sprintf(
+			" AND occurred_at < $%d",
+			argIndex,
+		)
+		args = append(args, *endDate)
+	}
+
+	var sum int64
+
+	if err := r.db.QueryRow(
+		ctx,
+		query,
+		args...,
+	).Scan(&sum); err != nil {
+		return 0, fmt.Errorf(
+			"failed to sum transactions: %w",
+			err,
+		)
+	}
+
+	return sum, nil
+}
+
 func (r *transactionRepository) Save(
 	ctx context.Context,
 	t *transaction.Transaction,

@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
@@ -19,7 +20,11 @@ import (
 type JarService interface {
 	Create(ctx context.Context, name string, allocationType jar.AllocationType, allocationValue int64) (*jar.Jar, error)
 
-	List(ctx context.Context) ([]*jar.Jar, error)
+	ListWithStats(
+		ctx context.Context,
+		startDate *time.Time,
+		endDate *time.Time,
+	) ([]*jar.Jar, map[uuid.UUID]int64, map[uuid.UUID]int64, error)
 
 	Update(ctx context.Context, id uuid.UUID, name *string, isArchived *bool) error
 
@@ -210,13 +215,71 @@ func (h *JarHandler) Create(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-// List handles GET /jars.
+const dateLayout = "2006-01-02"
+
+// parseDateRange reads start_date and end_date from query.
+// Returns [start, end) range. End is exclusive.
+func parseDateRange(r *http.Request, now time.Time) (time.Time, time.Time, error) {
+	q := r.URL.Query()
+	startStr := q.Get("start_date")
+	endStr := q.Get("end_date")
+
+	// no params: default to current month
+	if startStr == "" && endStr == "" {
+		start := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+		return start, start.AddDate(0, 1, 0), nil
+	}
+
+	if startStr == "" || endStr == "" {
+		return time.Time{}, time.Time{}, errors.New("start_date and end_date must be provided together")
+	}
+
+	start, err := time.ParseInLocation(dateLayout, startStr, now.Location())
+	if err != nil {
+		return time.Time{}, time.Time{}, errors.New("start_date must be in YYYY-MM-DD format")
+	}
+
+	end, err := time.ParseInLocation(dateLayout, endStr, now.Location())
+	if err != nil {
+		return time.Time{}, time.Time{}, errors.New("end_date must be in YYYY-MM-DD format")
+	}
+
+	if end.Before(start) {
+		return time.Time{}, time.Time{}, errors.New("end_date must not be before start_date")
+	}
+
+	// limit range, stop huge queries
+	if end.Sub(start) > 366*24*time.Hour {
+		return time.Time{}, time.Time{}, errors.New("date range must not exceed 366 days")
+	}
+
+	// end_date inclusive for user, exclusive for query
+	return start, end.AddDate(0, 0, 1), nil
+}
+
+// List handles GET /jars?start_date=2026-10-01&end_date=2026-10-31
 func (h *JarHandler) List(w http.ResponseWriter, r *http.Request) {
-	jars, err := h.service.List(r.Context())
+	startDate, endDate, err := parseDateRange(r, time.Now())
+	if err != nil {
+		writeErrorJSON(
+			w,
+			http.StatusBadRequest,
+			"VALIDATION_ERROR",
+			err.Error(),
+			"ERR_INVALID_DATE_RANGE",
+		)
+		return
+	}
+
+	jars, allocatedMap, usedMap, err := h.service.ListWithStats(
+		r.Context(),
+		&startDate,
+		&endDate,
+	)
 	if err != nil {
 		h.logger.ErrorContext(
 			r.Context(),
-			"failed to list jars",
+			"failed to list jars with statistics",
 			slog.String("error", err.Error()),
 		)
 
@@ -233,7 +296,21 @@ func (h *JarHandler) List(w http.ResponseWriter, r *http.Request) {
 	response := make([]JarResponse, 0, len(jars))
 
 	for _, j := range jars {
-		response = append(response, NewJarResponse(j))
+		jarResponse := NewJarResponse(j)
+
+		jarResponse.AllocatedAmount = allocatedMap[j.ID]
+		jarResponse.UsedAmount = usedMap[j.ID]
+		jarResponse.AvailableAmount = jarResponse.AllocatedAmount - jarResponse.UsedAmount
+
+		if jarResponse.AllocatedAmount > 0 {
+			jarResponse.UsedPercentage = float64(jarResponse.UsedAmount) /
+				float64(jarResponse.AllocatedAmount) * 100
+
+			jarResponse.AvailablePercentage = float64(jarResponse.AvailableAmount) /
+				float64(jarResponse.AllocatedAmount) * 100
+		}
+
+		response = append(response, jarResponse)
 	}
 
 	writeJSON(w, http.StatusOK, response)

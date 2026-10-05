@@ -54,6 +54,12 @@ const (
 		WHERE transaction_id = $1
 		ORDER BY created_at ASC
 	`
+	sumByJarQuery = `
+		SELECT COALESCE(SUM(a.amount), 0)
+		FROM jar_allocations a
+		INNER JOIN transactions t ON t.id = a.transaction_id
+		WHERE a.jar_id = $1
+	`
 )
 
 func (r *allocationRepository) Create(
@@ -307,6 +313,44 @@ func (r *allocationRepository) GetMonthlySummary(
 	var total int64
 	if err := exec.QueryRow(ctx, query, args...).Scan(&total); err != nil {
 		return 0, fmt.Errorf("get monthly allocation summary: %w", err)
+	}
+
+	return total, nil
+}
+
+func (r *allocationRepository) SumByJar(
+	ctx context.Context,
+	jarID uuid.UUID,
+	startDate *time.Time,
+	endDate *time.Time,
+) (int64, error) {
+	exec := dbExecutor(ctx, r.db)
+
+	query := sumByJarQuery
+	args := []any{jarID}
+	argIndex := 2
+
+	if startDate != nil {
+		query += fmt.Sprintf(
+			" AND t.occurred_at >= $%d",
+			argIndex,
+		)
+		args = append(args, *startDate)
+		argIndex++
+	}
+
+	if endDate != nil {
+		query += fmt.Sprintf(
+			" AND t.occurred_at < $%d",
+			argIndex,
+		)
+		args = append(args, *endDate)
+	}
+
+	var total int64
+
+	if err := exec.QueryRow(ctx, query, args...).Scan(&total); err != nil {
+		return 0, fmt.Errorf("sum allocations by jar: %w", err)
 	}
 
 	return total, nil

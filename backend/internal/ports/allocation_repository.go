@@ -59,4 +59,12 @@ type AllocationRepository interface {
 	// GetMonthlySummary returns total allocated paise for a given date range [start, end).
 	// If jarID is non-nil, totals only allocations for that jar.
 	GetMonthlySummary(ctx context.Context, start time.Time, end time.Time, jarID *uuid.UUID) (int64, error)
+
+	// SumByJar returns the total amount allocated to a jar within the given date range.
+	SumByJar(
+		ctx context.Context,
+		jarID uuid.UUID,
+		startDate *time.Time,
+		endDate *time.Time,
+	) (int64, error)
 }

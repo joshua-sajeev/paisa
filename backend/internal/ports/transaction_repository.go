@@ -102,6 +102,21 @@ type TransactionRepository interface {
 		to *time.Time,
 	) (StatementSummary, error)
 
+	// SumTransactionsByJarAndType returns the sum of transactions for a jar of a specific type
+	// within an optional date range.
+	// jarID: the jar to filter by
+	// txnType: "income" or "expense"
+	// startDate: optional start date (if nil, no lower bound)
+	// endDate: optional end date (if nil, no upper bound)
+	// Returns the sum of amounts in paise
+	SumTransactionsByJarAndType(
+		ctx context.Context,
+		jarID uuid.UUID,
+		txnType string,
+		startDate *time.Time,
+		endDate *time.Time,
+	) (int64, error)
+
 	// FindByID retrieves a single transaction by ID.
 	FindByID(ctx context.Context, id uuid.UUID) (*transaction.Transaction, error)
 
