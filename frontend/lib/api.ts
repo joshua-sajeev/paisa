@@ -1,13 +1,14 @@
-export async function apiFetch(
+export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
-) {
+): Promise<T> {
   const configuredBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+
   const url = configuredBaseUrl
     ? new URL(path, configuredBaseUrl).toString()
     : path;
 
-  return fetch(url, {
+  const response = await fetch(url, {
     ...options,
     credentials: "include",
     headers: {
@@ -15,4 +16,10 @@ export async function apiFetch(
       ...options.headers,
     },
   });
+
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.status}`);
+  }
+
+  return response.json() as Promise<T>;
 }
