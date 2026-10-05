@@ -171,6 +171,23 @@ func (h *AllocationHandler) HandleList(
 	var monthParam *string
 	if m := r.URL.Query().Get("month"); m != "" {
 		monthParam = &m
+	} else if params.FromDate != nil && params.ToDate != nil {
+		fromIST := params.FromDate.In(timeutil.IST)
+		// toInclusiveIST is the last moment of the range (exclusive upper bound - 1ns)
+		toInclusiveIST := params.ToDate.Add(-1 * time.Nanosecond).In(timeutil.IST)
+
+		if fromIST.Year() == toInclusiveIST.Year() && fromIST.Month() == toInclusiveIST.Month() {
+			m := fromIST.Format("2006-01")
+			monthParam = &m
+		} else {
+			m := time.Now().In(timeutil.IST).Format("2006-01")
+			monthParam = &m
+		}
+	} else if params.FromDate != nil || params.ToDate != nil {
+		// If only one is provided, or if they are different months (handled above),
+		// default to the current month as requested.
+		m := time.Now().In(timeutil.IST).Format("2006-01")
+		monthParam = &m
 	}
 
 	result, err := h.service.List(ctx, params, monthParam)

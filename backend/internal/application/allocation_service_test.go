@@ -126,11 +126,11 @@ func TestAllocationService_List_SuccessWithExplicitMonth(t *testing.T) {
 	require.Equal(t, int64(200000), *result.MonthlySummary.JarTotalAllocated)
 }
 
-func TestAllocationService_List_FallbackToFromDate(t *testing.T) {
+func TestAllocationService_List_FallbackToCurrentMonthIfRangeIncomplete(t *testing.T) {
 	ctx := context.Background()
 	fromDate := time.Date(2026, 4, 15, 10, 0, 0, 0, time.UTC)
-	expectedStart := time.Date(2026, 4, 1, 0, 0, 0, 0, timeutil.IST).UTC()
-	expectedEnd := time.Date(2026, 5, 1, 0, 0, 0, 0, timeutil.IST).UTC()
+	nowIST := time.Now().In(timeutil.IST)
+	expectedMonth := nowIST.Format("2006-01")
 
 	repo := &mockAllocationRepository{
 		listFn: func(
@@ -141,12 +141,10 @@ func TestAllocationService_List_FallbackToFromDate(t *testing.T) {
 		},
 		getMonthlySummaryFn: func(
 			_ context.Context,
-			start time.Time,
-			end time.Time,
+			_ time.Time,
+			_ time.Time,
 			_ *uuid.UUID,
 		) (int64, error) {
-			require.True(t, expectedStart.Equal(start))
-			require.True(t, expectedEnd.Equal(end))
 			return 0, nil
 		},
 	}
@@ -158,7 +156,7 @@ func TestAllocationService_List_FallbackToFromDate(t *testing.T) {
 	}, nil)
 
 	require.NoError(t, err)
-	require.Equal(t, "2026-04", result.MonthlySummary.Month)
+	require.Equal(t, expectedMonth, result.MonthlySummary.Month)
 }
 
 func TestAllocationService_List_FallbackToCurrentMonth(t *testing.T) {

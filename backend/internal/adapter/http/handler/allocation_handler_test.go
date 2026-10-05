@@ -185,3 +185,54 @@ func TestAllocationHandler_HandleList_InternalError(t *testing.T) {
 
 	require.Equal(t, http.StatusInternalServerError, rec.Code)
 }
+
+func TestAllocationHandler_HandleList_DateBasedMonthResolution(t *testing.T) {
+	h := handler.NewAllocationHandler(&mockAllocationService{
+		listFn: func(_ context.Context, _ ports.AllocationListParams, monthParam *string) (*application.AllocationListResult, error) {
+			return &application.AllocationListResult{
+				MonthlySummary: ports.AllocationMonthlySummary{Month: *monthParam},
+			}, nil
+		},
+	}, newTestLogger())
+
+	testCases := []struct {
+		name          string
+		query         string
+		expectedMonth string
+	}{
+		{
+			name:          "same month dates",
+			query:         "from_date=2026-01-01&to_date=2026-01-31",
+			expectedMonth: "2026-01",
+		},
+		{
+			name:          "cross month dates",
+			query:         "from_date=2026-01-01&to_date=2026-02-01",
+			expectedMonth: time.Now().In(timeutil.IST).Format("2006-01"),
+		},
+		{
+			name:          "only from date",
+			query:         "from_date=2026-01-01",
+			expectedMonth: time.Now().In(timeutil.IST).Format("2006-01"),
+		},
+		{
+			name:          "explicit month takes precedence",
+			query:         "from_date=2026-01-01&to_date=2026-01-31&month=2025-12",
+			expectedMonth: "2025-12",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/allocations?"+tc.query, nil)
+			rec := httptest.NewRecorder()
+
+			h.HandleList(rec, req)
+
+			var resp handler.ListAllocationsResponse
+			err := json.NewDecoder(rec.Body).Decode(&resp)
+			require.NoError(t, err)
+			require.Equal(t, tc.expectedMonth, resp.MonthlySummary.Month)
+		})
+	}
+}

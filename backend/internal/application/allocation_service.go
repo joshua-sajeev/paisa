@@ -109,9 +109,14 @@ func (s *AllocationService) resolveMonth(
 		return time.Date(parsed.Year(), parsed.Month(), 1, 0, 0, 0, 0, timeutil.IST), nil
 	}
 
-	if params.FromDate != nil {
-		inIST := params.FromDate.In(timeutil.IST)
-		return time.Date(inIST.Year(), inIST.Month(), 1, 0, 0, 0, 0, timeutil.IST), nil
+	if params.FromDate != nil && params.ToDate != nil {
+		fromIST := params.FromDate.In(timeutil.IST)
+		// ToDate is exclusive. Check month of last inclusive moment.
+		toInclusiveIST := params.ToDate.Add(-1 * time.Nanosecond).In(timeutil.IST)
+
+		if fromIST.Year() == toInclusiveIST.Year() && fromIST.Month() == toInclusiveIST.Month() {
+			return time.Date(fromIST.Year(), fromIST.Month(), 1, 0, 0, 0, 0, timeutil.IST), nil
+		}
 	}
 
 	nowIST := time.Now().In(timeutil.IST)
