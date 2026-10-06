@@ -168,13 +168,14 @@ func (r *transactionRepository) Create(
 	return nil
 }
 
-// List retrieves transactions with optional filtering and pagination.
+// List retrieves one page of transactions plus the total number of
+// transactions matching the same filters (ignoring LIMIT/OFFSET).
 // Filters are applied in PostgreSQL before pagination.
 // No running balance is calculated (it's meaningless across multiple accounts).
 func (r *transactionRepository) List(
 	ctx context.Context,
 	params ports.ListParams,
-) ([]*ports.TransactionListItem, error) {
+) (*ports.ListResult, error) {
 	exec := dbExecutor(ctx, r.db)
 
 	query, queryParams := r.buildListQuery(params)
@@ -203,7 +204,24 @@ func (r *transactionRepository) List(
 		return nil, fmt.Errorf("list transactions: %w", err)
 	}
 
-	return transactions, nil
+	// Release the connection before issuing the count query.
+	rows.Close()
+
+	countQuery, countParams := r.buildListCountQuery(params)
+
+	var total int
+	if err := exec.QueryRow(
+		ctx,
+		countQuery,
+		countParams...,
+	).Scan(&total); err != nil {
+		return nil, fmt.Errorf("count transactions: %w", err)
+	}
+
+	return &ports.ListResult{
+		Transactions: transactions,
+		Total:        total,
+	}, nil
 }
 
 // buildListQuery constructs the SQL query and parameters for List() based on filters.
@@ -244,6 +262,36 @@ func (r *transactionRepository) buildListQuery(
 		WHERE 1 = 1
 	`)
 
+	queryParams = appendListFilters(&query, queryParams, params)
+
+	query.WriteString(
+		`
+		ORDER BY t.occurred_at DESC, t.created_at DESC, t.id DESC
+		LIMIT $` +
+			fmt.Sprintf("%d", len(queryParams)+1) +
+			` OFFSET $` +
+			fmt.Sprintf("%d", len(queryParams)+2),
+	)
+
+	queryParams = append(
+		queryParams,
+		params.Limit,
+		params.Offset,
+	)
+
+	return query.String(), queryParams
+}
+
+// appendListFilters appends the AND-ed filter clauses for the global
+// transaction list to query and returns the extended argument slice.
+// It is shared by the page query and the count query so both always match the
+// same rows. Columns are qualified with the "t" alias. It never adds
+// ORDER BY, LIMIT or OFFSET.
+func appendListFilters(
+	query *strings.Builder,
+	queryParams []any,
+	params ports.ListParams,
+) []any {
 	if params.Search != nil && *params.Search != "" {
 		query.WriteString(
 			" AND t.name ILIKE '%' || $" +
@@ -314,20 +362,25 @@ func (r *transactionRepository) buildListQuery(
 		queryParams = append(queryParams, *params.MaxAmount)
 	}
 
-	query.WriteString(
-		`
-		ORDER BY t.occurred_at DESC, t.created_at DESC, t.id DESC
-		LIMIT $` +
-			fmt.Sprintf("%d", len(queryParams)+1) +
-			` OFFSET $` +
-			fmt.Sprintf("%d", len(queryParams)+2),
-	)
+	return queryParams
+}
 
-	queryParams = append(
-		queryParams,
-		params.Limit,
-		params.Offset,
-	)
+// buildListCountQuery constructs the SQL query and parameters that count every
+// transaction matching the List() filters, ignoring LIMIT and OFFSET.
+// The jar and account joins are omitted: no filter reads them and they are
+// many-to-one, so they cannot change the row count.
+func (r *transactionRepository) buildListCountQuery(
+	params ports.ListParams,
+) (string, []any) {
+	var query strings.Builder
+
+	query.WriteString(`
+		SELECT COUNT(*)
+		FROM transactions t
+		WHERE 1 = 1
+	`)
+
+	queryParams := appendListFilters(&query, nil, params)
 
 	return query.String(), queryParams
 }

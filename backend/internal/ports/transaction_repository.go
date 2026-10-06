@@ -29,6 +29,13 @@ type ListParams struct {
 	MaxAmount *int64
 }
 
+// ListResult is one page of transactions plus the total number of
+// transactions matching the same filters, ignoring Limit and Offset.
+type ListResult struct {
+	Transactions []*TransactionListItem
+	Total        int
+}
+
 // TransactionListItem represents a transaction projected for list responses.
 type TransactionListItem struct {
 	ID             uuid.UUID
@@ -69,9 +76,11 @@ type TransactionRepository interface {
 
 	// List retrieves transactions with optional filtering and pagination.
 	// Returns display-ready transaction list items.
-	// Supports filtering by search, type, category, date range, amount range, etc.
+	// Supports filtering by search, account, type, category, date range, amount range.
 	// Results are ordered newest-first by occurred_at, created_at, id.
-	List(ctx context.Context, params ListParams) ([]*TransactionListItem, error)
+	// ListResult.Total counts every transaction matching the filters, ignoring
+	// Limit and Offset.
+	List(ctx context.Context, params ListParams) (*ListResult, error)
 
 	// ListByAccount retrieves transactions for a specific account with running balance.
 	// The running balance is relative to the account: positive for money in, negative for money out.
