@@ -257,3 +257,36 @@ func TestTransactionHandler_HandleListDateFiltersAcceptTimestamps(t *testing.T) 
 	require.True(t, got.FromDate.Equal(time.Date(2026, 1, 3, 3, 30, 0, 0, time.UTC)))
 	require.Nil(t, got.ToDate)
 }
+
+func TestTransactionHandler_HandleListAcceptsAccountFilterKeys(t *testing.T) {
+	accountID := uuid.New()
+
+	for _, key := range []string{"account_id", "account"} {
+		t.Run(key, func(t *testing.T) {
+			var got ports.ListParams
+			service := &mockTransactionService{
+				listFn: func(
+					_ context.Context,
+					params ports.ListParams,
+				) ([]*ports.TransactionListItem, error) {
+					got = params
+					return nil, nil
+				},
+			}
+
+			h := handler.NewTransactionHandler(service, newTestLogger())
+			req := httptest.NewRequest(
+				http.MethodGet,
+				"/transactions?"+key+"="+accountID.String(),
+				nil,
+			)
+			rec := httptest.NewRecorder()
+
+			h.HandleList(rec, req)
+
+			require.Equal(t, http.StatusOK, rec.Code)
+			require.NotNil(t, got.AccountID)
+			require.Equal(t, accountID, *got.AccountID)
+		})
+	}
+}

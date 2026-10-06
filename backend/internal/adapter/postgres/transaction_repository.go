@@ -316,6 +316,13 @@ func appendListFilters(
 		queryParams = append(queryParams, *params.AccountID)
 	}
 
+	if params.JarID != nil {
+		query.WriteString(
+			" AND t.jar_id = $" + fmt.Sprintf("%d", len(queryParams)+1),
+		)
+		queryParams = append(queryParams, *params.JarID)
+	}
+
 	if params.Type != nil {
 		query.WriteString(
 			" AND t.type = $" + fmt.Sprintf("%d", len(queryParams)+1),

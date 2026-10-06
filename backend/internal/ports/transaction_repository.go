@@ -76,7 +76,7 @@ type TransactionRepository interface {
 
 	// List retrieves transactions with optional filtering and pagination.
 	// Returns display-ready transaction list items.
-	// Supports filtering by search, account, type, category, date range, amount range.
+	// Supports filtering by search, account, jar, type, category, date range, and amount range.
 	// Results are ordered newest-first by occurred_at, created_at, id.
 	// ListResult.Total counts every transaction matching the filters, ignoring
 	// Limit and Offset.

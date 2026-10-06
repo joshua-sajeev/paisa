@@ -309,7 +309,7 @@ type ListTransactionsResponse struct {
 }
 
 // HandleList handles GET /transactions.
-// Supports filtering by search, account, type, category, date range, and amount range.
+// Supports filtering by search, account, jar, type, category, date range, and amount range.
 func (h *TransactionHandler) HandleList(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -340,10 +340,22 @@ func (h *TransactionHandler) HandleList(
 		params.Search = &search
 	}
 
-	if accountIDStr := r.URL.Query().Get("account_id"); accountIDStr != "" {
+	accountIDStr := r.URL.Query().Get("account_id")
+	if accountIDStr == "" {
+		// Keep accepting the short query key used by older transaction-list clients.
+		accountIDStr = r.URL.Query().Get("account")
+	}
+	if accountIDStr != "" {
 		accountID, err := uuid.Parse(accountIDStr)
 		if err == nil {
 			params.AccountID = &accountID
+		}
+	}
+
+	if jarIDStr := r.URL.Query().Get("jar_id"); jarIDStr != "" {
+		jarID, err := uuid.Parse(jarIDStr)
+		if err == nil {
+			params.JarID = &jarID
 		}
 	}
 
