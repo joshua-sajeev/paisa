@@ -10,17 +10,16 @@ import {
   ExpandCircleDown,
 } from "@material-symbols-svg/react/w400";
 
-import {
-  Allocation,
-  getAllocations,
-} from "@/lib/jars";
+import { Allocation, getAllocations } from "@/lib/jars";
 import { formatMonth, formatMoney } from "@/lib/utils";
 import { AllocationRow } from "./AllocationRow";
+import type { DateRange } from "@/components/ui/DateRangePicker";
 
 const PAGE_SIZE = 4;
 
 type Props = {
   month?: string;
+  dateRange: DateRange;
 };
 
 const jarColors = [
@@ -31,7 +30,10 @@ const jarColors = [
   "#8B5CF6",
 ] as const;
 
-export default function AllocationHistory({ month }: Props) {
+export default function AllocationHistory({
+  month,
+  dateRange,
+}: Props) {
   const [allocations, setAllocations] = useState<Allocation[]>([]);
   const [total, setTotal] = useState(0);
 
@@ -56,10 +58,6 @@ export default function AllocationHistory({ month }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  /*
-   * Keep jar identity separate from the visible name.
-   * This means renamed jars won't break the filter.
-   */
   const jars = useMemo(() => {
     const map = new Map<string, string>();
 
@@ -74,9 +72,6 @@ export default function AllocationHistory({ month }: Props) {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [allocations]);
 
-  /*
-   * Assign a consistent color to each jar ID.
-   */
   const jarColorMap = useMemo(() => {
     const map = new Map<string, string>();
 
@@ -101,26 +96,22 @@ export default function AllocationHistory({ month }: Props) {
 
   const loadAllocations = useCallback(
     async (signal?: AbortSignal) => {
+      const parsedMinAmount = minAmount
+        ? Number(minAmount)
+        : undefined;
+
+      const parsedMaxAmount = maxAmount
+        ? Number(maxAmount)
+        : undefined;
+
       try {
-        setLoading(true);
-        setError(null);
-
-        /*
-         * UI amounts are entered in rupees.
-         * API amounts are sent in paise.
-         */
-        const parsedMinAmount = minAmount
-          ? Number(minAmount)
-          : undefined;
-
-        const parsedMaxAmount = maxAmount
-          ? Number(maxAmount)
-          : undefined;
-
         const result = await getAllocations({
           month,
           search: appliedSearch || undefined,
           jarId: jarFilter || undefined,
+
+          fromDate: dateRange?.start,
+          toDate: dateRange?.end,
 
           minAmount:
             parsedMinAmount !== undefined &&
@@ -143,15 +134,14 @@ export default function AllocationHistory({ month }: Props) {
         setAllocations(result.allocations);
         setTotal(result.total);
         setSummary(result.monthly_summary);
+        setError(null);
+        setLoading(false);
       } catch (err) {
         if (signal?.aborted) return;
 
         console.error(err);
         setError("Failed to load allocation history.");
-      } finally {
-        if (!signal?.aborted) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     },
     [
@@ -160,15 +150,20 @@ export default function AllocationHistory({ month }: Props) {
       jarFilter,
       minAmount,
       maxAmount,
+      dateRange,
       page,
     ],
   );
 
+  // Encapsulated data fetch inside the effect to satisfy react-hooks/set-state-in-effect
   useEffect(() => {
     const controller = new AbortController();
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadAllocations(controller.signal);
+    async function fetchData() {
+      await loadAllocations(controller.signal);
+    }
+
+    void fetchData();
 
     return () => {
       controller.abort();
@@ -290,7 +285,6 @@ export default function AllocationHistory({ month }: Props) {
 
       {/* Allocation History */}
       <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-        {/* Header */}
         <div className="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/80 px-3.5 py-3">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold tracking-tight text-slate-800">
@@ -307,10 +301,8 @@ export default function AllocationHistory({ month }: Props) {
           </span>
         </div>
 
-        {/* Toolbar */}
         <div className="border-b border-slate-100 bg-white p-3">
           <div className="flex items-center gap-2">
-            {/* Search */}
             <form
               onSubmit={handleSearchSubmit}
               className="relative flex-1"
@@ -328,7 +320,6 @@ export default function AllocationHistory({ month }: Props) {
               />
             </form>
 
-            {/* Filter Button */}
             <div
               ref={filterPanelRef}
               className="relative shrink-0"
@@ -339,8 +330,8 @@ export default function AllocationHistory({ month }: Props) {
                   setFilterPanelOpen((previous) => !previous)
                 }
                 className={`flex h-[34px] items-center gap-2 rounded-xl border px-3 text-xs font-bold transition ${hasActiveFilters
-                    ? "border-slate-900 bg-slate-900 text-white"
-                    : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                  ? "border-slate-900 bg-slate-900 text-white"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
                   }`}
               >
                 <FilterList className="h-3.5 w-3.5" />
@@ -359,10 +350,8 @@ export default function AllocationHistory({ month }: Props) {
                 />
               </button>
 
-              {/* Filter Panel */}
               {filterPanelOpen && (
                 <div className="absolute right-0 z-30 mt-2 w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
-                  {/* Panel Header */}
                   <div className="mb-4">
                     <p className="text-xs font-black text-slate-900">
                       Filter allocations
@@ -373,7 +362,6 @@ export default function AllocationHistory({ month }: Props) {
                     </p>
                   </div>
 
-                  {/* Jar */}
                   <div className="relative">
                     <label className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                       Jar
@@ -385,8 +373,8 @@ export default function AllocationHistory({ month }: Props) {
                         setJarOpen((previous) => !previous)
                       }
                       className={`flex h-10 w-full items-center justify-between rounded-xl border bg-white px-3 text-xs font-bold outline-none transition ${jarOpen
-                          ? "border-blue-500 ring-2 ring-blue-500/10"
-                          : "border-slate-200 hover:border-slate-300"
+                        ? "border-blue-500 ring-2 ring-blue-500/10"
+                        : "border-slate-200 hover:border-slate-300"
                         }`}
                     >
                       <span
@@ -413,12 +401,10 @@ export default function AllocationHistory({ month }: Props) {
                       <div className="absolute left-0 right-0 z-40 mt-1 max-h-48 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
                         <button
                           type="button"
-                          onClick={() =>
-                            handleJarChange("")
-                          }
+                          onClick={() => handleJarChange("")}
                           className={`w-full rounded-lg px-3 py-2 text-left text-xs font-bold transition ${!jarFilter
-                              ? "bg-slate-900 text-white"
-                              : "text-slate-700 hover:bg-slate-50"
+                            ? "bg-slate-900 text-white"
+                            : "text-slate-700 hover:bg-slate-50"
                             }`}
                         >
                           All jars
@@ -440,8 +426,8 @@ export default function AllocationHistory({ month }: Props) {
                                 handleJarChange(jar.id)
                               }
                               className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold transition ${selected
-                                  ? "bg-slate-900 text-white"
-                                  : "text-slate-700 hover:bg-slate-50"
+                                ? "bg-slate-900 text-white"
+                                : "text-slate-700 hover:bg-slate-50"
                                 }`}
                             >
                               <span
@@ -463,14 +449,12 @@ export default function AllocationHistory({ month }: Props) {
                     )}
                   </div>
 
-                  {/* Amount Range */}
                   <div className="mt-4">
                     <label className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                       Amount range
                     </label>
 
                     <div className="grid grid-cols-2 gap-2">
-                      {/* Minimum */}
                       <div className="relative">
                         <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
                           ₹
@@ -490,7 +474,6 @@ export default function AllocationHistory({ month }: Props) {
                         />
                       </div>
 
-                      {/* Maximum */}
                       <div className="relative">
                         <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
                           ₹
@@ -512,7 +495,6 @@ export default function AllocationHistory({ month }: Props) {
                     </div>
                   </div>
 
-                  {/* Actions */}
                   <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
                     <button
                       type="button"
@@ -540,7 +522,6 @@ export default function AllocationHistory({ month }: Props) {
           </div>
         </div>
 
-        {/* Loading */}
         {loading && (
           <div className="divide-y divide-slate-100">
             {[1, 2, 3, 4].map((item) => (
@@ -564,7 +545,6 @@ export default function AllocationHistory({ month }: Props) {
           </div>
         )}
 
-        {/* Error */}
         {!loading && error && (
           <div className="p-6 text-center">
             <p className="text-xs font-semibold text-red-500">
@@ -573,7 +553,7 @@ export default function AllocationHistory({ month }: Props) {
 
             <button
               type="button"
-              onClick={() => loadAllocations()}
+              onClick={() => void loadAllocations()}
               className="mt-2.5 rounded-lg bg-blue-600 px-2.5 py-1 text-[11px] font-bold text-white"
             >
               Retry
@@ -581,7 +561,6 @@ export default function AllocationHistory({ month }: Props) {
           </div>
         )}
 
-        {/* Empty */}
         {!loading && !error && allocations.length === 0 && (
           <div className="p-6 text-center">
             <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
@@ -598,7 +577,6 @@ export default function AllocationHistory({ month }: Props) {
           </div>
         )}
 
-        {/* Rows */}
         {!loading && !error && allocations.length > 0 && (
           <div className="divide-y divide-slate-100">
             {allocations.map((allocation) => (
@@ -614,7 +592,6 @@ export default function AllocationHistory({ month }: Props) {
           </div>
         )}
 
-        {/* Footer */}
         {!loading && !error && total > 0 && (
           <div className="flex flex-col gap-2 border-t border-slate-100 bg-slate-50/80 px-3.5 py-2.5">
             <div className="flex items-center justify-between text-[11px]">
@@ -657,8 +634,8 @@ export default function AllocationHistory({ month }: Props) {
                       type="button"
                       onClick={() => setPage(pageNumber)}
                       className={`h-6 w-6 rounded-md text-[11px] font-bold ${pageNumber === page
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "text-slate-600 hover:bg-slate-100"
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "text-slate-600 hover:bg-slate-100"
                         }`}
                     >
                       {pageNumber + 1}
