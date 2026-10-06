@@ -35,7 +35,7 @@ func NewJarService(
 }
 
 // Create creates a new jar, validating that the resulting allocation configuration remains valid.
-func (s *JarService) Create(ctx context.Context, name string, allocationType jar.AllocationType, allocationValue int64) (*jar.Jar, error) {
+func (s *JarService) Create(ctx context.Context, name string, allocationType jar.AllocationType, allocationValue int64, iconKey *string) (*jar.Jar, error) {
 	s.logger.DebugContext(
 		ctx,
 		"creating new jar",
@@ -44,7 +44,12 @@ func (s *JarService) Create(ctx context.Context, name string, allocationType jar
 		slog.Int64("allocation_value", allocationValue),
 	)
 
-	newJar, err := jar.NewJar(name, allocationType, allocationValue)
+	var icon string
+	if iconKey != nil {
+		icon = *iconKey
+	}
+
+	newJar, err := jar.NewJar(name, allocationType, allocationValue, icon)
 	if err != nil {
 		s.logger.WarnContext(
 			ctx,
@@ -205,11 +210,12 @@ func (s *JarService) ListWithStats(
 	return jars, allocatedMap, usedMap, nil
 }
 
-// Update updates the name and archive state of a jar.
+// Update updates the name, icon and archive state of a jar.
 func (s *JarService) Update(
 	ctx context.Context,
 	id uuid.UUID,
 	name *string,
+	iconKey *string,
 	isArchived *bool,
 ) error {
 	s.logger.DebugContext(
@@ -243,6 +249,15 @@ func (s *JarService) Update(
 		}
 
 		changed = true
+	}
+
+	if iconKey != nil {
+		before := j.IconKey
+		j.UpdateIcon(*iconKey)
+
+		if j.IconKey != before {
+			changed = true
+		}
 	}
 
 	if isArchived != nil && *isArchived != j.IsArchived {

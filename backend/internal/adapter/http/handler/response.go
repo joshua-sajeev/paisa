@@ -31,6 +31,7 @@ type AccountResponse struct {
 type JarResponse struct {
 	ID                  uuid.UUID          `json:"id"`
 	Name                string             `json:"name"`
+	IconKey             string             `json:"icon_key"`
 	AllocationType      jar.AllocationType `json:"allocation_type"`
 	AllocationValue     int64              `json:"allocation_value"`
 	AllocatedAmount     int64              `json:"allocated_amount"`

@@ -22,6 +22,7 @@ func newTestJar(
 	return &jar.Jar{
 		ID:              uuid.New(),
 		Name:            name + " " + uuid.NewString(),
+		IconKey:         jar.DefaultIconKey,
 		AllocationType:  allocationType,
 		AllocationValue: allocationValue,
 		IsArchived:      false,
@@ -39,6 +40,10 @@ func assertJar(t *testing.T, got, want *jar.Jar) {
 
 	if got.Name != want.Name {
 		t.Errorf("Name = %q, want %q", got.Name, want.Name)
+	}
+
+	if got.IconKey != want.IconKey {
+		t.Errorf("IconKey = %q, want %q", got.IconKey, want.IconKey)
 	}
 
 	if got.AllocationType != want.AllocationType {
@@ -87,6 +92,7 @@ func queryJar(t *testing.T, id uuid.UUID) *jar.Jar {
 		SELECT
 			id,
 			name,
+			icon_key,
 			allocation_type,
 			allocation_value,
 			is_archived,
@@ -99,6 +105,7 @@ func queryJar(t *testing.T, id uuid.UUID) *jar.Jar {
 	).Scan(
 		&j.ID,
 		&j.Name,
+		&j.IconKey,
 		&j.AllocationType,
 		&j.AllocationValue,
 		&j.IsArchived,
@@ -845,5 +852,49 @@ func TestTxManager_WithinTransaction_RollsBackMultipleRepositories(
 			err,
 			jar.ErrJarNotFound,
 		)
+	}
+}
+
+func TestJarCreate_CustomIconKey(t *testing.T) {
+	t.Cleanup(func() {
+		truncateTables(t, ctx, db)
+	})
+
+	j := newTestJar("Savings", jar.AllocationTypePercentage, 20)
+	j.IconKey = "piggy"
+
+	if err := jarRepo.Create(ctx, j); err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	assertJar(t, queryJar(t, j.ID), j)
+}
+
+func TestJarSave_IconKey(t *testing.T) {
+	t.Cleanup(func() {
+		truncateTables(t, ctx, db)
+	})
+
+	j := newTestJar("Savings", jar.AllocationTypePercentage, 20)
+
+	if err := jarRepo.Create(ctx, j); err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	j.UpdateIcon("piggy")
+
+	if err := jarRepo.Save(ctx, j); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	assertJar(t, queryJar(t, j.ID), j)
+
+	found, err := jarRepo.FindByID(ctx, j.ID)
+	if err != nil {
+		t.Fatalf("FindByID() error = %v", err)
+	}
+
+	if found.IconKey != "piggy" {
+		t.Errorf("FindByID IconKey = %q, want %q", found.IconKey, "piggy")
 	}
 }

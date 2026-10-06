@@ -63,3 +63,34 @@ func TestNewDashboardResponseMapsRecentTransactionsDisplayFields(t *testing.T) {
 	require.Equal(t, "transfer", got["category"])
 	require.NotContains(t, got, "balance_after")
 }
+
+func TestNewDashboardResponseMapsJarIconKey(t *testing.T) {
+	jarID := uuid.New()
+
+	dashboard := &application.DashboardResponse{
+		Summary:      &ports.DashboardSummary{},
+		TotalBalance: 0,
+		Accounts:     []*ports.AccountBalance{},
+		Jars: []*ports.JarSummary{
+			{ID: jarID, Name: "Needs", IconKey: "piggy"},
+		},
+		Goals:              []*ports.GoalSummary{},
+		RecentTransactions: []*ports.TransactionListItem{},
+	}
+
+	resp := handler.NewDashboardResponse(dashboard)
+	bodyBytes, err := json.Marshal(resp)
+	require.NoError(t, err)
+
+	var body map[string]any
+	require.NoError(t, json.Unmarshal(bodyBytes, &body))
+
+	jars, ok := body["jars"].([]any)
+	require.True(t, ok)
+	require.Len(t, jars, 1)
+
+	got, ok := jars[0].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, jarID.String(), got["id"])
+	require.Equal(t, "piggy", got["icon_key"])
+}

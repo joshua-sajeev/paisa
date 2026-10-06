@@ -11,6 +11,7 @@ import (
 type Jar struct {
 	ID             uuid.UUID
 	Name           string
+	IconKey        string
 	AllocationType AllocationType
 
 	// AllocationValue is interpreted according to AllocationType:
@@ -46,17 +47,26 @@ func (at AllocationType) IsValid() bool {
 		at == AllocationTypeRemainder
 }
 
+// DefaultIconKey is the icon used when none is provided.
+const DefaultIconKey = "jar"
+
 // NewJar creates and validates a new Jar entity.
 // Individual jar validation only; it does not validate against existing jars.
 func NewJar(
 	name string,
 	allocationType AllocationType,
 	allocationValue int64,
+	iconKey string,
 ) (*Jar, error) {
 	name = strings.TrimSpace(name)
 
 	if name == "" {
 		return nil, ErrInvalidName
+	}
+
+	iconKey = strings.TrimSpace(iconKey)
+	if iconKey == "" {
+		iconKey = DefaultIconKey
 	}
 
 	if err := validateAllocation(
@@ -71,6 +81,7 @@ func NewJar(
 	return &Jar{
 		ID:              uuid.New(),
 		Name:            name,
+		IconKey:         iconKey,
 		AllocationType:  allocationType,
 		AllocationValue: allocationValue,
 		IsArchived:      false,
@@ -91,6 +102,22 @@ func (j *Jar) Rename(name string) error {
 	j.touch()
 
 	return nil
+}
+
+// UpdateIcon changes the jar icon.
+func (j *Jar) UpdateIcon(iconKey string) {
+	iconKey = strings.TrimSpace(iconKey)
+
+	if iconKey == "" {
+		iconKey = DefaultIconKey
+	}
+
+	if j.IconKey == iconKey {
+		return
+	}
+
+	j.IconKey = iconKey
+	j.touch()
 }
 
 // UpdateAllocation changes the jar's allocation configuration.

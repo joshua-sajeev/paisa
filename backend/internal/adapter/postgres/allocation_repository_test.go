@@ -23,11 +23,11 @@ func TestAllocationRepository_ListAndSummary(t *testing.T) {
 	require.NoError(t, accountRepo.Create(ctx, acc))
 
 	// Create jars
-	needsJar, err := jar.NewJar("Needs", jar.AllocationTypePercentage, 50)
+	needsJar, err := jar.NewJar("Needs", jar.AllocationTypePercentage, 50, "")
 	require.NoError(t, err)
 	require.NoError(t, jarRepo.Create(ctx, needsJar))
 
-	savingsJar, err := jar.NewJar("Savings", jar.AllocationTypeRemainder, 0)
+	savingsJar, err := jar.NewJar("Savings", jar.AllocationTypeRemainder, 0, "")
 	require.NoError(t, err)
 	require.NoError(t, jarRepo.Create(ctx, savingsJar))
 

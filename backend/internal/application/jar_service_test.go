@@ -131,7 +131,7 @@ func mustNewJar(
 ) *jar.Jar {
 	t.Helper()
 
-	j, err := jar.NewJar(name, allocationType, value)
+	j, err := jar.NewJar(name, allocationType, value, "")
 	if err != nil {
 		t.Fatalf("failed to create test jar: %v", err)
 	}
@@ -366,6 +366,7 @@ func TestJarServiceCreate(t *testing.T) {
 				tt.jarName,
 				tt.allocationType,
 				tt.allocationValue,
+				nil,
 			)
 
 			requireError(t, err, tt.wantErr)
@@ -617,6 +618,7 @@ func TestJarServiceUpdate(t *testing.T) {
 				context.Background(),
 				id,
 				tt.newName,
+				nil,
 				tt.isArchived,
 			)
 
@@ -1248,6 +1250,7 @@ func TestJarServiceIntegration_CreateAndAllocate(t *testing.T) {
 		"Remainder",
 		jar.AllocationTypeRemainder,
 		0,
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("failed to create remainder jar: %v", err)
@@ -1258,6 +1261,7 @@ func TestJarServiceIntegration_CreateAndAllocate(t *testing.T) {
 		"Needs",
 		jar.AllocationTypePercentage,
 		50,
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("failed to create needs jar: %v", err)
@@ -1298,6 +1302,7 @@ func TestJarServiceIntegration_CreateUpdateAllocate(t *testing.T) {
 		"Remainder",
 		jar.AllocationTypeRemainder,
 		0,
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("failed to create remainder jar: %v", err)
@@ -1308,6 +1313,7 @@ func TestJarServiceIntegration_CreateUpdateAllocate(t *testing.T) {
 		"Needs",
 		jar.AllocationTypePercentage,
 		50,
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("failed to create needs jar: %v", err)
@@ -1341,5 +1347,94 @@ func TestJarServiceIntegration_CreateUpdateAllocate(t *testing.T) {
 			"expected remainder allocation 400000, got %d",
 			allocations[remainder.ID],
 		)
+	}
+}
+
+func TestJarServiceCreate_IconKey(t *testing.T) {
+	custom := "  piggy  "
+	blank := "   "
+
+	tests := []struct {
+		name     string
+		iconKey  *string
+		wantIcon string
+	}{
+		{name: "nil defaults to jar", iconKey: nil, wantIcon: jar.DefaultIconKey},
+		{name: "blank defaults to jar", iconKey: &blank, wantIcon: jar.DefaultIconKey},
+		{name: "custom is trimmed and kept", iconKey: &custom, wantIcon: "piggy"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := &MockJarRepository{}
+			service := application.NewJarService(repo, slog.Default())
+
+			got, err := service.Create(
+				context.Background(),
+				"Remainder",
+				jar.AllocationTypeRemainder,
+				0,
+				tt.iconKey,
+			)
+			if err != nil {
+				t.Fatalf("Create() error = %v", err)
+			}
+
+			if got.IconKey != tt.wantIcon {
+				t.Fatalf("IconKey = %q, want %q", got.IconKey, tt.wantIcon)
+			}
+
+			if len(repo.jars) != 1 || repo.jars[0].IconKey != tt.wantIcon {
+				t.Fatalf("persisted jar icon = %v, want %q", repo.jars, tt.wantIcon)
+			}
+		})
+	}
+}
+
+func TestJarServiceUpdate_IconKey(t *testing.T) {
+	piggy := "piggy"
+	blank := ""
+
+	tests := []struct {
+		name         string
+		startIcon    string
+		iconKey      *string
+		wantIcon     string
+		wantSaveCall int
+	}{
+		{name: "changes icon", startIcon: "", iconKey: &piggy, wantIcon: "piggy", wantSaveCall: 1},
+		{name: "same icon is no-op", startIcon: "piggy", iconKey: &piggy, wantIcon: "piggy", wantSaveCall: 0},
+		{name: "blank resets to default", startIcon: "piggy", iconKey: &blank, wantIcon: jar.DefaultIconKey, wantSaveCall: 1},
+		{name: "nil leaves icon alone", startIcon: "piggy", iconKey: nil, wantIcon: "piggy", wantSaveCall: 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			j, err := jar.NewJar("Remainder", jar.AllocationTypeRemainder, 0, tt.startIcon)
+			if err != nil {
+				t.Fatalf("NewJar() error = %v", err)
+			}
+
+			repo := &MockJarRepository{jars: []*jar.Jar{j}}
+			service := application.NewJarService(repo, slog.Default())
+
+			if err := service.Update(
+				context.Background(),
+				j.ID,
+				nil,
+				tt.iconKey,
+				nil,
+			); err != nil {
+				t.Fatalf("Update() error = %v", err)
+			}
+
+			if repo.SaveCalls != tt.wantSaveCall {
+				t.Fatalf("expected %d Save calls, got %d", tt.wantSaveCall, repo.SaveCalls)
+			}
+
+			if repo.jars[0].IconKey != tt.wantIcon {
+				t.Fatalf("IconKey = %q, want %q", repo.jars[0].IconKey, tt.wantIcon)
+			}
+		})
 	}
 }

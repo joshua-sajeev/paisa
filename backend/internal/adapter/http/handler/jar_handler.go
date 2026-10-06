@@ -18,7 +18,7 @@ import (
 )
 
 type JarService interface {
-	Create(ctx context.Context, name string, allocationType jar.AllocationType, allocationValue int64) (*jar.Jar, error)
+	Create(ctx context.Context, name string, allocationType jar.AllocationType, allocationValue int64, iconKey *string) (*jar.Jar, error)
 
 	ListWithStats(
 		ctx context.Context,
@@ -26,7 +26,7 @@ type JarService interface {
 		endDate *time.Time,
 	) ([]*jar.Jar, map[uuid.UUID]int64, map[uuid.UUID]int64, error)
 
-	Update(ctx context.Context, id uuid.UUID, name *string, isArchived *bool) error
+	Update(ctx context.Context, id uuid.UUID, name *string, iconKey *string, isArchived *bool) error
 
 	UpdateAllocations(ctx context.Context, updates []jar.JarAllocationUpdate) error
 }
@@ -47,12 +47,14 @@ func NewJarHandler(service JarService, logger *slog.Logger) *JarHandler {
 
 type CreateJarRequest struct {
 	Name            string             `json:"name" validate:"required,max=100"`
+	IconKey         *string            `json:"icon_key" validate:"omitempty,min=1,max=50"`
 	AllocationType  jar.AllocationType `json:"allocation_type" validate:"required"`
 	AllocationValue int64              `json:"allocation_value"`
 }
 
 type PatchJarRequest struct {
 	Name       *string `json:"name" validate:"omitempty,min=1,max=100"`
+	IconKey    *string `json:"icon_key" validate:"omitempty,min=1,max=50"`
 	IsArchived *bool   `json:"is_archived"`
 }
 
@@ -70,6 +72,7 @@ func NewJarResponse(j *jar.Jar) JarResponse {
 	return JarResponse{
 		ID:              j.ID,
 		Name:            j.Name,
+		IconKey:         j.IconKey,
 		AllocationType:  j.AllocationType,
 		AllocationValue: j.AllocationValue,
 		IsArchived:      j.IsArchived,
@@ -93,12 +96,33 @@ func (h *JarHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	req.Name = strings.TrimSpace(req.Name)
 
+	if req.IconKey != nil {
+		trimmedIconKey := strings.TrimSpace(*req.IconKey)
+		req.IconKey = &trimmedIconKey
+	}
+
 	if err := h.validate.Struct(req); err != nil {
 		h.logger.WarnContext(
 			r.Context(),
 			"jar validation failed",
 			slog.String("error", err.Error()),
 		)
+
+		var validationErrs validator.ValidationErrors
+		if errors.As(err, &validationErrs) {
+			for _, fe := range validationErrs {
+				if fe.Field() == "IconKey" {
+					writeErrorJSON(
+						w,
+						http.StatusBadRequest,
+						"VALIDATION_ERROR",
+						"Invalid icon key",
+						"ERR_INVALID_ICON_KEY",
+					)
+					return
+				}
+			}
+		}
 
 		writeErrorJSON(
 			w,
@@ -126,6 +150,7 @@ func (h *JarHandler) Create(w http.ResponseWriter, r *http.Request) {
 		req.Name,
 		req.AllocationType,
 		req.AllocationValue,
+		req.IconKey,
 	)
 	if err != nil {
 		switch {
@@ -344,7 +369,7 @@ func (h *JarHandler) Patch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Name == nil && req.IsArchived == nil {
+	if req.Name == nil && req.IconKey == nil && req.IsArchived == nil {
 		writeErrorJSON(
 			w,
 			http.StatusBadRequest,
@@ -358,6 +383,11 @@ func (h *JarHandler) Patch(w http.ResponseWriter, r *http.Request) {
 	if req.Name != nil {
 		trimmedName := strings.TrimSpace(*req.Name)
 		req.Name = &trimmedName
+	}
+
+	if req.IconKey != nil {
+		trimmedIconKey := strings.TrimSpace(*req.IconKey)
+		req.IconKey = &trimmedIconKey
 	}
 
 	if err := h.validate.Struct(req); err != nil {
@@ -381,6 +411,7 @@ func (h *JarHandler) Patch(w http.ResponseWriter, r *http.Request) {
 		r.Context(),
 		id,
 		req.Name,
+		req.IconKey,
 		req.IsArchived,
 	); err != nil {
 		switch {

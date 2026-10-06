@@ -30,6 +30,7 @@ func jarValues(j *jar.Jar) []any {
 	return []any{
 		j.ID,
 		j.Name,
+		j.IconKey,
 		j.AllocationType,
 		j.AllocationValue,
 		j.IsArchived,
@@ -42,6 +43,7 @@ func jarSaveValues(j *jar.Jar) []any {
 	return []any{
 		j.ID,
 		j.Name,
+		j.IconKey,
 		j.AllocationType,
 		j.AllocationValue,
 		j.IsArchived,
@@ -53,6 +55,7 @@ func jarScanArgs(j *jar.Jar) []any {
 	return []any{
 		&j.ID,
 		&j.Name,
+		&j.IconKey,
 		&j.AllocationType,
 		&j.AllocationValue,
 		&j.IsArchived,
@@ -66,19 +69,21 @@ const (
 		INSERT INTO jars (
 			id,
 			name,
+			icon_key,
 			allocation_type,
 			allocation_value,
 			is_archived,
 			created_at,
 			updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 
 	listJarsQuery = `
 		SELECT
 			id,
 			name,
+			icon_key,
 			allocation_type,
 			allocation_value,
 			is_archived,
@@ -92,6 +97,7 @@ const (
 		SELECT
 			id,
 			name,
+			icon_key,
 			allocation_type,
 			allocation_value,
 			is_archived,
@@ -105,10 +111,11 @@ const (
 		UPDATE jars
 		SET
 			name = $2,
-			allocation_type = $3,
-			allocation_value = $4,
-			is_archived = $5,
-			updated_at = $6
+			icon_key = $3,
+			allocation_type = $4,
+			allocation_value = $5,
+			is_archived = $6,
+			updated_at = $7
 		WHERE id = $1
 	`
 

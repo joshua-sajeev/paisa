@@ -3,6 +3,7 @@ package jar_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/joshu-sajeev/paisa/internal/domain/jar"
 )
@@ -13,9 +14,38 @@ func TestNewJar(t *testing.T) {
 		inputName       string
 		allocationType  jar.AllocationType
 		allocationValue int64
+		iconKey         string
 		wantName        string
+		wantIconKey     string
 		wantErr         error
 	}{
+		{
+			name:            "empty icon key defaults to jar",
+			inputName:       "Needs",
+			allocationType:  jar.AllocationTypePercentage,
+			allocationValue: 50,
+			iconKey:         "",
+			wantName:        "Needs",
+			wantIconKey:     jar.DefaultIconKey,
+		},
+		{
+			name:            "whitespace icon key defaults to jar",
+			inputName:       "Needs",
+			allocationType:  jar.AllocationTypePercentage,
+			allocationValue: 50,
+			iconKey:         "   ",
+			wantName:        "Needs",
+			wantIconKey:     jar.DefaultIconKey,
+		},
+		{
+			name:            "custom icon key is trimmed and kept",
+			inputName:       "Needs",
+			allocationType:  jar.AllocationTypePercentage,
+			allocationValue: 50,
+			iconKey:         "  piggy  ",
+			wantName:        "Needs",
+			wantIconKey:     "piggy",
+		},
 		{
 			name:            "valid percentage jar",
 			inputName:       "Needs",
@@ -136,6 +166,7 @@ func TestNewJar(t *testing.T) {
 				tt.inputName,
 				tt.allocationType,
 				tt.allocationValue,
+				tt.iconKey,
 			)
 
 			if !errors.Is(err, tt.wantErr) {
@@ -159,6 +190,15 @@ func TestNewJar(t *testing.T) {
 
 			if got.Name != tt.wantName {
 				t.Errorf("Name = %q, want %q", got.Name, tt.wantName)
+			}
+
+			wantIconKey := tt.wantIconKey
+			if wantIconKey == "" {
+				wantIconKey = jar.DefaultIconKey
+			}
+
+			if got.IconKey != wantIconKey {
+				t.Errorf("IconKey = %q, want %q", got.IconKey, wantIconKey)
 			}
 
 			if got.AllocationType != tt.allocationType {
@@ -197,7 +237,7 @@ func TestNewJar(t *testing.T) {
 }
 
 func TestJarRename(t *testing.T) {
-	j, err := jar.NewJar("Needs", jar.AllocationTypePercentage, 50)
+	j, err := jar.NewJar("Needs", jar.AllocationTypePercentage, 50, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -218,7 +258,7 @@ func TestJarRename(t *testing.T) {
 }
 
 func TestJarRename_InvalidName(t *testing.T) {
-	j, err := jar.NewJar("Needs", jar.AllocationTypePercentage, 50)
+	j, err := jar.NewJar("Needs", jar.AllocationTypePercentage, 50, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -249,7 +289,7 @@ func TestJarRename_InvalidName(t *testing.T) {
 }
 
 func TestJarArchive(t *testing.T) {
-	j, err := jar.NewJar("Needs", jar.AllocationTypePercentage, 50)
+	j, err := jar.NewJar("Needs", jar.AllocationTypePercentage, 50, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -270,7 +310,7 @@ func TestJarArchive(t *testing.T) {
 }
 
 func TestJarArchive_AlreadyArchived(t *testing.T) {
-	j, err := jar.NewJar("Needs", jar.AllocationTypePercentage, 50)
+	j, err := jar.NewJar("Needs", jar.AllocationTypePercentage, 50, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -300,7 +340,7 @@ func TestJarArchive_AlreadyArchived(t *testing.T) {
 }
 
 func TestJarUnarchive(t *testing.T) {
-	j, err := jar.NewJar("Needs", jar.AllocationTypePercentage, 50)
+	j, err := jar.NewJar("Needs", jar.AllocationTypePercentage, 50, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -325,7 +365,7 @@ func TestJarUnarchive(t *testing.T) {
 }
 
 func TestJarUnarchive_NotArchived(t *testing.T) {
-	j, err := jar.NewJar("Needs", jar.AllocationTypePercentage, 50)
+	j, err := jar.NewJar("Needs", jar.AllocationTypePercentage, 50, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -356,7 +396,7 @@ func TestValidateAllocationConfiguration(t *testing.T) {
 		allocationType jar.AllocationType,
 		allocationValue int64,
 	) *jar.Jar {
-		j, err := jar.NewJar(name, allocationType, allocationValue)
+		j, err := jar.NewJar(name, allocationType, allocationValue, "")
 		if err != nil {
 			t.Fatalf("failed to create jar: %v", err)
 		}
@@ -547,7 +587,7 @@ func TestAllocateIncome(t *testing.T) {
 		allocationType jar.AllocationType,
 		allocationValue int64,
 	) *jar.Jar {
-		j, err := jar.NewJar(name, allocationType, allocationValue)
+		j, err := jar.NewJar(name, allocationType, allocationValue, "")
 		if err != nil {
 			t.Fatalf("failed to create jar: %v", err)
 		}
@@ -747,6 +787,46 @@ func TestAllocateIncome(t *testing.T) {
 						want,
 					)
 				}
+			}
+		})
+	}
+}
+
+func TestJar_UpdateIcon(t *testing.T) {
+	tests := []struct {
+		name        string
+		startIcon   string
+		input       string
+		wantIcon    string
+		wantTouched bool
+	}{
+		{name: "changes icon", startIcon: "jar", input: "piggy", wantIcon: "piggy", wantTouched: true},
+		{name: "trims whitespace", startIcon: "jar", input: "  piggy  ", wantIcon: "piggy", wantTouched: true},
+		{name: "empty resets to default", startIcon: "piggy", input: "", wantIcon: jar.DefaultIconKey, wantTouched: true},
+		{name: "whitespace resets to default", startIcon: "piggy", input: "   ", wantIcon: jar.DefaultIconKey, wantTouched: true},
+		{name: "same icon is no-op", startIcon: "piggy", input: "piggy", wantIcon: "piggy", wantTouched: false},
+		{name: "empty on default is no-op", startIcon: jar.DefaultIconKey, input: "", wantIcon: jar.DefaultIconKey, wantTouched: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			j, err := jar.NewJar("Needs", jar.AllocationTypePercentage, 50, tt.startIcon)
+			if err != nil {
+				t.Fatalf("NewJar() error = %v", err)
+			}
+
+			before := j.UpdatedAt
+			time.Sleep(2 * time.Millisecond)
+
+			j.UpdateIcon(tt.input)
+
+			if j.IconKey != tt.wantIcon {
+				t.Errorf("IconKey = %q, want %q", j.IconKey, tt.wantIcon)
+			}
+
+			touched := j.UpdatedAt.After(before)
+			if touched != tt.wantTouched {
+				t.Errorf("UpdatedAt touched = %v, want %v", touched, tt.wantTouched)
 			}
 		})
 	}

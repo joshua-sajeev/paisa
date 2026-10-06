@@ -39,7 +39,7 @@ func TestTransactionRepository_StatementSummaryCountAndRunningBalance(t *testing
 	require.NoError(t, err)
 	require.NoError(t, accountRepo.Create(ctx, other))
 
-	j, err := jar.NewJar("Fun", jar.AllocationTypePercentage, 10)
+	j, err := jar.NewJar("Fun", jar.AllocationTypePercentage, 10, "")
 	require.NoError(t, err)
 	require.NoError(t, jarRepo.Create(ctx, j))
 

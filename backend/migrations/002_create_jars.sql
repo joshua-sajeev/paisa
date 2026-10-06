@@ -3,6 +3,7 @@
 CREATE TABLE jars (
     id UUID PRIMARY KEY,
     name TEXT NOT NULL,
+    icon_key TEXT NOT NULL DEFAULT 'jar',
     allocation_type TEXT NOT NULL,
     allocation_value BIGINT NOT NULL DEFAULT 0,
 

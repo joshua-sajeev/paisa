@@ -26,6 +26,7 @@ type DashboardAccountResponse struct {
 type DashboardJarResponse struct {
 	ID                  uuid.UUID `json:"id"`
 	Name                string    `json:"name"`
+	IconKey             string    `json:"icon_key"`
 	AllocationType      string    `json:"allocation_type"`
 	AllocationValue     int64     `json:"allocation_value"`
 	Allocated           int64     `json:"allocated"`
@@ -82,6 +83,7 @@ func NewDashboardResponse(dash *application.DashboardResponse) *DashboardRespons
 		jarsResp[i] = &DashboardJarResponse{
 			ID:                  j.ID,
 			Name:                j.Name,
+			IconKey:             j.IconKey,
 			AllocationType:      j.AllocationType,
 			AllocationValue:     j.AllocationValue,
 			Allocated:           j.Allocated,

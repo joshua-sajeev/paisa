@@ -30,6 +30,8 @@ type MockJarService struct {
 	UpdateError            error
 	UpdateAllocationsError error
 
+	CreatedIconKey     *string
+	UpdatedIconKey     *string
 	CreatedJar         *jar.Jar
 	Jars               []*jar.Jar
 	UpdatedAllocations []jar.JarAllocationUpdate
@@ -40,8 +42,10 @@ func (m *MockJarService) Create(
 	name string,
 	allocationType jar.AllocationType,
 	allocationValue int64,
+	iconKey *string,
 ) (*jar.Jar, error) {
 	m.CreateCalls++
+	m.CreatedIconKey = iconKey
 
 	if m.CreateError != nil {
 		return nil, m.CreateError
@@ -53,9 +57,15 @@ func (m *MockJarService) Create(
 
 	now := time.Now().UTC()
 
+	icon := jar.DefaultIconKey
+	if iconKey != nil && strings.TrimSpace(*iconKey) != "" {
+		icon = strings.TrimSpace(*iconKey)
+	}
+
 	return &jar.Jar{
 		ID:              uuid.New(),
 		Name:            name,
+		IconKey:         icon,
 		AllocationType:  allocationType,
 		AllocationValue: allocationValue,
 		CreatedAt:       now,
@@ -77,9 +87,11 @@ func (m *MockJarService) Update(
 	ctx context.Context,
 	id uuid.UUID,
 	name *string,
+	iconKey *string,
 	isArchived *bool,
 ) error {
 	m.UpdateCalls++
+	m.UpdatedIconKey = iconKey
 
 	return m.UpdateError
 }
@@ -1010,3 +1022,166 @@ func TestJarHandler_UpdateAllocations(t *testing.T) {
 		})
 	}
 }
+
+func TestJarHandler_Create_IconKey(t *testing.T) {
+	tests := []struct {
+		name         string
+		body         string
+		wantStatus   int
+		wantCode     string
+		wantCreate   int
+		wantIconResp string
+	}{
+		{
+			name:         "no icon key defaults to jar",
+			body:         `{"name":"Needs","allocation_type":"percentage","allocation_value":50}`,
+			wantStatus:   http.StatusCreated,
+			wantCreate:   1,
+			wantIconResp: jar.DefaultIconKey,
+		},
+		{
+			name:         "custom icon key is returned",
+			body:         `{"name":"Needs","allocation_type":"percentage","allocation_value":50,"icon_key":"piggy"}`,
+			wantStatus:   http.StatusCreated,
+			wantCreate:   1,
+			wantIconResp: "piggy",
+		},
+		{
+			name:       "icon key over 50 chars rejected",
+			body:       `{"name":"Needs","allocation_type":"percentage","allocation_value":50,"icon_key":"` + strings.Repeat("a", 51) + `"}`,
+			wantStatus: http.StatusBadRequest,
+			wantCode:   "ERR_INVALID_ICON_KEY",
+		},
+		{
+			name:       "whitespace-only icon key rejected",
+			body:       `{"name":"Needs","allocation_type":"percentage","allocation_value":50,"icon_key":"   "}`,
+			wantStatus: http.StatusBadRequest,
+			wantCode:   "ERR_INVALID_ICON_KEY",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service := &MockJarService{}
+			h := newTestHandler(service)
+
+			req := httptest.NewRequest(
+				http.MethodPost,
+				"/jars",
+				strings.NewReader(tt.body),
+			)
+			rec := httptest.NewRecorder()
+
+			h.Create(rec, req)
+
+			if rec.Code != tt.wantStatus {
+				t.Fatalf("expected status %d, got %d", tt.wantStatus, rec.Code)
+			}
+
+			if service.CreateCalls != tt.wantCreate {
+				t.Fatalf("expected %d Create calls, got %d", tt.wantCreate, service.CreateCalls)
+			}
+
+			if tt.wantCode != "" {
+				var got handler.ErrorResponse
+				if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+					t.Fatalf("failed to decode response: %v", err)
+				}
+
+				if got.Code != tt.wantCode {
+					t.Fatalf("expected code %q, got %q", tt.wantCode, got.Code)
+				}
+
+				return
+			}
+
+			var got handler.JarResponse
+			if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+				t.Fatalf("failed to decode response: %v", err)
+			}
+
+			if got.IconKey != tt.wantIconResp {
+				t.Fatalf("expected icon_key %q, got %q", tt.wantIconResp, got.IconKey)
+			}
+		})
+	}
+}
+
+func TestJarHandler_Patch_IconKey(t *testing.T) {
+	id := uuid.New().String()
+
+	tests := []struct {
+		name            string
+		body            string
+		wantStatus      int
+		wantUpdateCalls int
+		wantIcon        *string
+	}{
+		{
+			name:            "icon only is a valid patch",
+			body:            `{"icon_key":"piggy"}`,
+			wantStatus:      http.StatusOK,
+			wantUpdateCalls: 1,
+			wantIcon:        strPtr("piggy"),
+		},
+		{
+			name:            "icon is trimmed",
+			body:            `{"icon_key":"  piggy  "}`,
+			wantStatus:      http.StatusOK,
+			wantUpdateCalls: 1,
+			wantIcon:        strPtr("piggy"),
+		},
+		{
+			name:            "icon over 50 chars rejected",
+			body:            `{"icon_key":"` + strings.Repeat("a", 51) + `"}`,
+			wantStatus:      http.StatusBadRequest,
+			wantUpdateCalls: 0,
+		},
+		{
+			name:            "whitespace-only icon rejected",
+			body:            `{"icon_key":"   "}`,
+			wantStatus:      http.StatusBadRequest,
+			wantUpdateCalls: 0,
+		},
+		{
+			name:            "empty body rejected",
+			body:            `{}`,
+			wantStatus:      http.StatusBadRequest,
+			wantUpdateCalls: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service := &MockJarService{}
+			h := newTestHandler(service)
+
+			req := httptest.NewRequest(
+				http.MethodPatch,
+				"/jars/"+id,
+				strings.NewReader(tt.body),
+			)
+			req = withChiURLParam(req, "id", id)
+
+			rec := httptest.NewRecorder()
+
+			h.Patch(rec, req)
+
+			if rec.Code != tt.wantStatus {
+				t.Fatalf("expected status %d, got %d", tt.wantStatus, rec.Code)
+			}
+
+			if service.UpdateCalls != tt.wantUpdateCalls {
+				t.Fatalf("expected %d Update calls, got %d", tt.wantUpdateCalls, service.UpdateCalls)
+			}
+
+			if tt.wantIcon != nil {
+				if service.UpdatedIconKey == nil || *service.UpdatedIconKey != *tt.wantIcon {
+					t.Fatalf("expected icon %q passed to service, got %v", *tt.wantIcon, service.UpdatedIconKey)
+				}
+			}
+		})
+	}
+}
+
+func strPtr(s string) *string { return &s }

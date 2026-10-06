@@ -299,3 +299,44 @@ func BenchmarkDashboardRepository(b *testing.B) {
 		}
 	})
 }
+
+func TestDashboardGetJarSummariesIncludesIconKey(t *testing.T) {
+	t.Cleanup(func() {
+		truncateTables(t, ctx, db)
+	})
+
+	custom := newTestJar("Savings", jar.AllocationTypePercentage, 20)
+	custom.IconKey = "piggy"
+
+	if err := jarRepo.Create(ctx, custom); err != nil {
+		t.Fatalf("Create() custom jar error = %v", err)
+	}
+
+	def := newTestJar("Needs", jar.AllocationTypeRemainder, 0)
+
+	if err := jarRepo.Create(ctx, def); err != nil {
+		t.Fatalf("Create() default jar error = %v", err)
+	}
+
+	got, err := dashboardRepo.GetJarSummaries(ctx)
+	if err != nil {
+		t.Fatalf("GetJarSummaries() error = %v", err)
+	}
+
+	if len(got) != 2 {
+		t.Fatalf("len(summaries) = %d, want 2", len(got))
+	}
+
+	icons := make(map[uuid.UUID]string, len(got))
+	for _, s := range got {
+		icons[s.ID] = s.IconKey
+	}
+
+	if icons[custom.ID] != "piggy" {
+		t.Errorf("custom IconKey = %q, want %q", icons[custom.ID], "piggy")
+	}
+
+	if icons[def.ID] != jar.DefaultIconKey {
+		t.Errorf("default IconKey = %q, want %q", icons[def.ID], jar.DefaultIconKey)
+	}
+}

@@ -135,6 +135,7 @@ func (r *dashboardRepository) GetJarSummaries(ctx context.Context) ([]*ports.Jar
 			SELECT
 				id,
 				name,
+				icon_key,
 				allocation_type,
 				allocation_value,
 				created_at
@@ -160,6 +161,7 @@ func (r *dashboardRepository) GetJarSummaries(ctx context.Context) ([]*ports.Jar
 		SELECT
 			j.id,
 			j.name,
+			j.icon_key,
 			j.allocation_type,
 			j.allocation_value,
 			COALESCE(a.allocated, 0) AS allocated,
@@ -207,6 +209,7 @@ func (r *dashboardRepository) GetJarSummaries(ctx context.Context) ([]*ports.Jar
 		if err := rows.Scan(
 			&jar.ID,
 			&jar.Name,
+			&jar.IconKey,
 			&jar.AllocationType,
 			&jar.AllocationValue,
 			&jar.Allocated,

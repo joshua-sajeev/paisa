@@ -29,6 +29,7 @@ type AccountBalance struct {
 type JarSummary struct {
 	ID                  uuid.UUID
 	Name                string
+	IconKey             string
 	AllocationType      string
 	AllocationValue     int64
 	Allocated           int64
