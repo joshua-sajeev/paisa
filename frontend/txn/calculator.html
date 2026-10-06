@@ -1,0 +1,648 @@
+< !DOCTYPE html >
+  <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+      <title>PAISA - Add Transaction (Step 1: Amount)</title>
+      <script src="https://cdn.tailwindcss.com"></script>
+      <link href="https://fonts.googleapis.com" rel="preconnect" />
+      <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+      <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap"
+        rel="stylesheet"
+      />
+      <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" />
+      <link
+        href="https://api.fontshare.com/v2/css?f[]=alpino@300,400,500,600,700,800,900&amp;display=swap"
+        rel="stylesheet"
+      />
+      <script>
+        tailwind.config = {
+          theme: {
+          extend: {
+          fontFamily: {
+          sans: ["Plus Jakarta Sans", "sans-serif"],
+        mono: ["JetBrains Mono", "monospace"],
+                        },
+        colors: {
+          brand: {
+          50: "#eff4ff",
+        100: "#dbeafe",
+        500: "#2563eb",
+        600: "#1d4ed8",
+        700: "#1e40af",
+                            },
+        expense: {
+          DEFAULT: "#ef4444",
+        hover: "#dc2626",
+        bg: "#fef2f2",
+        border: "#fecaca",
+        glow: "rgba(239, 68, 68, 0.25)",
+                            },
+        income: {
+          DEFAULT: "#10b981",
+        hover: "#059669",
+        bg: "#ecfdf5",
+        border: "#a7f3d0",
+        glow: "rgba(16, 185, 129, 0.25)",
+                            },
+        transfer: {
+          DEFAULT: "#2563eb",
+        hover: "#1d4ed8",
+        bg: "#eff6ff",
+        border: "#bfdbfe",
+        glow: "rgba(37, 99, 235, 0.25)",
+                            },
+                        },
+                    },
+                },
+            };
+      </script>
+      <style>
+        body {
+          font - family: 'Plus Jakarta Sans', sans-serif;
+        -webkit-font-smoothing: antialiased;
+            }
+        .keypad-btn:active {
+          transform: scale(0.94);
+            }
+        .smooth-transition {
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+        /* Subtle pulsing cursor */
+        @keyframes blink {
+          0 %, 100 % { opacity: 1; }
+              50% {opacity: 0; }
+            }
+        .cursor-blink {
+          animation: blink 1s infinite;
+            }
+      </style>
+    </head>
+    <body class="bg-[#f8f9ff] text-slate-800 flex justify-center min-h-screen items-center p-0 sm:p-4">
+      <!-- Mobile Device Frame Container -->
+      <div
+        class="w-full max-w-[420px] bg-white sm:rounded-[36px] sm:shadow-2xl sm:border sm:border-slate-100 flex flex-col min-h-screen sm:min-h-[860px] relative overflow-hidden"
+      >
+        <!-- Top Status Bar Area -->
+        <div
+          class="pt-4 px-6 pb-2 flex justify-between items-center text-xs font-semibold text-slate-400 select-none"
+        >
+          <span class="">9:41</span>
+          <div class="flex items-center gap-1.5 text-slate-600">
+            <i class="fa-solid fa-signal text-[11px]"></i>
+            <i class="fa-solid fa-wifi text-[11px]"></i>
+            <i class="fa-solid fa-battery-full text-sm"></i>
+          </div>
+        </div>
+        <!-- Header Navigation -->
+        <header class="px-5 py-3 flex items-center justify-between relative">
+          <button
+            aria-label="Close flow"
+            class="w-10 h-10 rounded-full flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors"
+            title="Close"
+          >
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+          <!-- Stepper Pill Indicator -->
+          <div
+            class="flex items-center gap-2 bg-slate-100/80 px-3.5 py-1.5 rounded-full border border-slate-200/60"
+          >
+            <span class="w-2 h-2 rounded-full bg-slate-900" id="step-indicator-dot"></span>
+            <span class="text-xs font-bold tracking-wide uppercase text-slate-700">Step 1 of 3</span>
+          </div>
+          <!-- Quick Reset / Info action -->
+          <button
+            class="text-xs font-bold text-slate-400 hover:text-slate-700 transition-colors px-2 py-1"
+            onclick="clearAmount()"
+            title="Clear"
+          >
+            Clear
+          </button>
+        </header>
+        <!-- Main Content Area: Centered Hero Amount & Segmented Types -->
+        <main class="flex-1 flex flex-col justify-between px-6 pt-2 pb-4">
+          <div class="flex flex-col items-center pt-2">
+            <!-- Subtitle & Context Prompt -->
+            <p class="text-xs font-medium uppercase tracking-widest text-slate-400 mb-2">Enter Amount</p>
+            <!-- Dynamic Primary Hero Amount Box -->
+            <div
+              class="w-full py-4 flex flex-col items-center justify-center cursor-pointer select-none"
+              id="amount-container"
+            >
+              <div class="flex items-center justify-center gap-1.5 sm:gap-2">
+                <!-- Currency Symbol with reactive accent -->
+                <span
+                  class="text-3xl sm:text-4xl font-extrabold text-red-500 smooth-transition"
+                  id="currency-symbol"
+                >₹</span
+                >
+                <!-- Value Display with custom big font -->
+                <div class="flex items-baseline font-bold tracking-tight">
+                  <span
+                    class="text-5xl sm:text-6xl text-slate-900 font-extrabold smooth-transition"
+                    id="amount-display"
+                  >1,250</span
+                  >
+                  <span
+                    class="inline-block w-1 h-10 sm:h-12 bg-red-500 rounded-full ml-1 cursor-blink smooth-transition"
+                    id="blinking-cursor"
+                  ></span>
+                </div>
+              </div>
+              <!-- Dynamic Status Subtext (e.g. Account balance preview or warning) -->
+              <div
+                class="mt-2 text-xs font-medium text-slate-400 flex items-center gap-1.5 smooth-transition"
+                id="type-subtitle"
+              >
+                <span class="font-bold text-red-500" id="sign-indicator">-</span>
+              </div>
+              <button
+                class="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-red-600 bg-red-50 border border-red-200/80 active:scale-95 transition-all shadow-sm"
+                onclick="openCalculator()"
+                type="button"
+              >
+                <i class="fa-solid fa-calculator text-[11px] text-red-500"></i
+                ><span class="">Calculator Active</span>
+              </button>
+            </div>
+            <!-- TRANSACTION TYPE SELECTOR (Expense, Income, Transfer) -->
+            <!-- Selection affects relevant UI accents (the selected pill, amount cursor/symbol, and Continue CTA) -->
+            <div
+              class="w-full mt-4 p-1.5 bg-slate-100 rounded-2xl flex items-center gap-1.5 border border-slate-200/70 select-none"
+            >
+              <!-- Option: Expense (Default active: Red accent) -->
+              <button
+                class="flex-1 py-3 px-3 rounded-xl flex items-center justify-center gap-2 text-xs sm:text-sm font-bold shadow-sm bg-white text-red-600 border border-red-200/80 ring-2 ring-red-500/10 smooth-transition"
+                id="type-expense"
+                onclick="setType('expense')"
+              >
+                <span
+                  class="w-5 h-5 rounded-full bg-red-50 text-red-600 flex items-center justify-center text-[10px]"
+                >
+                  <i class="fa-solid fa-arrow-trend-down"></i>
+                </span>
+                <span class="">Expense</span>
+              </button>
+              <!-- Option: Income (Green accent) -->
+              <button
+                class="flex-1 py-3 px-3 rounded-xl flex items-center justify-center gap-2 text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-white/50 smooth-transition"
+                id="type-income"
+                onclick="setType('income')"
+              >
+                <span
+                  class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-[10px]"
+                >
+                  <i class="fa-solid fa-arrow-trend-up"></i>
+                </span>
+                <span class="">Income</span>
+              </button>
+              <!-- Option: Transfer (Blue accent) -->
+              <button
+                class="flex-1 py-3 px-3 rounded-xl flex items-center justify-center gap-2 text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-white/50 smooth-transition"
+                id="type-transfer"
+                onclick="setType('transfer')"
+              >
+                <span
+                  class="w-5 h-5 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-[10px]"
+                >
+                  <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                </span>
+                <span class="">Transfer</span>
+              </button>
+            </div>
+            <!-- Quick Denominations / Suggestions -->
+            <div
+              class="flex items-center gap-2 mt-4 overflow-x-auto w-full pb-1 no-scrollbar justify-center text-xs font-semibold"
+            >
+              <button
+                class="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 hover:border-slate-300 active:scale-95 transition-all"
+                onclick="addQuickAmount(100)"
+              >
+                +₹100
+              </button>
+              <button
+                class="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 hover:border-slate-300 active:scale-95 transition-all"
+                onclick="addQuickAmount(500)"
+              >
+                +₹500
+              </button>
+              <button
+                class="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 hover:border-slate-300 active:scale-95 transition-all"
+                onclick="addQuickAmount(1000)"
+              >
+                +₹1,000
+              </button>
+              <button
+                class="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 hover:border-slate-300 active:scale-95 transition-all"
+                onclick="addQuickAmount(5000)"
+              >
+                +₹5,000
+              </button>
+            </div>
+          </div>
+          <!-- KEYPAD SECTION (Reference Image Style: Minimal, Borderless, Tactile) -->
+          <div class="w-full mt-4">
+            <!-- 3x4 Custom Keypad Grid -->
+            <div class="grid grid-cols-3 gap-y-2 gap-x-3 text-center select-none max-w-[340px] mx-auto">
+              <button
+                class="keypad-btn h-14 rounded-2xl flex items-center justify-center text-2xl font-semibold text-slate-800 hover:bg-slate-100 transition-all"
+                onclick="appendDigit('1')"
+              >
+                1
+              </button>
+              <button
+                class="keypad-btn h-14 rounded-2xl flex items-center justify-center text-2xl font-semibold text-slate-800 hover:bg-slate-100 transition-all"
+                onclick="appendDigit('2')"
+              >
+                2
+              </button>
+              <button
+                class="keypad-btn h-14 rounded-2xl flex items-center justify-center text-2xl font-semibold text-slate-800 hover:bg-slate-100 transition-all"
+                onclick="appendDigit('3')"
+              >
+                3
+              </button>
+              <button
+                class="keypad-btn h-14 rounded-2xl flex items-center justify-center text-2xl font-semibold text-slate-800 hover:bg-slate-100 transition-all"
+                onclick="appendDigit('4')"
+              >
+                4
+              </button>
+              <button
+                class="keypad-btn h-14 rounded-2xl flex items-center justify-center text-2xl font-semibold text-slate-800 hover:bg-slate-100 transition-all"
+                onclick="appendDigit('5')"
+              >
+                5
+              </button>
+              <button
+                class="keypad-btn h-14 rounded-2xl flex items-center justify-center text-2xl font-semibold text-slate-800 hover:bg-slate-100 transition-all"
+                onclick="appendDigit('6')"
+              >
+                6
+              </button>
+              <button
+                class="keypad-btn h-14 rounded-2xl flex items-center justify-center text-2xl font-semibold text-slate-800 hover:bg-slate-100 transition-all"
+                onclick="appendDigit('7')"
+              >
+                7
+              </button>
+              <button
+                class="keypad-btn h-14 rounded-2xl flex items-center justify-center text-2xl font-semibold text-slate-800 hover:bg-slate-100 transition-all"
+                onclick="appendDigit('8')"
+              >
+                8
+              </button>
+              <button
+                class="keypad-btn h-14 rounded-2xl flex items-center justify-center text-2xl font-semibold text-slate-800 hover:bg-slate-100 transition-all"
+                onclick="appendDigit('9')"
+              >
+                9
+              </button>
+              <!-- Decimal Dot -->
+              <button
+                class="keypad-btn h-14 rounded-2xl flex items-center justify-center text-2xl font-bold text-slate-800 hover:bg-slate-100 transition-all"
+                onclick="appendDecimal()"
+              >
+                •
+              </button>
+              <!-- Zero -->
+              <button
+                class="keypad-btn h-14 rounded-2xl flex items-center justify-center text-2xl font-semibold text-slate-800 hover:bg-slate-100 transition-all"
+                onclick="appendDigit('0')"
+              >
+                0
+              </button>
+              <!-- Backspace / Delete -->
+              <button
+                aria-label="Delete"
+                class="keypad-btn h-14 rounded-2xl flex items-center justify-center text-xl text-slate-700 hover:bg-slate-100 active:text-red-500 transition-all"
+                onclick="deleteDigit()"
+              >
+                <i class="fa-solid fa-delete-left"></i>
+              </button>
+            </div>
+            <!-- Primary Continue Action Button (Dynamic accent matching chosen transaction type) -->
+            <div class="mt-4 pt-1">
+              <button
+                class="w-full py-4 px-6 rounded-2xl font-bold text-white shadow-lg flex items-center justify-center gap-2.5 transition-all duration-200 active:scale-[0.98] bg-red-500 hover:bg-red-600 shadow-red-500/25"
+                id="cta-button"
+              >
+                <span class="">Continue to Details</span>
+                <i class="fa-solid fa-arrow-right text-xs"></i>
+              </button>
+            </div>
+          </div>
+        </main>
+        <!-- Bottom Home Indicator Bar for iOS feel -->
+        <div class="w-full pb-2 pt-1 flex justify-center select-none">
+          <div class="w-32 h-1 bg-slate-300 rounded-full"></div>
+        </div>
+        <div
+          class="absolute inset-0 z-50 bg-slate-900/40 backdrop-blur-[2px] flex flex-col justify-end transition-all duration-300 select-none"
+          id="calculator-modal"
+        >
+          <div
+            class="w-full bg-white rounded-t-[28px] shadow-2xl border-t border-slate-100 flex flex-col overflow-hidden max-h-[88%]"
+          >
+            <div class="w-full pt-3 pb-1 flex justify-center">
+              <div class="w-10 h-1 bg-slate-200 rounded-full"></div>
+            </div>
+            <div class="px-5 py-2 flex items-center justify-between border-b border-slate-100">
+              <div class="flex items-center gap-2">
+                <div
+                  class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600"
+                >
+                  <i class="fa-solid fa-calculator text-xs"></i>
+                </div>
+                <div>
+                  <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                    Quick Calculator
+                  </h3>
+                  <p class="text-[10px] text-slate-400">Sum multiple expenses or splits</p>
+                </div>
+              </div>
+              <button
+                class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                onclick="closeCalculator()"
+                type="button"
+              >
+                <i class="fa-solid fa-xmark text-sm"></i>
+              </button>
+            </div>
+            <div
+              class="px-5 py-3 bg-slate-50/70 flex flex-col justify-center items-end border-b border-slate-100"
+            >
+              <div
+                class="text-xs font-medium text-slate-400 tracking-wide font-mono h-4 overflow-hidden text-right"
+                id="calc-expression"
+              >
+                1,200 + 350 + 80
+              </div>
+              <div class="flex items-baseline gap-1 text-slate-900 font-extrabold">
+                <span class="text-lg text-slate-400">=</span
+                ><span class="text-xs text-red-500 font-bold" id="calc-currency-sym">₹</span
+                ><span class="text-3xl font-extrabold tracking-tight font-mono" id="calc-result-display"
+                >1,630</span
+                >
+              </div>
+            </div>
+            <div class="p-4 grid grid-cols-4 gap-2 bg-white">
+              <button
+                class="h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-red-500 font-bold text-sm active:scale-95 transition-all"
+                onclick="calcClear()"
+              >
+                C</button
+              ><button
+                class="h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-base active:scale-95 transition-all"
+                onclick="calcAppendOp('/')"
+              >
+                ÷</button
+              ><button
+                class="h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-base active:scale-95 transition-all"
+                onclick="calcAppendOp('*')"
+              >
+                ×</button
+              ><button
+                class="h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm active:scale-95 transition-all"
+                onclick="calcDelete()"
+              >
+                <i class="fa-solid fa-delete-left text-xs"></i></button
+              ><button
+                class="h-11 rounded-xl hover:bg-slate-100 text-slate-800 font-semibold text-lg active:scale-95 transition-all"
+                onclick="calcAppend('7')"
+              >
+                7</button
+              ><button
+                class="h-11 rounded-xl hover:bg-slate-100 text-slate-800 font-semibold text-lg active:scale-95 transition-all"
+                onclick="calcAppend('8')"
+              >
+                8</button
+              ><button
+                class="h-11 rounded-xl hover:bg-slate-100 text-slate-800 font-semibold text-lg active:scale-95 transition-all"
+                onclick="calcAppend('9')"
+              >
+                9</button
+              ><button
+                class="h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-base active:scale-95 transition-all"
+                onclick="calcAppendOp('-')"
+              >
+                −</button
+              ><button
+                class="h-11 rounded-xl hover:bg-slate-100 text-slate-800 font-semibold text-lg active:scale-95 transition-all"
+                onclick="calcAppend('4')"
+              >
+                4</button
+              ><button
+                class="h-11 rounded-xl hover:bg-slate-100 text-slate-800 font-semibold text-lg active:scale-95 transition-all"
+                onclick="calcAppend('5')"
+              >
+                5</button
+              ><button
+                class="h-11 rounded-xl hover:bg-slate-100 text-slate-800 font-semibold text-lg active:scale-95 transition-all"
+                onclick="calcAppend('6')"
+              >
+                6</button
+              ><button
+                class="h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-base active:scale-95 transition-all"
+                onclick="calcAppendOp('+')"
+              >
+                +</button
+              ><button
+                class="h-11 rounded-xl hover:bg-slate-100 text-slate-800 font-semibold text-lg active:scale-95 transition-all"
+                onclick="calcAppend('1')"
+              >
+                1</button
+              ><button
+                class="h-11 rounded-xl hover:bg-slate-100 text-slate-800 font-semibold text-lg active:scale-95 transition-all"
+                onclick="calcAppend('2')"
+              >
+                2</button
+              ><button
+                class="h-11 rounded-xl hover:bg-slate-100 text-slate-800 font-semibold text-lg active:scale-95 transition-all"
+                onclick="calcAppend('3')"
+              >
+                3</button
+              ><button
+                class="h-11 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-lg active:scale-95 transition-all row-span-2 flex items-center justify-center"
+                onclick="calcEvaluate()"
+              >
+                =</button
+              ><button
+                class="h-11 rounded-xl hover:bg-slate-100 text-slate-800 font-semibold text-lg active:scale-95 transition-all col-span-2"
+                onclick="calcAppend('0')"
+              >
+                0</button
+              ><button
+                class="h-11 rounded-xl hover:bg-slate-100 text-slate-800 font-bold text-lg active:scale-95 transition-all"
+                onclick="calcAppend('.')"
+              >
+                •
+              </button>
+            </div>
+            <div class="px-4 pb-4 pt-1 flex items-center gap-2">
+              <button
+                class="flex-1 py-3 px-4 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 active:scale-95 transition-all"
+                onclick="closeCalculator()"
+                type="button"
+              >
+                Cancel</button
+              ><button
+                class="flex-[2] py-3 px-4 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-1.5 transition-all duration-200 active:scale-95 bg-red-500 hover:bg-red-600 shadow-red-500/25"
+                id="calc-apply-btn"
+                onclick="applyCalculatorResult()"
+                type="button"
+              >
+                <span class="">Apply ₹1,630 to Amount</span
+                ><i class="fa-solid fa-arrow-right text-[10px]"></i>
+              </button>
+            </div>
+            <div class="w-full pb-2 flex justify-center">
+              <div class="w-24 h-1 bg-slate-200 rounded-full"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <script>
+            // State management
+        let rawAmount = "1250";
+        let currentType = "expense"; // expense | income | transfer
+
+        const config = {
+          expense: {
+          color: "#ef4444",
+        accentClass: "text-red-500",
+        bgAccentClass: "bg-red-500",
+        hoverBgClass: "hover:bg-red-600",
+        shadowClass: "shadow-red-500/25",
+        sign: "-",
+        subtitle: "Money going out from HDFC Bank (₹28,450 available)",
+        activePill: "bg-white text-red-600 border border-red-200/80 ring-2 ring-red-500/10 shadow-sm",
+                },
+        income: {
+          color: "#10b981",
+        accentClass: "text-emerald-500",
+        bgAccentClass: "bg-emerald-500",
+        hoverBgClass: "hover:bg-emerald-600",
+        shadowClass: "shadow-emerald-500/25",
+        sign: "+",
+        subtitle: "Money coming in to Primary Account",
+        activePill:
+        "bg-white text-emerald-600 border border-emerald-200/80 ring-2 ring-emerald-500/10 shadow-sm",
+                },
+        transfer: {
+          color: "#2563eb",
+        accentClass: "text-blue-600",
+        bgAccentClass: "bg-blue-600",
+        hoverBgClass: "hover:bg-blue-700",
+        shadowClass: "shadow-blue-500/25",
+        sign: "⇄",
+        subtitle: "Move between accounts or to Jars",
+        activePill: "bg-white text-blue-600 border border-blue-200/80 ring-2 ring-blue-500/10 shadow-sm",
+                },
+            };
+
+        function updateAmountDisplay() {
+                const displayElem = document.getElementById("amount-display");
+        if (!rawAmount || rawAmount === "0") {
+          displayElem.innerText = "0";
+        return;
+                }
+
+        // Format with Indian Rupee grouping if possible
+        const parts = rawAmount.split(".");
+        let integerPart = parts[0];
+                const decimalPart = parts.length > 1 ? "." + parts[1] : "";
+
+        // Indian numbering format regex: last 3 digits, then groups of 2
+        let lastThree = integerPart.substring(integerPart.length - 3);
+        let otherNumbers = integerPart.substring(0, integerPart.length - 3);
+        if (otherNumbers !== "") {
+          lastThree = "," + lastThree;
+                }
+        let formattedInteger = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + lastThree;
+
+        displayElem.innerText = (formattedInteger || "0") + decimalPart;
+            }
+
+        function appendDigit(d) {
+                if (rawAmount === "0" && d !== "0") {
+          rawAmount = d;
+                } else if (rawAmount.length < 9) {
+                    // Prevent more than 2 decimal places
+                    if (rawAmount.includes(".")) {
+                        const parts = rawAmount.split(".");
+                        if (parts[1] && parts[1].length >= 2) return;
+                    }
+        rawAmount += d;
+                }
+        updateAmountDisplay();
+            }
+
+        function appendDecimal() {
+                if (!rawAmount.includes(".")) {
+          rawAmount = rawAmount === "" ? "0." : rawAmount + ".";
+        updateAmountDisplay();
+                }
+            }
+
+        function deleteDigit() {
+                if (rawAmount.length > 0) {
+          rawAmount = rawAmount.slice(0, -1);
+                }
+        if (rawAmount === "") {
+          rawAmount = "0";
+                }
+        updateAmountDisplay();
+            }
+
+        function clearAmount() {
+          rawAmount = "0";
+        updateAmountDisplay();
+            }
+
+        function addQuickAmount(val) {
+          let currentVal = parseFloat(rawAmount) || 0;
+        currentVal += val;
+        rawAmount = currentVal.toString();
+        updateAmountDisplay();
+            }
+
+        function setType(type) {
+          currentType = type;
+        const c = config[type];
+
+                // 1. Update selector buttons
+                ["expense", "income", "transfer"].forEach((t) => {
+                    const btn = document.getElementById(`type-${t}`);
+        if (t === type) {
+          btn.className = `flex-1 py-3 px-3 rounded-xl flex items-center justify-center gap-2 text-xs sm:text-sm font-bold smooth-transition ${config[t].activePill}`;
+                    } else {
+          btn.className =
+          "flex-1 py-3 px-3 rounded-xl flex items-center justify-center gap-2 text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-white/50 smooth-transition";
+                    }
+                });
+
+        // 2. Update currency symbol and cursor accent
+        const sym = document.getElementById("currency-symbol");
+        const cursor = document.getElementById("blinking-cursor");
+        const sign = document.getElementById("sign-indicator");
+        const subtitle = document.getElementById("type-subtitle");
+
+        sym.style.color = c.color;
+        cursor.style.backgroundColor = c.color;
+        sign.style.color = c.color;
+        sign.innerText = c.sign;
+
+        subtitle.children[1].innerText = c.subtitle;
+
+        // 3. Update CTA button color & shadow
+        const cta = document.getElementById("cta-button");
+        cta.className = `w-full py-4 px-6 rounded-2xl font-bold text-white shadow-lg flex items-center justify-center gap-2.5 transition-all duration-200 active:scale-[0.98] ${c.bgAccentClass} ${c.hoverBgClass} ${c.shadowClass}`;
+            }
+
+        // Initialize display
+        updateAmountDisplay();
+      </script>
+    </body>
+  </html>
