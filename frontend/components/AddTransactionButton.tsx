@@ -8,10 +8,10 @@ export default function AddTransactionButton() {
       className="
         fixed
         left-1/2
-        z-60
+        bottom-15
+        z-[60]
         -translate-x-1/2
         pointer-events-none
-        bottom-[calc(80px+env(safe-area-inset-bottom)-10px)]
       "
     >
       <button

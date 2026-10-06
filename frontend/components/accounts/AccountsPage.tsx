@@ -80,8 +80,8 @@ export default function AccountsPage() {
 
   return (
     <>
-      <main className="min-h-screen bg-surface pb-24">
-        <div className="mx-auto flex w-full max-w-2xl flex-col px-4 pb-10">
+      <main className="min-h-full bg-surface p-3 max-w-2xl mx-auto flex flex-col gap-3">
+        <div className="flex flex-col gap-3 w-full pb-16">
           <AccountsHeader
             onAdd={() => setShowAddModal(true)}
           />
@@ -91,24 +91,24 @@ export default function AccountsPage() {
               Loading accounts...
             </div>
           ) : (
-              <>
-                <TotalBalanceCard
-                  balance={totalBalance}
-                  activeCount={activeAccounts.length}
-                  archivedCount={archivedAccounts.length}
-                />
+            <>
+              <TotalBalanceCard
+                balance={totalBalance}
+                activeCount={activeAccounts.length}
+                archivedCount={archivedAccounts.length}
+              />
 
-                <AccountSection
-                  title="Active Accounts"
-                  accounts={activeAccounts}
-                  onUpdatedAction={loadAccounts}
-                />
+              <AccountSection
+                title="Active Accounts"
+                accounts={activeAccounts}
+                onUpdatedAction={loadAccounts}
+              />
 
-                <ArchivedAccounts
-                  accounts={archivedAccounts}
-                  onUpdatedAction={loadAccounts}
-                />
-              </>
+              <ArchivedAccounts
+                accounts={archivedAccounts}
+                onUpdatedAction={loadAccounts}
+              />
+            </>
           )}
         </div>
       </main>

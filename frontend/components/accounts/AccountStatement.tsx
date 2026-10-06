@@ -293,8 +293,8 @@ export default function AccountStatement({
   }
 
   return (
-    <main className="min-h-screen bg-[#fffaf0] pb-28">
-      <div className="mx-auto w-full max-w-md px-4 py-4">
+    <main className="min-h-screen bg-[#fffaf0] ">
+      <div className="mx-auto w-full max-w-md px-4">
         <StatementHeader
           account={account}
           inflow={summary.inflow}

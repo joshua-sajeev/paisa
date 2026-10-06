@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -12,8 +11,8 @@ export default function JarsPage() {
   const [dateRange, setDateRange] = useState<DateRange>(null);
 
   return (
-    <main className="min-h-screen bg-surface pb-24">
-      <div className="mx-auto flex w-full max-w-md flex-col gap-3 px-4">
+    <main className="min-h-full bg-surface p-3 max-w-md mx-auto flex flex-col gap-3">
+      <div className="flex flex-col gap-3 w-full pb-4">
         <DateRangePicker
           value={dateRange}
           onChange={setDateRange}
