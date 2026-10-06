@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import JarsList from "@/components/jars/JarsList";
 import AllocationHistory from "@/components/jars/AllocationHistory";
 import DateRangePicker, {
   type DateRange,
@@ -17,6 +18,8 @@ export default function JarsPage() {
           value={dateRange}
           onChange={setDateRange}
         />
+
+        <JarsList dateRange={dateRange} />
 
         <AllocationHistory dateRange={dateRange} />
       </div>
