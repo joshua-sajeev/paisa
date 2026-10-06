@@ -1,23 +1,25 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 import {
   ReceiptLong,
   Movie,
   TrendingUp,
   VolunteerActivism,
-  Tune,
+  ChevronRight,
   Savings,
   type MaterialSymbolsComponent,
-} from '@material-symbols-svg/react/w400';
+} from "@material-symbols-svg/react/w400";
 
-import { formatMoney } from '@/lib/utils';
-import { usePrivacy } from '@/context/PrivacyContext';
+import Link from "next/link";
+
+import { formatMoney } from "@/lib/utils";
+import { usePrivacy } from "@/context/PrivacyContext";
 
 interface Jar {
   id: string;
   name: string;
-  allocation_type: 'fixed' | 'percentage' | 'remainder';
+  allocation_type: "fixed" | "percentage" | "remainder";
   allocation_value: number;
   allocated: number;
   used: number;
@@ -31,49 +33,49 @@ interface JarsListProps {
 }
 
 const JAR_COLORS = [
-  '#F43F5E',
-  '#6366F1',
-  '#07B682',
-  '#F6A723',
+  "#F43F5E",
+  "#6366F1",
+  "#07B682",
+  "#F6A723",
 ];
 
 const getJarIcon = (name: string): MaterialSymbolsComponent => {
   const key = name.toLowerCase();
 
-  if (key.includes('necessit')) return ReceiptLong;
-  if (key.includes('leisure')) return Movie;
-  if (key.includes('invest')) return TrendingUp;
-  if (key.includes('giv')) return VolunteerActivism;
+  if (key.includes("necessit")) return ReceiptLong;
+  if (key.includes("leisure")) return Movie;
+  if (key.includes("invest")) return TrendingUp;
+  if (key.includes("giv")) return VolunteerActivism;
 
   return Savings;
 };
 
 function getAllocationLabel(jar: Jar) {
   switch (jar.allocation_type) {
-    case 'percentage':
+    case "percentage":
       return `${jar.allocation_value}% of income`;
 
-    case 'fixed':
+    case "fixed":
       return `₹${formatMoney(jar.allocation_value)} fixed`;
 
-    case 'remainder':
-      return 'Remainder';
+    case "remainder":
+      return "Remainder";
   }
 }
 
 function getStatus(jar: Jar) {
   if (jar.available <= 0) {
     return {
-      label: 'Fully Spent',
+      label: "Fully Spent",
       className:
-        'rounded-full border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700',
+        "rounded-full border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700",
     };
   }
 
   return {
     label: `${Math.round(jar.available_percentage)}% Left`,
     className:
-      'rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700',
+      "rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700",
   };
 }
 
@@ -126,13 +128,13 @@ export default function JarsList({ jars }: JarsListProps) {
           </span>
         </div>
 
-        <button
-          type="button"
-          aria-label="Jar budget filter and settings"
-          className="flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 p-1.5 text-slate-600 transition-colors hover:bg-slate-100"
+        <Link
+          href="/jars"
+          className="flex items-center gap-0.5 text-xs font-semibold text-primary hover:underline"
         >
-          <Tune size={14} color="currentColor" />
-        </button>
+          View All ({jars.length})
+          <ChevronRight size={14} color="currentColor" />
+        </Link>
       </div>
 
       <div className="flex flex-col gap-2">

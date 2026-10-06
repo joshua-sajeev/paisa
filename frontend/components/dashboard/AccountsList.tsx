@@ -1,21 +1,22 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Image from 'next/image';
-import { DashboardAccount } from '@/lib/dashboard';
-import { formatMoney } from '@/lib/utils';
-import { usePrivacy } from '@/context/PrivacyContext';
+import { useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { DashboardAccount } from "@/lib/dashboard";
+import { formatMoney } from "@/lib/utils";
+import { usePrivacy } from "@/context/PrivacyContext";
 import {
   AccountBalanceFill,
   ChevronRight,
-} from '@material-symbols-svg/react/w400';
+} from "@material-symbols-svg/react/w400";
 
-const AVAILABLE_ICONS = ['fbi', 'hdfc', 'sbi'];
+const AVAILABLE_ICONS = ["fbi", "hdfc", "sbi"];
 
 const ACCOUNT_COLORS = [
-  '#4F46E5',
-  '#059669',
-  '#F59E0B',
+  "#4F46E5",
+  "#059669",
+  "#F59E0B",
 ];
 
 interface AccountsListProps {
@@ -67,7 +68,7 @@ export default function AccountsList({ accounts }: AccountsListProps) {
     const bankName = name?.toLowerCase().trim();
 
     const matchedIcon = AVAILABLE_ICONS.find(
-      (icon) => key === icon || bankName.includes(icon)
+      (icon) => key === icon || bankName.includes(icon),
     );
 
     if (matchedIcon) {
@@ -110,21 +111,21 @@ export default function AccountsList({ accounts }: AccountsListProps) {
           Active Accounts
         </h2>
 
-        <button
-          type="button"
+        <Link
+          href="/accounts"
           className="flex items-center gap-0.5 text-xs font-semibold text-primary hover:underline"
         >
           View All ({accounts.length})
           <ChevronRight size={14} color="currentColor" />
-        </button>
+        </Link>
       </div>
 
       {/* Horizontal cards */}
       <div
-        className="-mx-margin flex gap-2.5 overflow-x-auto pb-1 px-margin"
+        className="-mx-margin flex gap-2.5 overflow-x-auto px-margin pb-1"
         style={{
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
         }}
       >
         {sortedAccounts.map((account, index) => (
@@ -133,7 +134,7 @@ export default function AccountsList({ accounts }: AccountsListProps) {
             type="button"
             onClick={() => toggleReveal(account.id)}
             className="flex flex-shrink-0 flex-col justify-between rounded-xl bg-white p-3 text-left shadow-sm transition-transform active:scale-[0.98]"
-            style={{ width: '190px' }}
+            style={{ width: accounts.length === 1 ? "100%" : "190px" }}
             aria-label={
               isPrivate
                 ? `Toggle balance visibility for ${account.name}`
@@ -150,7 +151,7 @@ export default function AccountsList({ accounts }: AccountsListProps) {
                 </span>
 
                 <span className="truncate text-[10px] text-on-surface-variant">
-                  {account.is_primary ? 'Primary Account' : 'Account'}
+                  {account.is_primary ? "Primary Account" : "Account"}
                 </span>
               </div>
             </div>
