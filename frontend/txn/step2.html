@@ -1,23 +1,23 @@
-< !DOCTYPE html > <html lang="en" style="width: 390px; height: 1423px; overflow: hidden; position: relative;"><head>
-  <meta charset="utf-8">
-    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
-      <title>PAISA - Add Transaction (Step 2: Details)</title>
-      <!-- Tailwind CSS v3 with Forms & Container Queries -->
-      <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-      <!-- Google Fonts: Plus Jakarta Sans -->
-      <link href="https://fonts.googleapis.com" rel="preconnect">
-        <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
-          <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><link href="https://api.fontshare.com/v2/css?f[]=alpino@300,400,500,600,700,800,900&amp;display=swap" rel="stylesheet"><link class="" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
-            <script>
-              tailwind.config = {
-                theme: {
-                extend: {
-                fontFamily: {
-                sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+<!DOCTYPE html><html lang="en" style="width: 390px; height: 1423px; overflow: hidden; position: relative;"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>PAISA - Add Transaction (Step 2: Details)</title>
+<!-- Tailwind CSS v3 with Forms & Container Queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Plus Jakarta Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><link href="https://api.fontshare.com/v2/css?f[]=alpino@300,400,500,600,700,800,900&amp;display=swap" rel="stylesheet"><link class="" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
           },
-              colors: {
-                brand: {
-                red: '#ef4444',
+          colors: {
+            brand: {
+              red: '#ef4444',
               redHover: '#dc2626',
               redLight: '#fef2f2',
               redBorder: '#fee2e2',
@@ -32,427 +32,427 @@
         }
       }
     }
-            </script>
-            <!-- BEGIN: Custom Micro-Styles -->
-            <style data-purpose="custom-styling">
+  </script>
+<!-- BEGIN: Custom Micro-Styles -->
+<style data-purpose="custom-styling">
     /* Hide scrollbar for clean horizontal snap sliders */
-              .no-scrollbar::-webkit-scrollbar {
-                display: none;
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
     }
-              .no-scrollbar {
-                -ms - overflow - style: none;
-              scrollbar-width: none;
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
     }
-
-              /* Touch target feedback */
-              .tap-target {
-                -webkit - tap - highlight - color: transparent;
-              user-select: none;
+    
+    /* Touch target feedback */
+    .tap-target {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
-            </style>
-            <!-- END: Custom Micro-Styles -->
-          </head>
-            <body class="bg-slate-100 flex justify-center items-center min-h-screen text-slate-900 font-sans antialiased p-0 sm:p-4">
-              <!-- Mobile Device Simulation Frame -->
-              <main class="w-full max-w-[430px] bg-white min-h-screen sm:min-h-[860px] sm:max-h-[920px] sm:rounded-[44px] shadow-2xl overflow-y-auto relative flex flex-col no-scrollbar border-0 sm:border-[8px] sm:border-slate-800" data-purpose="mobile-viewport">
-                <!-- BEGIN: iOS Status Bar -->
-                <header class="w-full pt-3 px-7 pb-2 flex justify-between items-center bg-white sticky top-0 z-30 select-none" data-purpose="status-bar">
-                  <span class="text-sm font-semibold tracking-tight text-slate-900">9:41</span>
-                  <div class="flex items-center space-x-2">
-                    <!-- Cellular Bars -->
-                    <svg class="w-4 h-3 text-slate-900 fill-current" viewBox="0 0 17 11">
-                      <rect height="3" rx="0.75" width="3" x="0" y="8"></rect>
-                      <rect height="5.5" rx="0.75" width="3" x="4.6" y="5.5"></rect>
-                      <rect height="8" rx="0.75" width="3" x="9.3" y="3"></rect>
-                      <rect height="11" rx="0.75" width="3" x="14" y="0"></rect>
-                    </svg>
-                    <!-- Wifi Icon -->
-                    <svg class="w-3.5 h-3 text-slate-900 fill-current" viewBox="0 0 16 12">
-                      <path d="M8 12a1.8 1.8 0 100-3.6 1.8 1.8 0 000 3.6zm5.8-6.6a8.2 8.2 0 00-11.6 0 .9.9 0 01-1.3-1.3 10 10 0 0114.2 0 .9.9 0 01-1.3 1.3zm-2.6 2.6a4.5 4.5 0 00-6.4 0 .9.9 0 01-1.3-1.3 6.3 6.3 0 019 0 .9.9 0 01-1.3 1.3z"></path>
-                    </svg>
-                    <!-- Battery Icon -->
-                    <div class="w-5 h-2.5 border border-slate-900 rounded-sm p-0.5 flex items-center relative">
-                      <div class="h-full bg-slate-900 w-full rounded-2xs"></div>
-                      <div class="w-0.5 h-1 bg-slate-900 absolute -right-1 top-0.7 rounded-r-xs"></div>
-                    </div>
-                  </div>
-                </header>
-                <!-- END: iOS Status Bar -->
-                <!-- BEGIN: Top Navigation Bar -->
-                <nav class="px-5 pt-1 pb-3 flex flex-col gap-3 bg-white z-20 border-b border-slate-100" data-purpose="top-navigation">
-                  <div class="flex items-center justify-between">
-                    <button aria-label="Back to Step 1" class="tap-target w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-200/80 hover:bg-slate-100 text-slate-800 transition-all active:scale-95 shadow-sm" type="button">
-                      <span class="material-symbols-outlined text-[20px]">arrow_back</span>
-                    </button>
-                    <div class="flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-slate-900 text-white shadow-sm shadow-slate-900/10">
-                      <span class="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse"></span>
-                      <span class="text-[11px] font-extrabold tracking-wider uppercase">STEP 2 OF 2</span>
-                    </div>
-                    <button class="tap-target text-xs font-bold text-slate-400 hover:text-slate-700 transition-colors px-2 py-1 rounded-lg hover:bg-slate-50" type="button">
-                      Cancel
-                    </button>
-                  </div>
-                  <!-- Step Continuity Banner -->
-                  <div class="flex items-center justify-between bg-gradient-to-r from-red-500/10 via-rose-50 to-orange-50/60 p-3 rounded-2xl border border-red-100/80">
-                    <div class="flex items-center gap-2.5">
-                      <div class="w-8 h-8 rounded-xl bg-red-500 text-white flex items-center justify-center shadow-md shadow-red-500/20">
-                        <span class="material-symbols-outlined text-[18px]">payments</span>
-                      </div>
-                      <div>
-                        <p class="text-[10px] font-bold text-red-700 tracking-wider uppercase">Amount to log</p>
-                        <p class="text-lg font-black text-slate-900 tracking-tight leading-none">₹1,250.00</p>
-                      </div>
-                    </div>
-                    <div class="text-right flex items-center gap-1 bg-white/80 backdrop-blur-sm border border-red-200/60 px-2.5 py-1 rounded-full">
-                      <span class="w-2 h-2 rounded-full bg-red-500"></span>
-                      <span class="text-[11px] font-bold text-slate-700">Expense</span>
-                    </div>
-                  </div>
-                </nav>
-                <!-- END: Top Navigation Bar -->
-                <!-- BEGIN: Scrollable Body Content -->
-                <div class="flex-1 px-5 pt-3 pb-32 overflow-y-auto no-scrollbar space-y-6"><!-- SECTION 1: PAY FROM (ACCOUNT) -->
-                  <div class="p-3 rounded-2xl bg-white border border-slate-200/90 shadow-sm flex items-center justify-between gap-3 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500/10 transition-all"><div class="flex items-center gap-2.5 flex-1 min-w-0"><div class="w-8 h-8 rounded-xl bg-slate-50 border border-slate-200/80 text-slate-500 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[18px]">edit_note</span></div><div class="flex-1 min-w-0"><label for="tx-note-input" class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400 leading-none mb-1">Note / Title</label><input id="tx-note-input" type="text" value="Expense" placeholder="Add transaction note..." class="w-full p-0 border-0 text-xs font-bold text-slate-900 bg-transparent focus:ring-0 focus:outline-none placeholder:text-slate-400 placeholder:font-normal leading-tight"></div></div><button type="button" class="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors shrink-0" aria-label="Edit note"><span class="material-symbols-outlined text-[16px]">edit</span></button></div><section class="space-y-3">
-                    <div class="flex items-center justify-between px-0.5">
-                      <div class="flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-[16px] text-slate-400">account_balance_wallet</span>
-                        <h2 class="text-[11px] uppercase tracking-wider font-extrabold text-slate-400">Pay From Account</h2>
-                      </div>
-                      <span class="text-[11px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">4 Available</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2.5">
-                      <!-- HDFC Bank (Selected) -->
-                      <div class="group relative p-3.5 rounded-2xl border-2 border-red-500 bg-gradient-to-br from-red-50/70 via-white to-rose-50/40 shadow-md shadow-red-500/10 cursor-pointer flex flex-col justify-between transition-all duration-200 active:scale-[0.98]">
-                        <div class="flex items-start justify-between mb-3">
-                          <div class="w-8 h-8 rounded-xl bg-blue-900 text-white font-black text-[11px] flex items-center justify-center shadow-sm tracking-tighter">
-                            HDFC
-                          </div>
-                          <div class="w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm shadow-red-500/30">
-                            <span class="material-symbols-outlined text-[13px] font-bold">check</span>
-                          </div>
-                        </div>
-                        <div>
-                          <div class="flex items-center justify-between">
-                            <p class="font-bold text-slate-900 text-xs tracking-tight">HDFC Bank</p>
-                            <span class="text-[9px] font-bold uppercase tracking-wider text-red-600 bg-red-100/60 px-1.5 py-0.5 rounded-md">Primary</span>
-                          </div>
-                          <p class="mt-1 text-sm font-extrabold text-slate-900 font-mono tracking-tight">₹72,000</p>
-                        </div>
-                        <div class="absolute -bottom-px inset-x-4 h-0.5 bg-gradient-to-r from-transparent via-red-500 to-transparent"></div>
-                      </div>
-                      <!-- SBI -->
-                      <div class="group relative p-3.5 rounded-2xl border border-slate-200/90 bg-white hover:border-slate-300 hover:shadow-sm cursor-pointer flex flex-col justify-between transition-all duration-200 active:scale-[0.98]">
-                        <div class="flex items-start justify-between mb-3">
-                          <div class="w-8 h-8 rounded-xl bg-cyan-700 text-white font-black text-[11px] flex items-center justify-center shadow-sm tracking-tighter">
-                            SBI
-                          </div>
-                          <div class="w-4 h-4 rounded-full border border-slate-300 group-hover:border-slate-400"></div>
-                        </div>
-                        <div>
-                          <p class="font-bold text-slate-800 text-xs tracking-tight">SBI Card</p>
-                          <p class="mt-1 text-sm font-extrabold text-slate-700 font-mono tracking-tight">₹42,000</p>
-                        </div>
-                      </div>
-                      <!-- Cash -->
-                      <div class="group relative p-3.5 rounded-2xl border border-slate-200/90 bg-white hover:border-slate-300 hover:shadow-sm cursor-pointer flex flex-col justify-between transition-all duration-200 active:scale-[0.98]">
-                        <div class="flex items-start justify-between mb-3">
-                          <div class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm">
-                            <span class="material-symbols-outlined text-[16px]">payments</span>
-                          </div>
-                          <div class="w-4 h-4 rounded-full border border-slate-300 group-hover:border-slate-400"></div>
-                        </div>
-                        <div>
-                          <p class="font-bold text-slate-800 text-xs tracking-tight">Cash Wallet</p>
-                          <p class="mt-1 text-sm font-extrabold text-slate-700 font-mono tracking-tight">₹10,500</p>
-                        </div>
-                      </div>
-                      <!-- Federal Bank -->
-                      <div class="group relative p-3.5 rounded-2xl border border-slate-200/90 bg-white hover:border-slate-300 hover:shadow-sm cursor-pointer flex flex-col justify-between transition-all duration-200 active:scale-[0.98]">
-                        <div class="flex items-start justify-between mb-3">
-                          <div class="w-8 h-8 rounded-xl bg-amber-600 text-white font-black text-[10px] flex items-center justify-center shadow-sm tracking-tighter">
-                            FED
-                          </div>
-                          <div class="w-4 h-4 rounded-full border border-slate-300 group-hover:border-slate-400"></div>
-                        </div>
-                        <div>
-                          <p class="font-bold text-slate-800 text-xs tracking-tight">Federal Bank</p>
-                          <p class="mt-1 text-sm font-extrabold text-slate-700 font-mono tracking-tight">₹18,400</p>
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-                  <!-- SECTION 2: CATEGORY MATRIX -->
-                  <section class="space-y-3">
-                    <div class="flex items-center justify-between px-0.5">
-                      <div class="flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-[16px] text-slate-400">category</span>
-                        <h2 class="text-[11px] uppercase tracking-wider font-extrabold text-slate-400">Category</h2>
-                      </div>
-                      <span class="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">Selected: Food</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                      <!-- Food (Selected) -->
-                      <button class="cat-pill group relative flex items-center gap-2.5 p-2.5 rounded-xl bg-gradient-to-r from-red-50 via-rose-50/50 to-white text-left transition-all active:scale-95 shadow-sm shadow-red-500/10 border border-slate-200 bg-white text-slate-700" type="button">
-                        <div class="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center shadow-sm shadow-red-500/30 shrink-0">
-                          <span class="material-symbols-outlined text-[18px] font-semibold">restaurant</span>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                          <span class="block font-extrabold text-xs text-red-600 truncate">Food &amp; Dining</span>
-                          <span class="block text-[10px] text-red-400 font-semibold">Primary</span>
-                        </div>
-                        <span class="material-symbols-outlined text-[16px] text-red-500 font-bold shrink-0">check_circle</span>
-                      </button>
-                      <!-- Transport -->
-                      <button class="cat-pill group flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-left transition-all active:scale-95 text-slate-700" type="button">
-                        <div class="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                          <span class="material-symbols-outlined text-[18px] font-semibold">directions_car</span>
-                        </div>
-                        <span class="font-bold text-xs text-slate-800 truncate">Transport</span>
-                      </button>
-                      <!-- Entertainment -->
-                      <button class="cat-pill group flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-left transition-all active:scale-95 text-slate-700" type="button">
-                        <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                          <span class="material-symbols-outlined text-[18px] font-semibold">movie</span>
-                        </div>
-                        <span class="font-bold text-xs text-slate-800 truncate">Entertainment</span>
-                      </button>
-                      <!-- Groceries -->
-                      <button class="cat-pill group flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-left transition-all active:scale-95 text-slate-700" type="button">
-                        <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                          <span class="material-symbols-outlined text-[18px] font-semibold">shopping_cart</span>
-                        </div>
-                        <span class="font-bold text-xs text-slate-800 truncate">Groceries</span>
-                      </button>
-                      <!-- Health -->
-                      <button class="cat-pill group flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-left transition-all active:scale-95 text-slate-700" type="button">
-                        <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                          <span class="material-symbols-outlined text-[18px] font-semibold">favorite</span>
-                        </div>
-                        <span class="font-bold text-xs text-slate-800 truncate">Health</span>
-                      </button>
-                      <!-- Transfer -->
-                      <button class="cat-pill group flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-left transition-all active:scale-95 text-slate-700" type="button">
-                        <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                          <span class="material-symbols-outlined text-[18px] font-semibold">sync_alt</span>
-                        </div>
-                        <span class="font-bold text-xs text-slate-800 truncate">Transfer</span>
-                      </button>
-                      <!-- Donation -->
-                      <button class="cat-pill group flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-left transition-all active:scale-95 text-slate-700" type="button">
-                        <div class="w-8 h-8 rounded-lg bg-pink-50 text-pink-600 border border-pink-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                          <span class="material-symbols-outlined text-[18px] font-semibold">volunteer_activism</span>
-                        </div>
-                        <span class="font-bold text-xs text-slate-800 truncate">Donation</span>
-                      </button>
-                      <!-- Investment -->
-                      <button class="cat-pill group flex items-center gap-2.5 p-2.5 rounded-xl hover:border-slate-300 hover:bg-slate-50 text-left transition-all active:scale-95 border-2 border-red-500 bg-red-50/50 text-red-600" type="button">
-                        <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                          <span class="material-symbols-outlined text-[18px] font-bold">trending_up</span>
-                        </div>
-                        <span class="font-bold text-xs text-slate-800 truncate">Investment</span>
-                      </button>
-                      <!-- Housing -->
-                      <button class="cat-pill group flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-left transition-all active:scale-95 text-slate-700" type="button">
-                        <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                          <span class="material-symbols-outlined text-[18px] font-semibold">home</span>
-                        </div>
-                        <span class="font-bold text-xs text-slate-800 truncate">Housing</span>
-                      </button>
-                      <!-- Other -->
-                      <button class="cat-pill group flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-left transition-all active:scale-95 text-slate-700" type="button">
-                        <div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 border border-slate-200 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                          <span class="material-symbols-outlined text-[18px] font-semibold">more_horiz</span>
-                        </div>
-                        <span class="font-bold text-xs text-slate-800 truncate">Other</span>
-                      </button>
-                    </div>
-                  </section>
-                  <!-- SECTION 3: ASSIGN TO JAR (GAMIFIED SAVINGS TARGETS) -->
-                  <section class="space-y-3 pb-2">
-                    <div class="flex items-center justify-between px-0.5">
-                      <div class="flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-[16px] text-slate-400">savings</span>
-                        <h2 class="text-[11px] uppercase tracking-wider font-extrabold text-slate-400">Assign To Jar</h2>
-                      </div>
-                      <span class="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">Optional</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2.5">
-                      <!-- Emergency Fund (Selected) -->
-                      <div class="p-3 rounded-2xl border-2 border-red-500 bg-gradient-to-br from-red-50/50 via-white to-rose-50/30 cursor-pointer flex flex-col justify-between transition-all active:scale-95 shadow-sm shadow-red-500/10">
-                        <div class="flex items-center justify-between mb-2">
-                          <div class="flex items-center gap-1.5">
-                            <span class="text-sm">🛡️</span>
-                            <span class="text-xs font-bold text-slate-900 leading-tight">Emergency Fund</span>
-                          </div>
-                          <div class="w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px]">
-                            <span class="material-symbols-outlined text-[12px] font-bold">check</span>
-                          </div>
-                        </div>
-                        <div class="space-y-1">
-                          <div class="flex justify-between text-[10px] font-bold">
-                            <span class="text-red-600 font-mono">₹45K</span>
-                            <span class="text-slate-400 font-mono">/ ₹1.0L</span>
-                          </div>
-                          <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full bg-red-500 rounded-full w-[45%]"></div>
-                          </div>
-                        </div>
-                      </div>
-                      <!-- Vacation -->
-                      <div class="p-3 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 cursor-pointer flex flex-col justify-between transition-all active:scale-95 hover:shadow-sm">
-                        <div class="flex items-center justify-between mb-2">
-                          <div class="flex items-center gap-1.5">
-                            <span class="text-sm">🏖️</span>
-                            <span class="text-xs font-bold text-slate-800 leading-tight">Vacation</span>
-                          </div>
-                          <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">68%</span>
-                        </div>
-                        <div class="space-y-1">
-                          <div class="flex justify-between text-[10px] font-bold">
-                            <span class="text-slate-700 font-mono">₹34K</span>
-                            <span class="text-slate-400 font-mono">/ ₹50K</span>
-                          </div>
-                          <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full bg-emerald-500 rounded-full w-[68%]"></div>
-                          </div>
-                        </div>
-                      </div>
-                      <!-- New Laptop -->
-                      <div class="p-3 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 cursor-pointer flex flex-col justify-between transition-all active:scale-95 hover:shadow-sm">
-                        <div class="flex items-center justify-between mb-2">
-                          <div class="flex items-center gap-1.5">
-                            <span class="text-sm">💻</span>
-                            <span class="text-xs font-bold text-slate-800 leading-tight">New Laptop</span>
-                          </div>
-                          <span class="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">25%</span>
-                        </div>
-                        <div class="space-y-1">
-                          <div class="flex justify-between text-[10px] font-bold">
-                            <span class="text-slate-700 font-mono">₹25K</span>
-                            <span class="text-slate-400 font-mono">/ ₹1.0L</span>
-                          </div>
-                          <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full bg-indigo-500 rounded-full w-[25%]"></div>
-                          </div>
-                        </div>
-                      </div>
-                      <!-- Retirement -->
-                      <div class="p-3 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 cursor-pointer flex flex-col justify-between transition-all active:scale-95 hover:shadow-sm">
-                        <div class="flex items-center justify-between mb-2">
-                          <div class="flex items-center gap-1.5">
-                            <span class="text-sm">🌱</span>
-                            <span class="text-xs font-bold text-slate-800 leading-tight">Retirement</span>
-                          </div>
-                          <span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">15%</span>
-                        </div>
-                        <div class="space-y-1">
-                          <div class="flex justify-between text-[10px] font-bold">
-                            <span class="text-slate-700 font-mono">₹1.5L</span>
-                            <span class="text-slate-400 font-mono">/ ₹10L</span>
-                          </div>
-                          <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full bg-amber-500 rounded-full w-[15%]"></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </section></div>
-                <!-- END: Scrollable Body Content -->
-                <!-- BEGIN: Fixed Bottom Primary CTA & iOS Home Indicator -->
-                <div class="absolute bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-100 px-5 pt-3 pb-6 z-30 flex flex-col items-center" data-purpose="bottom-action-container"><!-- Primary Action Button with Dynamic Pay Summary -->
-                  <button class="tap-target w-full py-3.5 px-5 bg-gradient-to-r from-red-500 via-rose-500 to-red-600 hover:from-red-600 hover:to-rose-700 active:scale-[0.98] text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-red-500/30 flex items-center justify-between transition-all duration-200 group border border-red-400/30" id="saveTransactionBtn" type="button">
-                    <div class="flex items-center gap-2.5 text-left">
-                      <div class="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
-                        <span class="material-symbols-outlined text-[18px]">check_circle</span>
-                      </div>
-                      <div>
-                        <span class="block text-[10px] font-bold text-red-100 uppercase tracking-wider leading-tight">Confirm Transaction</span>
-                        <span class="block text-sm font-black tracking-tight leading-tight">Pay ₹1,250 • HDFC</span>
-                      </div>
-                    </div>
-                    <div class="flex items-center gap-1 bg-white/15 px-3 py-1.5 rounded-xl group-hover:translate-x-0.5 transition-transform">
-                      <span class="text-xs font-bold">Continue</span>
-                      <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-                    </div>
-                  </button>
-                  <!-- iOS Home Bar Indicator -->
-                  <div class="w-32 h-1 bg-slate-300 rounded-full mt-3.5"></div></div>
-                <!-- END: Fixed Bottom Primary CTA & iOS Home Indicator -->
-              </main>
-              <!-- BEGIN: Interactive Switchers Script -->
-              <script data-purpose="interactive-handlers">
+  </style>
+<!-- END: Custom Micro-Styles -->
+</head>
+<body class="bg-slate-100 flex justify-center items-center min-h-screen text-slate-900 font-sans antialiased p-0 sm:p-4">
+<!-- Mobile Device Simulation Frame -->
+<main class="w-full max-w-[430px] bg-white min-h-screen sm:min-h-[860px] sm:max-h-[920px] sm:rounded-[44px] shadow-2xl overflow-y-auto relative flex flex-col no-scrollbar border-0 sm:border-[8px] sm:border-slate-800" data-purpose="mobile-viewport">
+<!-- BEGIN: iOS Status Bar -->
+<header class="w-full pt-3 px-7 pb-2 flex justify-between items-center bg-white sticky top-0 z-30 select-none" data-purpose="status-bar">
+<span class="text-sm font-semibold tracking-tight text-slate-900">9:41</span>
+<div class="flex items-center space-x-2">
+<!-- Cellular Bars -->
+<svg class="w-4 h-3 text-slate-900 fill-current" viewBox="0 0 17 11">
+<rect height="3" rx="0.75" width="3" x="0" y="8"></rect>
+<rect height="5.5" rx="0.75" width="3" x="4.6" y="5.5"></rect>
+<rect height="8" rx="0.75" width="3" x="9.3" y="3"></rect>
+<rect height="11" rx="0.75" width="3" x="14" y="0"></rect>
+</svg>
+<!-- Wifi Icon -->
+<svg class="w-3.5 h-3 text-slate-900 fill-current" viewBox="0 0 16 12">
+<path d="M8 12a1.8 1.8 0 100-3.6 1.8 1.8 0 000 3.6zm5.8-6.6a8.2 8.2 0 00-11.6 0 .9.9 0 01-1.3-1.3 10 10 0 0114.2 0 .9.9 0 01-1.3 1.3zm-2.6 2.6a4.5 4.5 0 00-6.4 0 .9.9 0 01-1.3-1.3 6.3 6.3 0 019 0 .9.9 0 01-1.3 1.3z"></path>
+</svg>
+<!-- Battery Icon -->
+<div class="w-5 h-2.5 border border-slate-900 rounded-sm p-0.5 flex items-center relative">
+<div class="h-full bg-slate-900 w-full rounded-2xs"></div>
+<div class="w-0.5 h-1 bg-slate-900 absolute -right-1 top-0.7 rounded-r-xs"></div>
+</div>
+</div>
+</header>
+<!-- END: iOS Status Bar -->
+<!-- BEGIN: Top Navigation Bar -->
+<nav class="px-5 pt-1 pb-3 flex flex-col gap-3 bg-white z-20 border-b border-slate-100" data-purpose="top-navigation">
+<div class="flex items-center justify-between">
+<button aria-label="Back to Step 1" class="tap-target w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-200/80 hover:bg-slate-100 text-slate-800 transition-all active:scale-95 shadow-sm" type="button">
+<span class="material-symbols-outlined text-[20px]">arrow_back</span>
+</button>
+<div class="flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-slate-900 text-white shadow-sm shadow-slate-900/10">
+<span class="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse"></span>
+<span class="text-[11px] font-extrabold tracking-wider uppercase">STEP 2 OF 2</span>
+</div>
+<button class="tap-target text-xs font-bold text-slate-400 hover:text-slate-700 transition-colors px-2 py-1 rounded-lg hover:bg-slate-50" type="button">
+      Cancel
+    </button>
+</div>
+<!-- Step Continuity Banner -->
+<div class="flex items-center justify-between bg-gradient-to-r from-red-500/10 via-rose-50 to-orange-50/60 p-3 rounded-2xl border border-red-100/80">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-xl bg-red-500 text-white flex items-center justify-center shadow-md shadow-red-500/20">
+<span class="material-symbols-outlined text-[18px]">payments</span>
+</div>
+<div>
+<p class="text-[10px] font-bold text-red-700 tracking-wider uppercase">Amount to log</p>
+<p class="text-lg font-black text-slate-900 tracking-tight leading-none">₹1,250.00</p>
+</div>
+</div>
+<div class="text-right flex items-center gap-1 bg-white/80 backdrop-blur-sm border border-red-200/60 px-2.5 py-1 rounded-full">
+<span class="w-2 h-2 rounded-full bg-red-500"></span>
+<span class="text-[11px] font-bold text-slate-700">Expense</span>
+</div>
+</div>
+</nav>
+<!-- END: Top Navigation Bar -->
+<!-- BEGIN: Scrollable Body Content -->
+<div class="flex-1 px-5 pt-3 pb-32 overflow-y-auto no-scrollbar space-y-6"><!-- SECTION 1: PAY FROM (ACCOUNT) -->
+<div class="p-3 rounded-2xl bg-white border border-slate-200/90 shadow-sm flex items-center justify-between gap-3 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500/10 transition-all"><div class="flex items-center gap-2.5 flex-1 min-w-0"><div class="w-8 h-8 rounded-xl bg-slate-50 border border-slate-200/80 text-slate-500 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[18px]">edit_note</span></div><div class="flex-1 min-w-0"><label for="tx-note-input" class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400 leading-none mb-1">Note / Title</label><input id="tx-note-input" type="text" value="Expense" placeholder="Add transaction note..." class="w-full p-0 border-0 text-xs font-bold text-slate-900 bg-transparent focus:ring-0 focus:outline-none placeholder:text-slate-400 placeholder:font-normal leading-tight"></div></div><button type="button" class="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors shrink-0" aria-label="Edit note"><span class="material-symbols-outlined text-[16px]">edit</span></button></div><section class="space-y-3">
+<div class="flex items-center justify-between px-0.5">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-slate-400">account_balance_wallet</span>
+<h2 class="text-[11px] uppercase tracking-wider font-extrabold text-slate-400">Pay From Account</h2>
+</div>
+<span class="text-[11px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">4 Available</span>
+</div>
+<div class="grid grid-cols-2 gap-2.5">
+<!-- HDFC Bank (Selected) -->
+<div class="group relative p-3.5 rounded-2xl border-2 border-red-500 bg-gradient-to-br from-red-50/70 via-white to-rose-50/40 shadow-md shadow-red-500/10 cursor-pointer flex flex-col justify-between transition-all duration-200 active:scale-[0.98]">
+<div class="flex items-start justify-between mb-3">
+<div class="w-8 h-8 rounded-xl bg-blue-900 text-white font-black text-[11px] flex items-center justify-center shadow-sm tracking-tighter">
+          HDFC
+        </div>
+<div class="w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm shadow-red-500/30">
+<span class="material-symbols-outlined text-[13px] font-bold">check</span>
+</div>
+</div>
+<div>
+<div class="flex items-center justify-between">
+<p class="font-bold text-slate-900 text-xs tracking-tight">HDFC Bank</p>
+<span class="text-[9px] font-bold uppercase tracking-wider text-red-600 bg-red-100/60 px-1.5 py-0.5 rounded-md">Primary</span>
+</div>
+<p class="mt-1 text-sm font-extrabold text-slate-900 font-mono tracking-tight">₹72,000</p>
+</div>
+<div class="absolute -bottom-px inset-x-4 h-0.5 bg-gradient-to-r from-transparent via-red-500 to-transparent"></div>
+</div>
+<!-- SBI -->
+<div class="group relative p-3.5 rounded-2xl border border-slate-200/90 bg-white hover:border-slate-300 hover:shadow-sm cursor-pointer flex flex-col justify-between transition-all duration-200 active:scale-[0.98]">
+<div class="flex items-start justify-between mb-3">
+<div class="w-8 h-8 rounded-xl bg-cyan-700 text-white font-black text-[11px] flex items-center justify-center shadow-sm tracking-tighter">
+          SBI
+        </div>
+<div class="w-4 h-4 rounded-full border border-slate-300 group-hover:border-slate-400"></div>
+</div>
+<div>
+<p class="font-bold text-slate-800 text-xs tracking-tight">SBI Card</p>
+<p class="mt-1 text-sm font-extrabold text-slate-700 font-mono tracking-tight">₹42,000</p>
+</div>
+</div>
+<!-- Cash -->
+<div class="group relative p-3.5 rounded-2xl border border-slate-200/90 bg-white hover:border-slate-300 hover:shadow-sm cursor-pointer flex flex-col justify-between transition-all duration-200 active:scale-[0.98]">
+<div class="flex items-start justify-between mb-3">
+<div class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[16px]">payments</span>
+</div>
+<div class="w-4 h-4 rounded-full border border-slate-300 group-hover:border-slate-400"></div>
+</div>
+<div>
+<p class="font-bold text-slate-800 text-xs tracking-tight">Cash Wallet</p>
+<p class="mt-1 text-sm font-extrabold text-slate-700 font-mono tracking-tight">₹10,500</p>
+</div>
+</div>
+<!-- Federal Bank -->
+<div class="group relative p-3.5 rounded-2xl border border-slate-200/90 bg-white hover:border-slate-300 hover:shadow-sm cursor-pointer flex flex-col justify-between transition-all duration-200 active:scale-[0.98]">
+<div class="flex items-start justify-between mb-3">
+<div class="w-8 h-8 rounded-xl bg-amber-600 text-white font-black text-[10px] flex items-center justify-center shadow-sm tracking-tighter">
+          FED
+        </div>
+<div class="w-4 h-4 rounded-full border border-slate-300 group-hover:border-slate-400"></div>
+</div>
+<div>
+<p class="font-bold text-slate-800 text-xs tracking-tight">Federal Bank</p>
+<p class="mt-1 text-sm font-extrabold text-slate-700 font-mono tracking-tight">₹18,400</p>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 2: CATEGORY MATRIX -->
+<section class="space-y-3">
+<div class="flex items-center justify-between px-0.5">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-slate-400">category</span>
+<h2 class="text-[11px] uppercase tracking-wider font-extrabold text-slate-400">Category</h2>
+</div>
+<span class="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">Selected: Food</span>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<!-- Food (Selected) -->
+<button class="cat-pill group relative flex items-center gap-2.5 p-2.5 rounded-xl bg-gradient-to-r from-red-50 via-rose-50/50 to-white text-left transition-all active:scale-95 shadow-sm shadow-red-500/10 border border-slate-200 bg-white text-slate-700" type="button">
+<div class="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center shadow-sm shadow-red-500/30 shrink-0">
+<span class="material-symbols-outlined text-[18px] font-semibold">restaurant</span>
+</div>
+<div class="flex-1 min-w-0">
+<span class="block font-extrabold text-xs text-red-600 truncate">Food &amp; Dining</span>
+<span class="block text-[10px] text-red-400 font-semibold">Primary</span>
+</div>
+<span class="material-symbols-outlined text-[16px] text-red-500 font-bold shrink-0">check_circle</span>
+</button>
+<!-- Transport -->
+<button class="cat-pill group flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-left transition-all active:scale-95 text-slate-700" type="button">
+<div class="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[18px] font-semibold">directions_car</span>
+</div>
+<span class="font-bold text-xs text-slate-800 truncate">Transport</span>
+</button>
+<!-- Entertainment -->
+<button class="cat-pill group flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-left transition-all active:scale-95 text-slate-700" type="button">
+<div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[18px] font-semibold">movie</span>
+</div>
+<span class="font-bold text-xs text-slate-800 truncate">Entertainment</span>
+</button>
+<!-- Groceries -->
+<button class="cat-pill group flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-left transition-all active:scale-95 text-slate-700" type="button">
+<div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[18px] font-semibold">shopping_cart</span>
+</div>
+<span class="font-bold text-xs text-slate-800 truncate">Groceries</span>
+</button>
+<!-- Health -->
+<button class="cat-pill group flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-left transition-all active:scale-95 text-slate-700" type="button">
+<div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[18px] font-semibold">favorite</span>
+</div>
+<span class="font-bold text-xs text-slate-800 truncate">Health</span>
+</button>
+<!-- Transfer -->
+<button class="cat-pill group flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-left transition-all active:scale-95 text-slate-700" type="button">
+<div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[18px] font-semibold">sync_alt</span>
+</div>
+<span class="font-bold text-xs text-slate-800 truncate">Transfer</span>
+</button>
+<!-- Donation -->
+<button class="cat-pill group flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-left transition-all active:scale-95 text-slate-700" type="button">
+<div class="w-8 h-8 rounded-lg bg-pink-50 text-pink-600 border border-pink-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[18px] font-semibold">volunteer_activism</span>
+</div>
+<span class="font-bold text-xs text-slate-800 truncate">Donation</span>
+</button>
+<!-- Investment -->
+<button class="cat-pill group flex items-center gap-2.5 p-2.5 rounded-xl hover:border-slate-300 hover:bg-slate-50 text-left transition-all active:scale-95 border-2 border-red-500 bg-red-50/50 text-red-600" type="button">
+<div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[18px] font-bold">trending_up</span>
+</div>
+<span class="font-bold text-xs text-slate-800 truncate">Investment</span>
+</button>
+<!-- Housing -->
+<button class="cat-pill group flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-left transition-all active:scale-95 text-slate-700" type="button">
+<div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[18px] font-semibold">home</span>
+</div>
+<span class="font-bold text-xs text-slate-800 truncate">Housing</span>
+</button>
+<!-- Other -->
+<button class="cat-pill group flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-left transition-all active:scale-95 text-slate-700" type="button">
+<div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 border border-slate-200 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[18px] font-semibold">more_horiz</span>
+</div>
+<span class="font-bold text-xs text-slate-800 truncate">Other</span>
+</button>
+</div>
+</section>
+<!-- SECTION 3: ASSIGN TO JAR (GAMIFIED SAVINGS TARGETS) -->
+<section class="space-y-3 pb-2">
+<div class="flex items-center justify-between px-0.5">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-slate-400">savings</span>
+<h2 class="text-[11px] uppercase tracking-wider font-extrabold text-slate-400">Assign To Jar</h2>
+</div>
+<span class="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">Optional</span>
+</div>
+<div class="grid grid-cols-2 gap-2.5">
+<!-- Emergency Fund (Selected) -->
+<div class="p-3 rounded-2xl border-2 border-red-500 bg-gradient-to-br from-red-50/50 via-white to-rose-50/30 cursor-pointer flex flex-col justify-between transition-all active:scale-95 shadow-sm shadow-red-500/10">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-1.5">
+<span class="text-sm">🛡️</span>
+<span class="text-xs font-bold text-slate-900 leading-tight">Emergency Fund</span>
+</div>
+<div class="w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px]">
+<span class="material-symbols-outlined text-[12px] font-bold">check</span>
+</div>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between text-[10px] font-bold">
+<span class="text-red-600 font-mono">₹45K</span>
+<span class="text-slate-400 font-mono">/ ₹1.0L</span>
+</div>
+<div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-red-500 rounded-full w-[45%]"></div>
+</div>
+</div>
+</div>
+<!-- Vacation -->
+<div class="p-3 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 cursor-pointer flex flex-col justify-between transition-all active:scale-95 hover:shadow-sm">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-1.5">
+<span class="text-sm">🏖️</span>
+<span class="text-xs font-bold text-slate-800 leading-tight">Vacation</span>
+</div>
+<span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">68%</span>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between text-[10px] font-bold">
+<span class="text-slate-700 font-mono">₹34K</span>
+<span class="text-slate-400 font-mono">/ ₹50K</span>
+</div>
+<div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-emerald-500 rounded-full w-[68%]"></div>
+</div>
+</div>
+</div>
+<!-- New Laptop -->
+<div class="p-3 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 cursor-pointer flex flex-col justify-between transition-all active:scale-95 hover:shadow-sm">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-1.5">
+<span class="text-sm">💻</span>
+<span class="text-xs font-bold text-slate-800 leading-tight">New Laptop</span>
+</div>
+<span class="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">25%</span>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between text-[10px] font-bold">
+<span class="text-slate-700 font-mono">₹25K</span>
+<span class="text-slate-400 font-mono">/ ₹1.0L</span>
+</div>
+<div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-indigo-500 rounded-full w-[25%]"></div>
+</div>
+</div>
+</div>
+<!-- Retirement -->
+<div class="p-3 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 cursor-pointer flex flex-col justify-between transition-all active:scale-95 hover:shadow-sm">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-1.5">
+<span class="text-sm">🌱</span>
+<span class="text-xs font-bold text-slate-800 leading-tight">Retirement</span>
+</div>
+<span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">15%</span>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between text-[10px] font-bold">
+<span class="text-slate-700 font-mono">₹1.5L</span>
+<span class="text-slate-400 font-mono">/ ₹10L</span>
+</div>
+<div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-amber-500 rounded-full w-[15%]"></div>
+</div>
+</div>
+</div>
+</div>
+</section></div>
+<!-- END: Scrollable Body Content -->
+<!-- BEGIN: Fixed Bottom Primary CTA & iOS Home Indicator -->
+<div class="absolute bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-100 px-5 pt-3 pb-6 z-30 flex flex-col items-center" data-purpose="bottom-action-container"><!-- Primary Action Button with Dynamic Pay Summary -->
+<button class="tap-target w-full py-3.5 px-5 bg-gradient-to-r from-red-500 via-rose-500 to-red-600 hover:from-red-600 hover:to-rose-700 active:scale-[0.98] text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-red-500/30 flex items-center justify-between transition-all duration-200 group border border-red-400/30" id="saveTransactionBtn" type="button">
+<div class="flex items-center gap-2.5 text-left">
+<div class="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+</div>
+<div>
+<span class="block text-[10px] font-bold text-red-100 uppercase tracking-wider leading-tight">Confirm Transaction</span>
+<span class="block text-sm font-black tracking-tight leading-tight">Pay ₹1,250 • HDFC</span>
+</div>
+</div>
+<div class="flex items-center gap-1 bg-white/15 px-3 py-1.5 rounded-xl group-hover:translate-x-0.5 transition-transform">
+<span class="text-xs font-bold">Continue</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</div>
+</button>
+<!-- iOS Home Bar Indicator -->
+<div class="w-32 h-1 bg-slate-300 rounded-full mt-3.5"></div></div>
+<!-- END: Fixed Bottom Primary CTA & iOS Home Indicator -->
+</main>
+<!-- BEGIN: Interactive Switchers Script -->
+<script data-purpose="interactive-handlers">
     // Account Selection Toggle
-                const accountCards = document.querySelectorAll('.account-card');
+    const accountCards = document.querySelectorAll('.account-card');
     accountCards.forEach(card => {
-                  card.addEventListener('click', () => {
-                    accountCards.forEach(c => {
-                      c.classList.remove('border-2', 'border-red-500', 'bg-red-50/40');
-                      c.classList.add('border', 'border-slate-200', 'bg-white');
-                      const check = c.querySelector('.check-icon');
-                      if (check) {
-                        check.classList.add('hidden');
-                        check.classList.remove('flex');
-                      }
-                    });
-
-                    card.classList.remove('border', 'border-slate-200', 'bg-white');
-                    card.classList.add('border-2', 'border-red-500', 'bg-red-50/40');
-                    const activeCheck = card.querySelector('.check-icon');
-                    if (activeCheck) {
-                      activeCheck.classList.remove('hidden');
-                      activeCheck.classList.add('flex');
-                    }
-                  });
+      card.addEventListener('click', () => {
+        accountCards.forEach(c => {
+          c.classList.remove('border-2', 'border-red-500', 'bg-red-50/40');
+          c.classList.add('border', 'border-slate-200', 'bg-white');
+          const check = c.querySelector('.check-icon');
+          if (check) {
+            check.classList.add('hidden');
+            check.classList.remove('flex');
+          }
+        });
+        
+        card.classList.remove('border', 'border-slate-200', 'bg-white');
+        card.classList.add('border-2', 'border-red-500', 'bg-red-50/40');
+        const activeCheck = card.querySelector('.check-icon');
+        if (activeCheck) {
+          activeCheck.classList.remove('hidden');
+          activeCheck.classList.add('flex');
+        }
+      });
     });
 
-                // Category Selection Toggle
-                const categoryButtons = document.querySelectorAll('.cat-pill');
+    // Category Selection Toggle
+    const categoryButtons = document.querySelectorAll('.cat-pill');
     categoryButtons.forEach(btn => {
-                  btn.addEventListener('click', () => {
-                    categoryButtons.forEach(b => {
-                      b.classList.remove('border-2', 'border-red-500', 'bg-red-50/50', 'text-red-600', 'font-bold');
-                      b.classList.add('border', 'border-slate-200', 'bg-white', 'text-slate-700');
-                      const label = b.querySelector('span:last-child');
-                      if (label) {
-                        label.classList.remove('font-bold');
-                        label.classList.add('font-semibold');
-                      }
-                    });
+      btn.addEventListener('click', () => {
+        categoryButtons.forEach(b => {
+          b.classList.remove('border-2', 'border-red-500', 'bg-red-50/50', 'text-red-600', 'font-bold');
+          b.classList.add('border', 'border-slate-200', 'bg-white', 'text-slate-700');
+          const label = b.querySelector('span:last-child');
+          if (label) {
+            label.classList.remove('font-bold');
+            label.classList.add('font-semibold');
+          }
+        });
 
-                    btn.classList.remove('border', 'border-slate-200', 'bg-white', 'text-slate-700');
-                    btn.classList.add('border-2', 'border-red-500', 'bg-red-50/50', 'text-red-600');
-                    const activeLabel = btn.querySelector('span:last-child');
-                    if (activeLabel) {
-                      activeLabel.classList.remove('font-semibold');
-                      activeLabel.classList.add('font-bold');
-                    }
-                  });
+        btn.classList.remove('border', 'border-slate-200', 'bg-white', 'text-slate-700');
+        btn.classList.add('border-2', 'border-red-500', 'bg-red-50/50', 'text-red-600');
+        const activeLabel = btn.querySelector('span:last-child');
+        if (activeLabel) {
+          activeLabel.classList.remove('font-semibold');
+          activeLabel.classList.add('font-bold');
+        }
+      });
     });
 
-                // Date Segmented Control Toggle
-                const dateButtons = document.querySelectorAll('.date-btn');
+    // Date Segmented Control Toggle
+    const dateButtons = document.querySelectorAll('.date-btn');
     dateButtons.forEach(btn => {
-                  btn.addEventListener('click', () => {
-                    dateButtons.forEach(b => {
-                      b.classList.remove('bg-white', 'text-slate-900', 'shadow-sm', 'border', 'border-slate-200/60', 'font-bold');
-                      b.classList.add('text-slate-500', 'font-semibold');
-                    });
+      btn.addEventListener('click', () => {
+        dateButtons.forEach(b => {
+          b.classList.remove('bg-white', 'text-slate-900', 'shadow-sm', 'border', 'border-slate-200/60', 'font-bold');
+          b.classList.add('text-slate-500', 'font-semibold');
+        });
 
-                    btn.classList.remove('text-slate-500', 'font-semibold');
-                    btn.classList.add('bg-white', 'text-slate-900', 'shadow-sm', 'border', 'border-slate-200/60', 'font-bold');
-                  });
+        btn.classList.remove('text-slate-500', 'font-semibold');
+        btn.classList.add('bg-white', 'text-slate-900', 'shadow-sm', 'border', 'border-slate-200/60', 'font-bold');
+      });
     });
 
-                // Tap feedback on CTA
-                const submitBtn = document.getElementById('saveTransactionBtn');
+    // Tap feedback on CTA
+    const submitBtn = document.getElementById('saveTransactionBtn');
     submitBtn.addEventListener('click', () => {
-                  submitBtn.classList.add('scale-95');
+      submitBtn.classList.add('scale-95');
       setTimeout(() => submitBtn.classList.remove('scale-95'), 120);
     });
-              </script>
-              <!-- END: Interactive Switchers Script -->
+  </script>
+<!-- END: Interactive Switchers Script -->
 
 
-              <div id="snapdom-sandbox" data-snapdom-sandbox="true" aria-hidden="true" style="position: absolute; left: -9999px; top: -9999px; width: 0px; height: 0px; overflow: hidden;"></div>
+<div id="snapdom-sandbox" data-snapdom-sandbox="true" aria-hidden="true" style="position: absolute; left: -9999px; top: -9999px; width: 0px; height: 0px; overflow: hidden;"></div>
 
-            </body></html>
+</body></html>

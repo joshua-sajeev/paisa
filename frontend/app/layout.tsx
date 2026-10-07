@@ -2,6 +2,7 @@ import { PrivacyProvider } from "@/context/PrivacyContext";
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { Navbar } from "@/components/Navbar";
+import { MainLayout } from "@/components/MainLayout";
 import  BottomNav  from "@/components/BottomNav";
 import  AddTransactionButton  from "@/components/AddTransactionButton";
 import "./globals.css";
@@ -31,9 +32,9 @@ export default function RootLayout({
         <PrivacyProvider>
           <Navbar />
 
-          <main className="flex-1 pb-24">
+          <MainLayout>
             {children}
-          </main>
+          </MainLayout>
         </PrivacyProvider>
 
         <AddTransactionButton />

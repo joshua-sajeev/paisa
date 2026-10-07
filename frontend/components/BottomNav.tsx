@@ -52,6 +52,10 @@ const NAV_ITEMS = [
 export default function BottomNav() {
   const pathname = usePathname();
 
+  if (pathname === '/transactions/add') {
+    return null;
+  }
+
   return (
     <nav className="fixed bottom-0 z-50 w-full bg-white/85 pb-safe backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
       <div className="relative flex h-20 items-center justify-between px-2">
