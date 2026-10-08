@@ -12,6 +12,8 @@ import {
 } from "@material-symbols-svg/react/w400";
 import { TransactionFormData } from "@/app/(protected)/transactions/add/page";
 import { TransactionType } from "@/components/transactions/transaction-utils";
+import CalculatorModal from "@/components/transactions/CalculatorModal";
+import { toAmountString } from "@/lib/calculator";
 
 type Step1Props = {
   formData: TransactionFormData;
@@ -105,7 +107,7 @@ export default function Step1Amount({ formData, updateFormData, onNext, onCancel
 
   const addQuickAmount = (val: number) => {
     const currentVal = parseFloat(formData.amount) || 0;
-    updateFormData({ amount: (currentVal + val).toString() });
+    updateFormData({ amount: toAmountString(currentVal + val) });
   };
 
   const currentConfig = config[formData.type];
@@ -226,25 +228,22 @@ export default function Step1Amount({ formData, updateFormData, onNext, onCancel
         <div className="w-32 h-1 bg-slate-300 rounded-full"></div>
       </div>
 
-      {/* Calculator Modal placeholder */}
+      {/* Calculator Modal */}
       {isCalculatorOpen && (
-        <div className="absolute inset-0 z-50 bg-slate-900/40 backdrop-blur-[2px] flex flex-col justify-end transition-all duration-300 select-none">
-           <div className="w-full bg-white rounded-t-[28px] shadow-2xl border-t border-slate-100 flex flex-col overflow-hidden p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold">Calculator</h3>
-                <button onClick={() => setIsCalculatorOpen(false)}><Close size={24} /></button>
-              </div>
-              <div className="text-center py-8 text-slate-400">
-                Calculator implementation coming soon...
-              </div>
-              <button 
-                onClick={() => setIsCalculatorOpen(false)}
-                className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold"
-              >
-                Close
-              </button>
-           </div>
-        </div>
+        <CalculatorModal
+          initialAmount={formData.amount}
+          accent={{
+            color: currentConfig.color,
+            bgClass: currentConfig.bgAccentClass,
+            hoverClass: currentConfig.hoverBgClass,
+            shadowClass: currentConfig.shadowClass,
+          }}
+          onClose={() => setIsCalculatorOpen(false)}
+          onApply={(amount) => {
+            updateFormData({ amount });
+            setIsCalculatorOpen(false);
+          }}
+        />
       )}
     </div>
   );
