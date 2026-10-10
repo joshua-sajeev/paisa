@@ -52,6 +52,13 @@ export default function AddTransactionPage() {
 
   const nextStep = () => setStep((prev) => prev + 1);
   const prevStep = () => setStep((prev) => Math.max(1, prev - 1));
+  const handleCancel = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/transactions");
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f8f9ff]">
@@ -60,7 +67,7 @@ export default function AddTransactionPage() {
           formData={formData}
           updateFormData={updateFormData}
           onNext={nextStep}
-          onCancel={() => router.back()}
+          onCancel={handleCancel}
         />
       )}
       {step === 2 && (
@@ -69,6 +76,7 @@ export default function AddTransactionPage() {
           updateFormData={updateFormData}
           onNext={nextStep}
           onBack={prevStep}
+          onCancel={handleCancel}
         />
       )}
       {step === 3 && (
@@ -76,6 +84,7 @@ export default function AddTransactionPage() {
           formData={formData}
           updateFormData={updateFormData}
           onBack={prevStep}
+          onCancel={handleCancel}
           onComplete={() => router.push("/transactions")}
         />
       )}

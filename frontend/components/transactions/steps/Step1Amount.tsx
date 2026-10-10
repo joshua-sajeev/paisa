@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { 
   Close, 
   ArrowForward, 
@@ -61,11 +61,11 @@ export default function Step1Amount({ formData, updateFormData, onNext, onCancel
   const formatAmount = (val: string) => {
     if (!val || val === "0") return "0";
     const parts = val.split('.');
-    let integerPart = parts[0];
+    const integerPart = parts[0];
     const decimalPart = parts.length > 1 ? '.' + parts[1] : '';
 
     let lastThree = integerPart.substring(integerPart.length - 3);
-    let otherNumbers = integerPart.substring(0, integerPart.length - 3);
+    const otherNumbers = integerPart.substring(0, integerPart.length - 3);
     if (otherNumbers !== '') {
       lastThree = ',' + lastThree;
     }

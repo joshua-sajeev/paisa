@@ -8,8 +8,7 @@ import {
   AccountBalance, 
   Restaurant, 
   Savings, 
-  CalendarToday,
-  Edit
+  CalendarToday
 } from "@material-symbols-svg/react/w400";
 import { TransactionFormData } from "@/app/(protected)/transactions/add/page";
 import { apiFetch } from "@/lib/api";
@@ -19,10 +18,11 @@ type Step3Props = {
   formData: TransactionFormData;
   updateFormData: (data: Partial<TransactionFormData>) => void;
   onBack: () => void;
+  onCancel?: () => void;
   onComplete: () => void;
 };
 
-export default function Step3Confirmation({ formData, updateFormData, onBack, onComplete }: Step3Props) {
+export default function Step3Confirmation({ formData, updateFormData, onBack, onCancel, onComplete }: Step3Props) {
   const [loading, setLoading] = useState(false);
   const [dateMode, setDateMode] = useState<'today' | 'yesterday' | 'custom'>('today');
 
@@ -70,6 +70,24 @@ export default function Step3Confirmation({ formData, updateFormData, onBack, on
   const categoryLabel = CATEGORIES.find(c => c.value === formData.category)?.label || 'Other';
   const currentAmount = parseFloat(formData.amount) * 100;
 
+  const typeTheme = {
+    expense: {
+      stepText: 'text-red-500',
+      pillBg: 'bg-red-500',
+      btnBg: 'bg-red-500 hover:bg-red-600 shadow-red-500/25',
+    },
+    income: {
+      stepText: 'text-emerald-500',
+      pillBg: 'bg-emerald-500',
+      btnBg: 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/25',
+    },
+    transfer: {
+      stepText: 'text-blue-600',
+      pillBg: 'bg-blue-600',
+      btnBg: 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/25',
+    },
+  }[formData.type];
+
   return (
     <div className="flex flex-col flex-1 w-full bg-white min-h-screen relative overflow-y-auto no-scrollbar p-6">
       {/* Header */}
@@ -78,9 +96,12 @@ export default function Step3Confirmation({ formData, updateFormData, onBack, on
           <ArrowBack size={20} />
         </button>
         <div className="flex flex-col items-center">
-          <span className="text-xs font-bold text-red-500 tracking-widest uppercase">Step 3 of 3</span>
+          <span className={`text-xs font-bold ${typeTheme.stepText} tracking-widest uppercase`}>Step 3 of 3</span>
         </div>
-        <button className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:text-red-500 active:scale-95 transition-colors">
+        <button 
+          onClick={onCancel || onBack}
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 active:scale-95 transition-colors"
+        >
           <Close size={20} />
         </button>
       </div>
@@ -88,7 +109,7 @@ export default function Step3Confirmation({ formData, updateFormData, onBack, on
       {/* Hero Card */}
       <section className="w-full bg-white rounded-xl p-8 shadow-sm flex flex-col items-center text-center relative overflow-hidden mb-6 border border-slate-100">
         <div className="flex items-center gap-2 mb-2">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold tracking-wider uppercase">
+          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full ${typeTheme.pillBg} text-white text-[10px] font-bold tracking-wider uppercase`}>
             <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
             {formData.type}
           </span>
@@ -97,10 +118,6 @@ export default function Step3Confirmation({ formData, updateFormData, onBack, on
           <span className="text-4xl font-extrabold tracking-tight text-slate-900">{formatMoney(currentAmount).split('.')[0]}</span>
           <span className="text-xl text-slate-400 font-bold">.{formatMoney(currentAmount).split('.')[1]?.replace('₹', '') || '00'}</span>
         </div>
-        <button className="group flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 text-slate-900 hover:bg-slate-100 transition-colors mt-2">
-          <span className="text-sm font-semibold truncate max-w-[220px]">{formData.name || 'No note added'}</span>
-          <Edit size={16} className="text-slate-400 group-hover:text-blue-600" />
-        </button>
       </section>
 
       {/* Details */}
@@ -199,7 +216,7 @@ export default function Step3Confirmation({ formData, updateFormData, onBack, on
         <button 
           onClick={handleSave}
           disabled={loading}
-          className="w-full h-14 rounded-full bg-red-500 text-white font-bold flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-transform disabled:opacity-50"
+          className={`w-full h-14 rounded-full ${typeTheme.btnBg} text-white font-bold flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all disabled:opacity-50`}
         >
           {loading ? (
             <span className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin"></span>
