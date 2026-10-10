@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import {
   Today,
   ChevronLeft,
@@ -12,8 +13,22 @@ export default function CalendarTimeline() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isExpanded, setIsExpanded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
 
   const today = new Date();
+
+  const updateUrlDate = (date: Date) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('date', date.toISOString());
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
+  const handleDateChange = (newDate: Date) => {
+    setSelectedDate(newDate);
+    updateUrlDate(newDate);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -39,23 +54,19 @@ export default function CalendarTimeline() {
   };
 
   const goToPreviousDay = () => {
-    setSelectedDate((current) => {
-      const previous = new Date(current);
-      previous.setDate(previous.getDate() - 1);
-      return previous;
-    });
+    const previous = new Date(selectedDate);
+    previous.setDate(previous.getDate() - 1);
+    handleDateChange(previous);
   };
 
   const goToNextDay = () => {
-    setSelectedDate((current) => {
-      const next = new Date(current);
-      next.setDate(next.getDate() + 1);
-      return next;
-    });
+    const next = new Date(selectedDate);
+    next.setDate(next.getDate() + 1);
+    handleDateChange(next);
   };
 
   const goToToday = () => {
-    setSelectedDate(new Date());
+    handleDateChange(new Date());
   };
 
   return (
@@ -122,7 +133,7 @@ export default function CalendarTimeline() {
         <div className="absolute top-0 left-0 w-full z-30 shadow-xl">
           <CalendarExpanded
             selectedDate={selectedDate}
-            onDateChange={setSelectedDate}
+            onDateChange={handleDateChange}
             onCollapse={() => setIsExpanded(false)}
           />
         </div>

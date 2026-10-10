@@ -286,7 +286,7 @@ export default function Step2Details({ formData, updateFormData, onNext, onBack,
       <div className="flex-1 px-5 pt-3 pb-32 overflow-y-auto no-scrollbar space-y-6">
 
         {/* Note / Title Input */}
-        <div className={`p-3 rounded-2xl bg-white border border-slate-200/90 shadow-xs flex items-center justify-between gap-3 ${theme.noteFocusRing} transition-all`}>
+        {/* <div className={`p-3 rounded-2xl bg-white border border-slate-200/90 shadow-xs flex items-center justify-between gap-3 ${theme.noteFocusRing} transition-all`}>
           <div className="flex items-center gap-2.5 flex-1 min-w-0">
             <div className="w-8 h-8 rounded-xl bg-slate-50 border border-slate-200/80 text-slate-500 flex items-center justify-center shrink-0">
               <EditNote size={18} />
@@ -311,7 +311,7 @@ export default function Step2Details({ formData, updateFormData, onNext, onBack,
               />
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Account Selection */}
         <section className="space-y-3">

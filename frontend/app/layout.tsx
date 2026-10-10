@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { PrivacyProvider } from "@/context/PrivacyContext";
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
@@ -37,7 +38,9 @@ export default function RootLayout({
           </MainLayout>
         </PrivacyProvider>
 
-        <AddTransactionButton />
+        <Suspense fallback={null}>
+          <AddTransactionButton />
+        </Suspense>
         <BottomNav />
       </body>
     </html>

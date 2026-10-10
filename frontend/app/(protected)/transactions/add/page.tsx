@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Step1Amount from "@/components/transactions/steps/Step1Amount";
 import Step2Details from "@/components/transactions/steps/Step2Details";
 import Step3Confirmation from "@/components/transactions/steps/Step3Confirmation";
@@ -25,8 +25,20 @@ export type TransactionFormData = {
   isMasterIncome: boolean;
 };
 
-export default function AddTransactionPage() {
+let globalLastTxnDate: string | null = null;
+
+export default function AddTransactionPageWrapper() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen bg-[#f8f9ff]"></div>}>
+      <AddTransactionPage />
+    </Suspense>
+  );
+}
+
+function AddTransactionPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const dateParam = searchParams.get('date');
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<TransactionFormData>({
     amount: "0",
@@ -42,7 +54,7 @@ export default function AddTransactionPage() {
     jarId: "",
     jarName: "",
     jarBalance: 0,
-    occurredAt: new Date().toISOString(),
+    occurredAt: dateParam ? new Date(dateParam).toISOString() : (globalLastTxnDate || new Date().toISOString()),
     isMasterIncome: false,
   });
 
@@ -85,7 +97,10 @@ export default function AddTransactionPage() {
           updateFormData={updateFormData}
           onBack={prevStep}
           onCancel={handleCancel}
-          onComplete={() => router.push("/transactions")}
+          onComplete={() => {
+            globalLastTxnDate = formData.occurredAt;
+            router.push("/transactions");
+          }}
         />
       )}
     </div>

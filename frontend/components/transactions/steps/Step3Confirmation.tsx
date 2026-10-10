@@ -24,7 +24,18 @@ type Step3Props = {
 
 export default function Step3Confirmation({ formData, updateFormData, onBack, onCancel, onComplete }: Step3Props) {
   const [loading, setLoading] = useState(false);
-  const [dateMode, setDateMode] = useState<'today' | 'yesterday' | 'custom'>('today');
+  const getInitialDateMode = () => {
+    const d = new Date(formData.occurredAt);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (d.toDateString() === today.toDateString()) return 'today';
+    if (d.toDateString() === yesterday.toDateString()) return 'yesterday';
+    return 'custom';
+  };
+
+  const [dateMode, setDateMode] = useState<'today' | 'yesterday' | 'custom'>(getInitialDateMode());
 
   const handleSave = async () => {
     setLoading(true);
@@ -57,9 +68,13 @@ export default function Step3Confirmation({ formData, updateFormData, onBack, on
 
   const setOccurredAt = (mode: 'today' | 'yesterday' | 'custom', customDate?: string) => {
     setDateMode(mode);
-    const date = new Date();
-    if (mode === 'yesterday') {
-      date.setDate(date.getDate() - 1);
+    const date = new Date(formData.occurredAt);
+    const now = new Date();
+    if (mode === 'today') {
+      date.setFullYear(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (mode === 'yesterday') {
+      now.setDate(now.getDate() - 1);
+      date.setFullYear(now.getFullYear(), now.getMonth(), now.getDate());
     } else if (mode === 'custom' && customDate) {
       const [y, m, d] = customDate.split('-').map(Number);
       date.setFullYear(y, m - 1, d);
@@ -205,6 +220,7 @@ export default function Step3Confirmation({ formData, updateFormData, onBack, on
             <input 
               type="date" 
               className="w-full bg-slate-50 border-0 rounded-lg text-xs font-bold p-2 focus:ring-0" 
+              value={`${new Date(formData.occurredAt).getFullYear()}-${String(new Date(formData.occurredAt).getMonth() + 1).padStart(2, '0')}-${String(new Date(formData.occurredAt).getDate()).padStart(2, '0')}`}
               onChange={(e) => setOccurredAt('custom', e.target.value)}
             />
           </div>

@@ -1,15 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { Add } from '@material-symbols-svg/react/w400';
 
 export default function AddTransactionButton() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   if (pathname === '/transactions/add') {
     return null;
   }
+
+  const dateParam = searchParams.get('date');
+  const targetHref = dateParam ? `/transactions/add?date=${dateParam}` : `/transactions/add`;
 
   return (
     <div
@@ -22,7 +26,7 @@ export default function AddTransactionButton() {
         pointer-events-none
       "
     >
-      <Link href="/transactions/add" className="pointer-events-auto">
+      <Link href={targetHref} className="pointer-events-auto">
         <button
           type="button"
           aria-label="Add transaction"
