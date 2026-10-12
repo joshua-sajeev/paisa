@@ -19,25 +19,25 @@ type jarSeed struct {
 var jarDefinitions = []jarSeed{
 	{
 		name:           "Necessities",
-		iconKey:        "jar",
+		iconKey:        "necessities",
 		allocationType: "remainder",
 		value:          0,
 	},
 	{
 		name:           "Leisure",
-		iconKey:        "jar",
+		iconKey:        "leisure",
 		allocationType: "percentage",
 		value:          10,
 	},
 	{
-		name:           "Investment",
-		iconKey:        "jar",
+		name:           "Investments",
+		iconKey:        "investment",
 		allocationType: "fixed",
-		value:          1000000,
+		value:          600000,
 	},
 	{
-		name:           "Donation",
-		iconKey:        "jar",
+		name:           "Donations",
+		iconKey:        "giving",
 		allocationType: "percentage",
 		value:          10,
 	},

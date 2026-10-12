@@ -64,7 +64,7 @@ export default function GoalsList({
           const style = GOAL_STYLES[index % GOAL_STYLES.length];
           const Icon = style.icon;
 
-          const progress = Math.min(Math.max(goal.progress, 0), 100);
+          const progress = Math.round(Math.min(Math.max(goal.progress, 0), 100));
           const remainingMonths = getRemainingMonths(goal.deadline);
 
           return (

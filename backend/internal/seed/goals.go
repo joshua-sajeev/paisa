@@ -10,61 +10,24 @@ import (
 )
 
 type goalSeed struct {
-	name     string
-	target   int64
-	deadline *time.Time
+	name                string
+	target              int64
+	initialContribution int64
+	deadline            *time.Time
 }
 
 var goalDefinitions = []goalSeed{
 	{
-		name:     "Emergency Fund",
-		target:   5000000,
-		deadline: date(2027, 6, 30),
+		name:                "Laptop",
+		target:              7_500_000,
+		initialContribution: 100_000,
+		deadline:            date(2027, 3, 31),
 	},
 	{
-		name:     "New Laptop",
-		target:   10000000,
-		deadline: date(2027, 3, 31),
-	},
-	{
-		name:     "Travel Fund",
-		target:   7500000,
-		deadline: date(2027, 12, 31),
-	},
-	{
-		name:     "Bike Fund",
-		target:   15000000,
-		deadline: date(2028, 6, 30),
-	},
-	{
-		name:     "Education",
-		target:   5000000,
-		deadline: date(2027, 5, 31),
-	},
-	{
-		name:     "Home Setup",
-		target:   10000000,
-		deadline: date(2028, 3, 31),
-	},
-	{
-		name:     "Investment",
-		target:   20000000,
-		deadline: date(2029, 12, 31),
-	},
-	{
-		name:     "Wedding",
-		target:   50000000,
-		deadline: date(2030, 12, 31),
-	},
-	{
-		name:     "Car Fund",
-		target:   50000000,
-		deadline: date(2030, 6, 30),
-	},
-	{
-		name:     "Misc Savings",
-		target:   2500000,
-		deadline: date(2027, 12, 31),
+		name:                "Emergency Fund",
+		target:              10_000_000,
+		initialContribution: 500_000,
+		deadline:            date(2027, 6, 30),
 	},
 }
 

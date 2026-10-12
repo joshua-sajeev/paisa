@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -137,6 +138,172 @@ func seedTransactions(
 	return nil
 }
 
+// seedDemoTransactions creates a small, repeatable dataset around the current
+// and previous calendar months for the default development seed.
+func seedDemoTransactions(
+	ctx context.Context,
+	db *pgxpool.Pool,
+	accounts []uuid.UUID,
+	jars []uuid.UUID,
+) error {
+	if len(accounts) < 4 || len(jars) < 4 {
+		return fmt.Errorf("demo seed requires four accounts and four jars")
+	}
+
+	now := time.Now()
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	previousMonthStart := monthStart.AddDate(0, -1, 0)
+	accountsByName := map[string]uuid.UUID{}
+	for i, def := range accountDefinitions {
+		accountsByName[def.name] = accounts[i]
+	}
+	jarIDsByName := map[string]uuid.UUID{}
+	for i, def := range jarDefinitions {
+		jarIDsByName[def.name] = jars[i]
+	}
+
+	hdfc := accountsByName["HDFC"]
+	fbi := accountsByName["FBI"]
+	var transactions []generatedTransaction
+	var masterIncomeIDs []uuid.UUID
+	add := func(name, txType, category string, from, to *uuid.UUID, amount int64, occurredAt time.Time, master bool, jarID *uuid.UUID) uuid.UUID {
+		tx := generatedTransaction{
+			id: uuid.New(), name: name, txType: txType, category: category,
+			fromAccountID: from, toAccountID: to, jarID: jarID,
+			amount: amount, occurredAt: occurredAt, isMasterIncome: master,
+		}
+		transactions = append(transactions, tx)
+		if master {
+			masterIncomeIDs = append(masterIncomeIDs, tx.id)
+		}
+		return tx.id
+	}
+	timeRNG := rand.New(rand.NewSource(20261012))
+	transactionTime := func(month time.Time, date int, name string) time.Time {
+		hour := 12
+		switch {
+		case name == "Tea":
+			hour = 16 + timeRNG.Intn(4)
+		case name == "Breakfast":
+			hour = 7 + timeRNG.Intn(2)
+		case name == "BMTC":
+			if timeRNG.Intn(2) == 0 {
+				hour = 9
+			} else {
+				hour = 17
+			}
+		case name == "Church":
+			hour = 11
+		case name == "Rent":
+			hour = 19
+		case name == "Salary":
+			hour = 9
+		case name == "SIP":
+			hour = 10
+		case name == "Groceries":
+			hour = 17 + timeRNG.Intn(4)
+		case name == "Cab" || name == "Uber":
+			hour = 8 + timeRNG.Intn(14)
+		case strings.HasPrefix(name, "Bus to "):
+			hour = 8 + timeRNG.Intn(3)
+		case name == "Dentist" || name == "Hair Cut":
+			hour = 10 + timeRNG.Intn(7)
+		case name == "Falooda":
+			hour = 15 + timeRNG.Intn(6)
+		case name == "Appa":
+			hour = 13
+		case name == "Brother":
+			hour = 14
+		}
+		return time.Date(month.Year(), month.Month(), date, hour, timeRNG.Intn(60), 0, 0, month.Location())
+	}
+	necessities := jarIDsByName["Necessities"]
+	leisure := jarIDsByName["Leisure"]
+	donations := jarIDsByName["Donations"]
+	investments := jarIDsByName["Investments"]
+	addExpense := func(month time.Time, date int, name string, amountRupees int64, category string, accountID, jarID uuid.UUID) {
+		add(name, "expense", category, &accountID, nil, amountRupees*100, transactionTime(month, date, name), false, &jarID)
+	}
+
+	for _, month := range []time.Time{previousMonthStart, monthStart} {
+		add("Salary", "income", "other", nil, &hdfc, 2_500_000, transactionTime(month, 1, "Salary"), true, nil)
+		add("Rent", "expense", "housing", &hdfc, nil, 1_200_000, transactionTime(month, 1, "Rent"), false, &necessities)
+		addExpense(month, 20, "SIP", 1_000, "investment", fbi, investments)
+	}
+	add("HDFC to FBI", "transfer", "transfer", &hdfc, &fbi, 500_000, transactionTime(previousMonthStart, 15, "HDFC to FBI"), false, nil)
+	add("Brother", "transfer", "transfer", &hdfc, &fbi, 50_000, transactionTime(previousMonthStart, 15, "Brother"), false, nil)
+
+	// Previous month transactions.
+	addExpense(previousMonthStart, 7, "Church", 100, "donation", hdfc, donations)
+	addExpense(previousMonthStart, 7, "Tea", 10, "food", hdfc, leisure)
+	addExpense(previousMonthStart, 7, "Groceries", 230, "groceries", hdfc, necessities)
+	addExpense(previousMonthStart, 8, "BMTC", 12, "transport", hdfc, necessities)
+	addExpense(previousMonthStart, 8, "BMTC", 23, "transport", hdfc, necessities)
+	addExpense(previousMonthStart, 10, "Cab", 120, "transport", hdfc, leisure)
+	addExpense(previousMonthStart, 13, "Tea", 10, "food", hdfc, leisure)
+	addExpense(previousMonthStart, 13, "Cab", 73, "transport", hdfc, leisure)
+	addExpense(previousMonthStart, 15, "BMTC", 18, "transport", hdfc, leisure)
+
+	// Current month transactions.
+	addExpense(monthStart, 1, "Falooda", 150, "food", hdfc, leisure)
+	addExpense(monthStart, 13, "BMTC", 18, "transport", hdfc, leisure)
+	addExpense(monthStart, 13, "Tea", 20, "food", hdfc, leisure)
+	addExpense(monthStart, 13, "Groceries", 180, "groceries", hdfc, leisure)
+	addExpense(monthStart, 18, "Bus to Alakode", 1_500, "transport", hdfc, necessities)
+	addExpense(monthStart, 18, "Bus to Bangalore", 700, "transport", hdfc, necessities)
+	addExpense(monthStart, 20, "BMTC", 18, "transport", hdfc, leisure)
+	addExpense(monthStart, 23, "Hair Cut", 50, "other", hdfc, necessities)
+	addExpense(monthStart, 23, "Dentist", 500, "health", hdfc, necessities)
+	addExpense(monthStart, 25, "Groceries", 150, "groceries", hdfc, necessities)
+	addExpense(monthStart, 28, "Church", 200, "donation", hdfc, donations)
+	addExpense(monthStart, 13, "Uber", 200, "transport", hdfc, leisure)
+	appaIncomeID := add("Appa", "income", "other", nil, &hdfc, 100_000, transactionTime(monthStart, 25, "Appa"), false, &necessities)
+
+	rows := make([][]any, 0, len(transactions))
+	for _, tx := range transactions {
+		rows = append(rows, []any{
+			tx.id, tx.name, tx.txType, tx.category, tx.fromAccountID,
+			tx.toAccountID, tx.jarID, tx.amount, tx.occurredAt,
+			tx.isMasterIncome, now, now,
+		})
+	}
+	if _, err := db.CopyFrom(ctx, pgx.Identifier{"transactions"}, []string{
+		"id", "name", "type", "category", "from_account_id", "to_account_id",
+		"jar_id", "amount", "occurred_at", "is_master_income", "created_at", "updated_at",
+	}, pgx.CopyFromRows(rows)); err != nil {
+		return fmt.Errorf("insert demo transactions: %w", err)
+	}
+
+	// Per 25,000 salary: 14,000 remainder, 2,500 each at 10%, and 6,000 fixed.
+	allocations := make([][]any, 0, len(masterIncomeIDs)*4)
+	for _, transactionID := range masterIncomeIDs {
+		for _, allocation := range []struct {
+			jarID  uuid.UUID
+			amount int64
+		}{
+			{jarIDsByName["Necessities"], 1_400_000},
+			{jarIDsByName["Leisure"], 250_000},
+			{jarIDsByName["Donations"], 250_000},
+			{jarIDsByName["Investments"], 600_000},
+		} {
+			allocations = append(allocations, []any{uuid.New(), transactionID, allocation.jarID, allocation.amount, now})
+		}
+	}
+	allocations = append(allocations, []any{
+		uuid.New(), appaIncomeID, necessities, 100_000, now,
+	})
+	if _, err := db.CopyFrom(ctx, pgx.Identifier{"jar_allocations"}, []string{
+		"id", "transaction_id", "jar_id", "amount", "created_at",
+	}, pgx.CopyFromRows(allocations)); err != nil {
+		return fmt.Errorf("insert demo income allocations: %w", err)
+	}
+	if err := refreshAccountBalances(ctx, db); err != nil {
+		return fmt.Errorf("refresh account balances: %w", err)
+	}
+	fmt.Printf("transactions: %d/%d\n", len(transactions), len(transactions))
+	return nil
+}
+
 func refreshAccountBalances(ctx context.Context, db *pgxpool.Pool) error {
 	_, err := db.Exec(
 		ctx,
@@ -164,7 +331,7 @@ func refreshAccountBalances(ctx context.Context, db *pgxpool.Pool) error {
 		)
 		UPDATE accounts a
 		SET
-			balance = COALESCE(account_deltas.balance, 0),
+			balance = a.balance + account_deltas.balance,
 			updated_at = NOW()
 		FROM account_deltas
 		WHERE a.id = account_deltas.account_id

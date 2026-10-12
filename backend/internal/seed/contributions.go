@@ -3,7 +3,6 @@ package seed
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,53 +10,25 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const contributionsPerGoal = 12
-
 func seedContributions(
 	ctx context.Context,
 	db *pgxpool.Pool,
 	goals []uuid.UUID,
 ) error {
-	rng := rand.New(rand.NewSource(42))
-
-	rows := make([][]any, 0, len(goals)*contributionsPerGoal)
-
-	startDate := time.Date(
-		2025,
-		1,
-		1,
-		0,
-		0,
-		0,
-		0,
-		time.UTC,
-	)
-
+	if len(goals) != len(goalDefinitions) {
+		return fmt.Errorf("got %d goals for %d goal definitions", len(goals), len(goalDefinitions))
+	}
+	rows := make([][]any, 0, len(goals))
 	now := time.Now()
-
-	for _, goalID := range goals {
-		for i := range contributionsPerGoal {
-			id := uuid.New()
-
-			amount := int64(
-				5_000 + rng.Intn(45_000),
-			)
-
-			occurredAt := startDate.AddDate(
-				0,
-				i,
-				rng.Intn(28),
-			)
-
-			rows = append(rows, []any{
-				id,
-				goalID,
-				amount,
-				occurredAt,
-				now,
-				now,
-			})
-		}
+	for i, goalID := range goals {
+		rows = append(rows, []any{
+			uuid.New(),
+			goalID,
+			goalDefinitions[i].initialContribution,
+			now,
+			now,
+			now,
+		})
 	}
 
 	_, err := db.CopyFrom(

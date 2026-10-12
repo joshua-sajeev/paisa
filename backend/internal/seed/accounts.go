@@ -10,32 +10,31 @@ import (
 )
 
 var accountDefinitions = []struct {
-	name    string
-	iconKey string
+	name           string
+	iconKey        string
+	openingBalance int64
+	isPrimary      bool
 }{
 	{
-		name:    "HDFC",
-		iconKey: "hdfc",
+		name:           "FBI",
+		iconKey:        "fbi",
+		openingBalance: 200_000,
 	},
 	{
-		name:    "ICICI",
-		iconKey: "icici",
+		name:           "SBI",
+		iconKey:        "sbi",
+		openingBalance: 1_050_000,
 	},
 	{
-		name:    "HSBC",
-		iconKey: "hsbc",
+		name:           "HDFC",
+		iconKey:        "hdfc",
+		openingBalance: 500_000,
+		isPrimary:      true,
 	},
 	{
-		name:    "SBI",
-		iconKey: "sbi",
-	},
-	{
-		name:    "FBI",
-		iconKey: "bank",
-	},
-	{
-		name:    "Cash",
-		iconKey: "cash",
+		name:           "Wallet",
+		iconKey:        "cash",
+		openingBalance: 70_000,
 	},
 }
 
@@ -56,15 +55,19 @@ func seedAccounts(
 				id,
 				name,
 				icon_key,
+				balance,
+				is_primary,
 				is_archived,
 				created_at,
 				updated_at
 			)
-			VALUES ($1, $2, $3, FALSE, $4, $4)
+			VALUES ($1, $2, $3, $4, $5, FALSE, $6, $6)
 			`,
 			id,
 			account.name,
 			account.iconKey,
+			account.openingBalance,
+			account.isPrimary,
 			now,
 		)
 		if err != nil {
