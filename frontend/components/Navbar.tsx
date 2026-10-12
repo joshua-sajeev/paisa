@@ -35,18 +35,19 @@ export function Navbar() {
           </span>
         </Link>
 
-        {/* Privacy Toggle Button */}
-        <button
-          onClick={togglePrivacy}
-          aria-label="Toggle balances visibility"
-          className="w-9 h-9 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-600 transition-all cursor-pointer border border-neutral-200"
-        >
-          {isPrivate ? (
-            <Visibility width={20} height={20} />
-          ) : (
-            <VisibilityOff width={20} height={20} />
-          )}
-        </button>
+        {pathname === "/dashboard" && (
+          <button
+            onClick={togglePrivacy}
+            aria-label="Toggle balances visibility"
+            className="w-9 h-9 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-600 transition-all cursor-pointer border border-neutral-200"
+          >
+            {isPrivate ? (
+              <Visibility width={20} height={20} />
+            ) : (
+              <VisibilityOff width={20} height={20} />
+            )}
+          </button>
+        )}
       </div>
     </header>
   );

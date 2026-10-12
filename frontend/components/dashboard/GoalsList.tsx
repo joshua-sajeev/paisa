@@ -1,8 +1,8 @@
 'use client';
 
 import { DashboardGoal } from '@/lib/dashboard';
+import Link from 'next/link';
 import {
-  Add,
   LaptopMac,
   FlightTakeoff,
   Shield,
@@ -51,14 +51,12 @@ export default function GoalsList({
           Financial Goals
         </h2>
 
-        <button
-          type="button"
-          onClick={onAddGoal}
-          className="text-xs font-semibold text-[#067FF3] flex items-center gap-0.5 cursor-pointer"
+        <Link
+          href="/goals"
+          className="text-xs font-semibold text-[#067FF3] flex items-center gap-0.5 hover:underline"
         >
-          <Add className="w-3.5 h-3.5" />
-          <span>Add Goal</span>
-        </button>
+          <span>View All</span>
+        </Link>
       </div>
 
       <div className="flex flex-col gap-2">

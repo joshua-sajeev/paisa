@@ -2,6 +2,7 @@
 
 import { DashboardTransaction } from '@/lib/dashboard';
 import { ChevronRight } from '@material-symbols-svg/react/w400';
+import Link from 'next/link';
 import TransactionRow from './TransactionRow';
 
 interface RecentActivityProps {
@@ -27,14 +28,14 @@ export default function RecentActivity({
           Recent Activity
         </h2>
 
-        <button
-          type="button"
-          className="text-xs font-semibold text-[#067FF3] flex items-center gap-0.5 hover:underline cursor-pointer"
+        <Link
+          href="/transactions"
+          className="text-xs font-semibold text-[#067FF3] flex items-center gap-0.5 hover:underline"
         >
           View All
 
           <ChevronRight className="w-3.5 h-3.5" />
-        </button>
+        </Link>
       </div>
 
       {/* Transactions */}
