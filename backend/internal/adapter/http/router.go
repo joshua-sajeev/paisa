@@ -28,6 +28,7 @@ type HandlerRegistry struct {
 	AllocationHandler  *handler.AllocationHandler
 	SessionStore       session.SessionStore
 	SessionHandler     *handler.SessionHandler
+	DemoHandler        *handler.DemoHandler
 	DemoMode           bool
 }
 
@@ -58,6 +59,12 @@ func NewRouter(h *HandlerRegistry, logger *slog.Logger) http.Handler {
 	r.Route("/api/v1", func(r chi.Router) {
 		// Public session endpoint.
 		registerSessionRoutes(r, h.SessionHandler, h.SessionStore)
+		if h.DemoHandler != nil {
+			r.Get("/demo/mode", h.DemoHandler.Mode)
+			if h.DemoMode {
+				r.Post("/demo/reset", h.DemoHandler.Reset)
+			}
+		}
 
 		// Protected routes.
 		r.Group(func(r chi.Router) {

@@ -49,6 +49,7 @@ func main() {
 		StatementHandler:   container.StatementHandler,
 		SessionStore:       container.SessionStore,
 		SessionHandler:     container.SessionHandler,
+		DemoHandler:        container.DemoHandler,
 		DemoMode:           cfg.DemoMode,
 	}, container.Logger())
 	server := &http.Server{

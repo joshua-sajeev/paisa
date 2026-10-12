@@ -20,8 +20,12 @@ func RunWithCount(ctx context.Context, db *pgxpool.Pool, count int) error {
 }
 
 func run(ctx context.Context, db *pgxpool.Pool, count int, demo bool) error {
+	transactionCountLabel := "%d transactions"
+	if demo {
+		transactionCountLabel = "up to %d transactions"
+	}
 	log.Printf(
-		"seeding dataset: %d accounts, %d jars, %d goals, %d transactions",
+		"seeding dataset: %d accounts, %d jars, %d goals, "+transactionCountLabel,
 		len(accountDefinitions),
 		len(jarDefinitions),
 		len(goalDefinitions),

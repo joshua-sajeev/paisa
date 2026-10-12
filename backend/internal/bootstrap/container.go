@@ -27,6 +27,7 @@ type Container struct {
 	GoalHandler        *handler.GoalHandler
 	AllocationHandler  *handler.AllocationHandler
 	SessionHandler     *handler.SessionHandler
+	DemoHandler        *handler.DemoHandler
 	// Internal dependencies
 	logger *slog.Logger
 	db     *pgxpool.Pool
@@ -217,6 +218,7 @@ func (c *Container) initHandlers() {
 		c.cfg.DemoMode,
 		c.logger,
 	)
+	c.DemoHandler = handler.NewDemoHandler(c.db, c.cfg.DemoMode, c.logger)
 }
 
 // Logger returns the application logger.

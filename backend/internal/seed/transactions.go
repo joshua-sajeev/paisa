@@ -164,8 +164,14 @@ func seedDemoTransactions(
 
 	hdfc := accountsByName["HDFC"]
 	fbi := accountsByName["FBI"]
+	wallet := accountsByName["Wallet"]
 	var transactions []generatedTransaction
 	var masterIncomeIDs []uuid.UUID
+	type incomeAllocation struct {
+		transactionID uuid.UUID
+		amount        int64
+	}
+	var appaIncomeAllocations []incomeAllocation
 	add := func(name, txType, category string, from, to *uuid.UUID, amount int64, occurredAt time.Time, master bool, jarID *uuid.UUID) uuid.UUID {
 		tx := generatedTransaction{
 			id: uuid.New(), name: name, txType: txType, category: category,
@@ -234,6 +240,10 @@ func seedDemoTransactions(
 	add("Brother", "transfer", "transfer", &hdfc, &fbi, 50_000, transactionTime(previousMonthStart, 15, "Brother"), false, nil)
 
 	// Previous month transactions.
+	appaIncomeAllocations = append(appaIncomeAllocations, incomeAllocation{
+		transactionID: add("Appa", "income", "other", nil, &wallet, 50_000, transactionTime(previousMonthStart, 28, "Appa"), false, &necessities),
+		amount:        50_000,
+	})
 	addExpense(previousMonthStart, 7, "Church", 100, "donation", hdfc, donations)
 	addExpense(previousMonthStart, 7, "Tea", 10, "food", hdfc, leisure)
 	addExpense(previousMonthStart, 7, "Groceries", 230, "groceries", hdfc, necessities)
@@ -245,6 +255,10 @@ func seedDemoTransactions(
 	addExpense(previousMonthStart, 15, "BMTC", 18, "transport", hdfc, leisure)
 
 	// Current month transactions.
+	appaIncomeAllocations = append(appaIncomeAllocations, incomeAllocation{
+		transactionID: add("Appa", "income", "other", nil, &wallet, 50_000, transactionTime(monthStart, 7, "Appa"), false, &necessities),
+		amount:        50_000,
+	})
 	addExpense(monthStart, 1, "Falooda", 150, "food", hdfc, leisure)
 	addExpense(monthStart, 13, "BMTC", 18, "transport", hdfc, leisure)
 	addExpense(monthStart, 13, "Tea", 20, "food", hdfc, leisure)
@@ -257,7 +271,25 @@ func seedDemoTransactions(
 	addExpense(monthStart, 25, "Groceries", 150, "groceries", hdfc, necessities)
 	addExpense(monthStart, 28, "Church", 200, "donation", hdfc, donations)
 	addExpense(monthStart, 13, "Uber", 200, "transport", hdfc, leisure)
-	appaIncomeID := add("Appa", "income", "other", nil, &hdfc, 100_000, transactionTime(monthStart, 25, "Appa"), false, &necessities)
+	if now.Day() >= 25 {
+		appaIncomeAllocations = append(appaIncomeAllocations, incomeAllocation{
+			transactionID: add("Appa", "income", "other", nil, &hdfc, 100_000, transactionTime(monthStart, 25, "Appa"), false, &necessities),
+			amount:        100_000,
+		})
+	}
+
+	// Keep the sample cap at thirty without adding any current-month records
+	// dated after today. Previous-month transactions remain in the seed.
+	currentMonthTransactions := transactions[:0]
+	for _, tx := range transactions {
+		if tx.occurredAt.Year() == now.Year() &&
+			tx.occurredAt.Month() == now.Month() &&
+			tx.occurredAt.Day() > now.Day() {
+			continue
+		}
+		currentMonthTransactions = append(currentMonthTransactions, tx)
+	}
+	transactions = currentMonthTransactions
 
 	rows := make([][]any, 0, len(transactions))
 	for _, tx := range transactions {
@@ -289,9 +321,11 @@ func seedDemoTransactions(
 			allocations = append(allocations, []any{uuid.New(), transactionID, allocation.jarID, allocation.amount, now})
 		}
 	}
-	allocations = append(allocations, []any{
-		uuid.New(), appaIncomeID, necessities, 100_000, now,
-	})
+	for _, appaIncome := range appaIncomeAllocations {
+		allocations = append(allocations, []any{
+			uuid.New(), appaIncome.transactionID, necessities, appaIncome.amount, now,
+		})
+	}
 	if _, err := db.CopyFrom(ctx, pgx.Identifier{"jar_allocations"}, []string{
 		"id", "transaction_id", "jar_id", "amount", "created_at",
 	}, pgx.CopyFromRows(allocations)); err != nil {
@@ -300,7 +334,7 @@ func seedDemoTransactions(
 	if err := refreshAccountBalances(ctx, db); err != nil {
 		return fmt.Errorf("refresh account balances: %w", err)
 	}
-	fmt.Printf("transactions: %d/%d\n", len(transactions), len(transactions))
+	fmt.Printf("transactions: %d/%d\n", len(transactions), transactionCount)
 	return nil
 }
 

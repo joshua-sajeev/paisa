@@ -31,7 +31,7 @@ export default function TransactionsList() {
   const [jars, setJars] = useState<Jar[]>([]);
 
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(5);
+  const [limit, setLimit] = useState(10);
 
   const [loading, setLoading] = useState(true);
   const [loadingFilters, setLoadingFilters] = useState(true);
