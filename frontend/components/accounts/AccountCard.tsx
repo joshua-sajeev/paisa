@@ -8,6 +8,7 @@ import { ChevronRight } from "@material-symbols-svg/react/icons/chevron-right";
 import { CloseFill } from "@material-symbols-svg/react/icons/close";
 
 import { updateAccount } from "@/lib/accounts/accounts";
+import { formatMoney } from "@/lib/utils";
 import EditAccountModal from "./EditAccountModal";
 import { Account } from "./AccountsPage";
 import AccountIcon from "./AccountIcon";
@@ -32,14 +33,7 @@ export default function AccountCard({
   const [showEditModal, setShowEditModal] =
     useState(false);
 
-  const formattedBalance = new Intl.NumberFormat(
-    "en-IN",
-    {
-      style: "currency",
-      currency: "INR",
-      minimumFractionDigits: 2,
-    },
-  ).format(account.balance);
+  const formattedBalance = `₹${formatMoney(account.balance)}`;
 
   async function handleArchive() {
     if (archiving) {

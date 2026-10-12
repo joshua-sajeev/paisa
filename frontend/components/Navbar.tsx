@@ -12,7 +12,7 @@ export function Navbar() {
   const pathname = usePathname();
   const { isPrivate, togglePrivacy } = usePrivacy();
 
-  if (pathname === "/login") {
+  if (pathname === "/login" || pathname === "/transactions/add") {
     return null;
   }
 

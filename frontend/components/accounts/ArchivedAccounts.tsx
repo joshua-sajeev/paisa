@@ -7,6 +7,7 @@ import { CloseFill } from "@material-symbols-svg/react/icons/close";
 import { ExpandCircleDown } from "@material-symbols-svg/react/icons/expand-circle-down";
 
 import { updateAccount } from "@/lib/accounts/accounts";
+import { formatMoney } from "@/lib/utils";
 
 import { Account } from "./AccountsPage";
 import AccountIcon from "./AccountIcon";
@@ -82,11 +83,7 @@ function ArchivedAccountCard({
   const [unarchiving, setUnarchiving] = useState(false);
   const [error, setError] = useState("");
 
-  const formattedBalance = new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    minimumFractionDigits: 2,
-  }).format(account.balance);
+  const formattedBalance = `₹${formatMoney(account.balance)}`;
 
   function openUnarchiveModal() {
     setError("");

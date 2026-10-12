@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { DashboardSummary } from '@/lib/dashboard';
 import { formatMoney } from '@/lib/utils';
 import { usePrivacy } from '@/context/PrivacyContext';
@@ -17,11 +18,20 @@ interface SummaryCardProps {
 export default function SummaryCard({ summary }: SummaryCardProps) {
   const { isPrivate } = usePrivacy();
   const [isRevealed, setIsRevealed] = useState(false);
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTriggered = useRef(false);
 
   const toggleReveal = () => {
     if (!isPrivate) return;
     setIsRevealed((prev) => !prev);
   };
+
+  const clearPressTimer = () => {
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    pressTimer.current = null;
+  };
+
+  useEffect(() => clearPressTimer, []);
 
   const formatAmount = (
     amount: number,
@@ -30,11 +40,7 @@ export default function SummaryCard({ summary }: SummaryCardProps) {
     if (isPrivate && !isRevealed) {
       return (
         <span
-          className={
-            size === 'large'
-              ? 'inline-flex w-fit items-center rounded-lg border border-slate-200/70 bg-slate-100/70 px-2.5 py-1 text-slate-400 backdrop-blur-sm'
-              : 'inline-flex w-fit items-center rounded-md border border-slate-200/70 bg-slate-100/70 px-1.5 py-0.5 text-slate-400 backdrop-blur-sm'
-          }
+          className={size === 'large' ? 'font-extrabold tracking-widest text-slate-900' : 'font-bold tracking-widest text-slate-900'}
         >
           ₹••••
         </span>
@@ -45,15 +51,35 @@ export default function SummaryCard({ summary }: SummaryCardProps) {
   };
 
   return (
-    <button
-      type="button"
-      onClick={toggleReveal}
-      className="relative flex w-full flex-col gap-4 overflow-hidden rounded-xl border border-gray-200/80 bg-white p-5 text-left shadow-sm transition-all hover:shadow-md"
-      aria-label={
-        isPrivate
-          ? 'Toggle summary amounts visibility'
-          : 'Financial summary'
-      }
+    <div
+      onPointerDown={(event) => {
+        if (event.button !== 0) return;
+        clearPressTimer();
+        longPressTriggered.current = false;
+        pressTimer.current = setTimeout(() => {
+          if (isPrivate) {
+            longPressTriggered.current = true;
+            toggleReveal();
+          }
+        }, 500);
+      }}
+      onPointerUp={clearPressTimer}
+      onPointerLeave={clearPressTimer}
+      onPointerCancel={() => {
+        clearPressTimer();
+        longPressTriggered.current = false;
+      }}
+      onContextMenu={(event) => event.preventDefault()}
+      onClickCapture={(event) => {
+        if (longPressTriggered.current) {
+          event.preventDefault();
+          event.stopPropagation();
+          longPressTriggered.current = false;
+        }
+      }}
+      className="relative flex w-full touch-manipulation select-none flex-col gap-4 overflow-hidden rounded-xl border border-gray-200/80 bg-white p-5 text-left shadow-sm transition-all hover:shadow-md"
+      aria-label={isPrivate ? 'Press and hold to reveal summary amounts' : undefined}
+      aria-description={isPrivate ? "Press and hold for half a second to toggle amount visibility." : undefined}
     >
       {/* Decorative background blurs */}
       <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-amber-100 opacity-40 blur-2xl" />
@@ -74,7 +100,7 @@ export default function SummaryCard({ summary }: SummaryCardProps) {
       <div className="relative z-10 flex flex-col gap-2 pt-1">
         <div className="grid grid-cols-2 gap-2">
           {/* Monthly Income */}
-          <div className="flex flex-col gap-0.5 rounded-lg bg-[rgb(236,253,245)] p-3">
+          <Link href="/transactions?type=income" className="flex flex-col gap-0.5 rounded-lg bg-[rgb(236,253,245)] p-3 transition hover:brightness-[0.98]">
             <div className="flex items-center">
               <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[rgba(16,185,129,0.2)] text-[rgb(5,150,105)]">
                 <ArrowUpward size={14} color="currentColor" />
@@ -90,10 +116,10 @@ export default function SummaryCard({ summary }: SummaryCardProps) {
                 {formatAmount(summary?.monthly_income ?? 0)}
               </span>
             </div>
-          </div>
+          </Link>
 
           {/* Monthly Spend */}
-          <div className="flex flex-col gap-0.5 rounded-lg bg-[rgb(254,242,242)] p-3">
+          <Link href="/transactions?type=expense" className="flex flex-col gap-0.5 rounded-lg bg-[rgb(254,242,242)] p-3 transition hover:brightness-[0.98]">
             <div className="flex items-center">
               <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[rgba(239,68,68,0.18)] text-[rgb(220,38,38)]">
                 <ArrowDownward size={14} color="currentColor" />
@@ -109,11 +135,11 @@ export default function SummaryCard({ summary }: SummaryCardProps) {
                 {formatAmount(summary?.monthly_expense ?? 0)}
               </span>
             </div>
-          </div>
+          </Link>
         </div>
 
         {/* Monthly Savings */}
-        <div className="flex items-center justify-between rounded-lg bg-[rgb(238,242,255)] px-3 py-2">
+        <Link href="/transactions" className="flex items-center justify-between rounded-lg bg-[rgb(238,242,255)] px-3 py-2 transition hover:brightness-[0.98]">
           <div className="flex items-center gap-2">
             <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[rgba(99,102,241,0.2)] text-[rgb(55,48,163)]">
               <Savings size={14} color="currentColor" />
@@ -141,8 +167,8 @@ export default function SummaryCard({ summary }: SummaryCardProps) {
           >
             {summary?.monthly_savings_rate?.toFixed(1) ?? '0.0'}%
           </span>
-        </div>
+        </Link>
       </div>
-    </button>
+    </div>
   );
 }

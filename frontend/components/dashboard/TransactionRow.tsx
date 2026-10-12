@@ -3,20 +3,8 @@
 import { useRef, useState } from 'react';
 import { formatMoney } from '@/lib/utils';
 import { DashboardTransaction } from '@/lib/dashboard';
-import { usePrivacy } from '@/context/PrivacyContext';
+import { getTypeClasses, TransactionIcon } from '@/components/transactions/transaction-utils';
 
-import {
-  LocalDining,
-  DirectionsCar,
-  Movie,
-  ShoppingCart,
-  MedicalServices,
-  SwapHoriz,
-  Favorite,
-  TrendingUp,
-  Home,
-  Label,
-} from '@material-symbols-svg/react/w400';
 
 interface TransactionRowProps {
   transaction: DashboardTransaction;
@@ -24,61 +12,11 @@ interface TransactionRowProps {
   onDelete?: (transaction: DashboardTransaction) => void;
 }
 
-const TRANSACTION_STYLES = {
-  food: {
-    icon: LocalDining,
-    background: '#F7CD1B',
-    iconColor: '#171717',
-  },
-  transport: {
-    icon: DirectionsCar,
-    background: '#4F46E5',
-    iconColor: '#FFFFFF',
-  },
-  entertainment: {
-    icon: Movie,
-    background: '#9333EA',
-    iconColor: '#FFFFFF',
-  },
-  groceries: {
-    icon: ShoppingCart,
-    background: '#16A34A',
-    iconColor: '#FFFFFF',
-  },
-  health: {
-    icon: MedicalServices,
-    background: '#EC4899',
-    iconColor: '#FFFFFF',
-  },
-  transfer: {
-    icon: SwapHoriz,
-    background: '#067FF3',
-    iconColor: '#FFFFFF',
-  },
-  donation: {
-    icon: Favorite,
-    background: '#DC2626',
-    iconColor: '#FFFFFF',
-  },
-  investment: {
-    icon: TrendingUp,
-    background: '#059669',
-    iconColor: '#FFFFFF',
-  },
-  housing: {
-    icon: Home,
-    background: '#D97706',
-    iconColor: '#FFFFFF',
-  },
-  other: {
-    icon: Label,
-    background: '#6B7280',
-    iconColor: '#FFFFFF',
-  },
-} as const;
+function formatDate(value: string) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return '—';
 
-function formatDate(date: string) {
-  return new Date(date).toLocaleDateString('en-IN', {
+  return date.toLocaleDateString('en-IN', {
     month: 'short',
     day: 'numeric',
   });
@@ -131,54 +69,20 @@ function DeleteIcon() {
   );
 }
 
-function PrivacyPill({
-  children,
-  size = 'amount',
-}: {
-  children: React.ReactNode;
-  size?: 'amount' | 'account';
-}) {
-  return (
-    <span
-      className={
-        size === 'amount'
-          ? 'inline-flex w-fit items-center rounded-lg border border-slate-200/70 bg-slate-100/70 px-2 py-0.5 text-[12px] font-bold text-slate-400 backdrop-blur-sm'
-          : 'inline-flex w-fit items-center rounded-md border border-slate-200/70 bg-slate-100/70 px-1.5 py-0.5 text-[10px] font-medium text-slate-400 backdrop-blur-sm'
-      }
-    >
-      {children}
-    </span>
-  );
-}
-
 export default function TransactionRow({
   transaction,
   onEdit,
   onDelete,
 }: TransactionRowProps) {
-  const { isPrivate } = usePrivacy();
-
-  // Controls privacy for this row only.
-  const [isRevealed, setIsRevealed] = useState(false);
-
   const [offset, setOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
 
   const startX = useRef(0);
   const startOffset = useRef(0);
 
-  // Used to distinguish a tap from a swipe.
-  const didSwipe = useRef(false);
-
   const isTransfer = transaction.type === 'transfer';
   const isIncome = transaction.type === 'income';
-
-  const style = isTransfer
-    ? TRANSACTION_STYLES.transfer
-    : TRANSACTION_STYLES[transaction.category] ??
-    TRANSACTION_STYLES.other;
-
-  const Icon = style.icon;
+  const styles = getTypeClasses(transaction.type);
 
   const ACTION_WIDTH = 144;
   const SWIPE_THRESHOLD = 60;
@@ -188,8 +92,6 @@ export default function TransactionRow({
   ) => {
     startX.current = event.clientX;
     startOffset.current = offset;
-
-    didSwipe.current = false;
 
     setDragging(true);
 
@@ -202,12 +104,6 @@ export default function TransactionRow({
     if (!dragging) return;
 
     const delta = event.clientX - startX.current;
-
-    // Once the finger/mouse has moved enough,
-    // consider this a swipe instead of a tap.
-    if (Math.abs(delta) > 5) {
-      didSwipe.current = true;
-    }
 
     let nextOffset = startOffset.current + delta;
 
@@ -227,14 +123,6 @@ export default function TransactionRow({
     }
   };
 
-  const handleClick = () => {
-    // Only reveal when privacy mode is enabled.
-    // A swipe should not trigger the reveal.
-    if (isPrivate && !didSwipe.current) {
-      setIsRevealed((prev) => !prev);
-    }
-  };
-
   const handleEdit = () => {
     setOffset(0);
     onEdit?.(transaction);
@@ -249,21 +137,11 @@ export default function TransactionRow({
     ? `₹${formatMoney(transaction.amount)}`
     : `${isIncome ? '+' : '-'}₹${formatMoney(transaction.amount)}`;
 
-  const amountColor = isTransfer
-    ? '#067FF3'
-    : isIncome
-      ? '#10B981'
-      : '#EF4444';
-
   const categoryLabel = capitalize(transaction.category);
 
   const accountInfo = transaction.jar_name
     ? `${transaction.jar_name} • ${transaction.account}`
     : transaction.account;
-
-  // When privacy is disabled, always show the information.
-  // When privacy is enabled, only show it if this row is revealed.
-  const showPrivateData = !isPrivate || isRevealed;
 
   return (
     <div className="relative overflow-hidden rounded-xl">
@@ -297,7 +175,6 @@ export default function TransactionRow({
             ? 'none'
             : 'transform 180ms ease-out',
         }}
-        onClick={handleClick}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -305,17 +182,9 @@ export default function TransactionRow({
       >
         {/* Category icon */}
         <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-          style={{
-            backgroundColor: style.background,
-          }}
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${styles.icon}`}
         >
-          <Icon
-            className="h-5 w-5"
-            style={{
-              color: style.iconColor,
-            }}
-          />
+          <TransactionIcon type={transaction.type} category={transaction.category} />
         </div>
 
         {/* Transaction information */}
@@ -327,35 +196,24 @@ export default function TransactionRow({
           <div className="mt-1 flex items-center gap-1 text-[11px] font-medium leading-tight text-slate-500">
             <span>{categoryLabel}</span>
             <span>•</span>
-            <span>{formatDate(transaction.date)}</span>
+            <span>{formatDate(transaction.occurred_at)}</span>
           </div>
         </div>
 
         {/* Amount + Jar + Bank */}
         <div className="ml-2 flex shrink-0 flex-col items-end text-right">
           {/* Amount */}
-          {showPrivateData ? (
-            <span
-              className="text-[14px] font-bold leading-tight"
-              style={{
-                color: amountColor,
-              }}
-            >
-              {displayAmount}
-            </span>
-          ) : (
-            <PrivacyPill size="amount">₹••••</PrivacyPill>
-          )}
+          <span
+            className={`text-[14px] font-bold leading-tight ${styles.amount}`}
+          >
+            {displayAmount}
+          </span>
 
           {/* Jar + Bank */}
           <div className="mt-1 max-w-[150px] truncate">
-            {showPrivateData ? (
-              <span className="text-[11px] font-medium leading-tight text-slate-500">
-                {accountInfo}
-              </span>
-            ) : (
-              <PrivacyPill size="account">••••</PrivacyPill>
-            )}
+            <span className="text-[11px] font-medium leading-tight text-slate-500">
+              {accountInfo}
+            </span>
           </div>
         </div>
       </div>

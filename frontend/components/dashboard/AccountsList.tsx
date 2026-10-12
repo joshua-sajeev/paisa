@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { DashboardAccount } from "@/lib/dashboard";
 import { formatMoney } from "@/lib/utils";
 import { usePrivacy } from "@/context/PrivacyContext";
@@ -24,8 +25,18 @@ interface AccountsListProps {
 }
 
 export default function AccountsList({ accounts }: AccountsListProps) {
+  const router = useRouter();
   const { isPrivate } = usePrivacy();
   const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTriggered = useRef(false);
+
+  const clearPressTimer = () => {
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    pressTimer.current = null;
+  };
+
+  useEffect(() => clearPressTimer, []);
 
   const sortedAccounts = [...accounts].sort((a, b) => {
     if (a.is_primary && !b.is_primary) return -1;
@@ -54,7 +65,7 @@ export default function AccountsList({ accounts }: AccountsListProps) {
 
     if (isPrivate && !isRevealed) {
       return (
-        <span className="inline-flex w-fit items-center rounded-md border border-slate-200/70 bg-slate-100/70 px-1.5 py-0.5 text-slate-400 backdrop-blur-sm">
+        <span className="font-bold tracking-widest text-slate-900">
           ₹••••
         </span>
       );
@@ -132,14 +143,40 @@ export default function AccountsList({ accounts }: AccountsListProps) {
           <button
             key={account.id}
             type="button"
-            onClick={() => toggleReveal(account.id)}
-            className="flex flex-shrink-0 flex-col justify-between rounded-xl bg-white p-3 text-left shadow-sm transition-transform active:scale-[0.98]"
+            onPointerDown={(event) => {
+              if (event.button !== 0) return;
+              clearPressTimer();
+              longPressTriggered.current = false;
+              pressTimer.current = setTimeout(() => {
+                if (isPrivate) {
+                  longPressTriggered.current = true;
+                  toggleReveal(account.id);
+                }
+              }, 500);
+            }}
+            onPointerUp={clearPressTimer}
+            onPointerLeave={clearPressTimer}
+            onPointerCancel={() => {
+              clearPressTimer();
+              longPressTriggered.current = false;
+            }}
+            onContextMenu={(event) => event.preventDefault()}
+            onClick={(event) => {
+              if (longPressTriggered.current) {
+                event.preventDefault();
+                longPressTriggered.current = false;
+                return;
+              }
+              router.push(`/accounts/statement?accountId=${encodeURIComponent(account.id)}`);
+            }}
+            className="flex touch-manipulation select-none flex-shrink-0 flex-col justify-between rounded-xl bg-white p-3 text-left shadow-sm transition-transform active:scale-[0.98]"
             style={{ width: accounts.length === 1 ? "100%" : "190px" }}
             aria-label={
               isPrivate
-                ? `Toggle balance visibility for ${account.name}`
-                : `${account.name} account`
+                ? `${account.name}. Tap to open statement, press and hold to reveal balance.`
+                : `Open ${account.name} account statement`
             }
+            aria-description={isPrivate ? "Press and hold for half a second to toggle amount visibility." : undefined}
           >
             {/* Account info */}
             <div className="flex items-center gap-2">

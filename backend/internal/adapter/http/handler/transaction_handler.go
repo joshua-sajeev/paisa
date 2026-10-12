@@ -45,11 +45,11 @@ type TransactionService interface {
 
 	Delete(ctx context.Context, id uuid.UUID) error
 
-	// List retrieves transactions with optional filtering and pagination.
+	// List retrieves a page of transactions plus the total matching the filters.
 	List(
 		ctx context.Context,
 		params ports.ListParams,
-	) ([]*ports.TransactionListItem, error)
+	) (*ports.ListResult, error)
 
 	// ListByAccount retrieves transactions for a specific account with running balance.
 	ListByAccount(
@@ -60,6 +60,13 @@ type TransactionService interface {
 
 	GetByID(ctx context.Context, id uuid.UUID) (*transaction.Transaction, error)
 }
+
+const (
+	// transactionListDefaultLimit is the page size used when limit is absent or invalid.
+	transactionListDefaultLimit = 20
+	// transactionListMaxLimit is the largest page size GET /transactions will serve.
+	transactionListMaxLimit = 100
+)
 
 // TransactionHandler handles HTTP requests for transactions.
 type TransactionHandler struct {
@@ -302,19 +309,19 @@ type ListTransactionsResponse struct {
 }
 
 // HandleList handles GET /transactions.
-// Supports filtering by search, account, type, category, date range, and amount range.
+// Supports filtering by search, account, jar, type, category, date range, and amount range.
 func (h *TransactionHandler) HandleList(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
 	ctx := r.Context()
 
-	limit := 20
+	limit := transactionListDefaultLimit
 	offset := 0
 
 	if l := r.URL.Query().Get("limit"); l != "" {
 		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
-			limit = parsed
+			limit = min(parsed, transactionListMaxLimit)
 		}
 	}
 
@@ -333,10 +340,22 @@ func (h *TransactionHandler) HandleList(
 		params.Search = &search
 	}
 
-	if accountIDStr := r.URL.Query().Get("account_id"); accountIDStr != "" {
+	accountIDStr := r.URL.Query().Get("account_id")
+	if accountIDStr == "" {
+		// Keep accepting the short query key used by older transaction-list clients.
+		accountIDStr = r.URL.Query().Get("account")
+	}
+	if accountIDStr != "" {
 		accountID, err := uuid.Parse(accountIDStr)
 		if err == nil {
 			params.AccountID = &accountID
+		}
+	}
+
+	if jarIDStr := r.URL.Query().Get("jar_id"); jarIDStr != "" {
+		jarID, err := uuid.Parse(jarIDStr)
+		if err == nil {
+			params.JarID = &jarID
 		}
 	}
 
@@ -380,7 +399,7 @@ func (h *TransactionHandler) HandleList(
 		}
 	}
 
-	txns, err := h.service.List(ctx, params)
+	result, err := h.service.List(ctx, params)
 	if err != nil {
 		h.logger.ErrorContext(
 			ctx,
@@ -391,8 +410,8 @@ func (h *TransactionHandler) HandleList(
 		return
 	}
 
-	responses := make([]TransactionListItemResponse, len(txns))
-	for i, txn := range txns {
+	responses := make([]TransactionListItemResponse, len(result.Transactions))
+	for i, txn := range result.Transactions {
 		responses[i] = transactionListItemToResponse(txn)
 	}
 
@@ -400,7 +419,7 @@ func (h *TransactionHandler) HandleList(
 
 	_ = json.NewEncoder(w).Encode(ListTransactionsResponse{
 		Transactions: responses,
-		Total:        len(txns),
+		Total:        result.Total,
 	})
 }
 

@@ -262,21 +262,21 @@ export default function AllocationHistory({
               Monthly Summary
             </div>
 
-            <h2 className="text-sm font-black tracking-tight text-slate-900">
+            <h2 className="text-base font-black tracking-tight text-slate-900">
               {monthLabel} Activity
             </h2>
 
-            <p className="mt-0.5 text-[11px] font-medium text-slate-500">
+            <p className="mt-0.5 text-xs font-medium text-slate-500">
               {total} allocation{total === 1 ? "" : "s"} this month
             </p>
           </div>
 
           <div className="shrink-0 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-right">
-            <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-400">
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
               Total Allocated
             </span>
 
-            <span className="text-base font-black tracking-tight text-[#07B682]">
+            <span className="text-lg font-black tracking-tight text-[#07B682]">
               ₹{formatMoney(summary.total_allocated)}
             </span>
           </div>
@@ -287,7 +287,7 @@ export default function AllocationHistory({
       <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
         <div className="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/80 px-3.5 py-3">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold tracking-tight text-slate-800">
+            <span className="text-sm font-bold tracking-tight text-slate-800">
               Allocation History
             </span>
 
@@ -296,7 +296,7 @@ export default function AllocationHistory({
             </span>
           </div>
 
-          <span className="text-[11px] font-semibold text-slate-500">
+            <span className="text-xs font-semibold text-slate-500">
             Newest first
           </span>
         </div>

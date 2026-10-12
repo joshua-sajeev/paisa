@@ -24,10 +24,10 @@ const NAV_ITEMS = [
     activeIcon: HomeFill,
   },
   {
-    label: 'Transactions',
-    path: '/transactions',
-    icon: ReceiptLong,
-    activeIcon: ReceiptLongFill,
+    label: 'Goals',
+    path: '/goals',
+    icon: AdsClick,
+    activeIcon: AdsClickFill,
   },
   {
     label: 'Accounts',
@@ -42,15 +42,19 @@ const NAV_ITEMS = [
     activeIcon: SavingsFill,
   },
   {
-    label: 'Goals',
-    path: '/goals',
-    icon: AdsClick,
-    activeIcon: AdsClickFill,
+    label: 'Transactions',
+    path: '/transactions',
+    icon: ReceiptLong,
+    activeIcon: ReceiptLongFill,
   },
 ];
 
 export default function BottomNav() {
   const pathname = usePathname();
+
+  if (pathname === '/transactions/add') {
+    return null;
+  }
 
   return (
     <nav className="fixed bottom-0 z-50 w-full bg-white/85 pb-safe backdrop-blur-xl shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">

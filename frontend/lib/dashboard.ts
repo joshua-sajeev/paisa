@@ -39,7 +39,7 @@ export interface DashboardGoal {
 export interface DashboardTransaction {
   id: string;
   name: string;
-  date: string;
+  occurred_at: string;
   type: 'income' | 'expense' | 'transfer';
   amount: number;
   jar_name: string | null;

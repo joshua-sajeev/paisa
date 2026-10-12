@@ -1,5 +1,6 @@
 import { ReceiptLong } from "@material-symbols-svg/react/icons/receipt-long";
 import { SwapHoriz } from "@material-symbols-svg/react/icons/swap-horiz";
+import { formatMoney } from "@/lib/utils";
 
 type Props = {
   balance: number;
@@ -7,22 +8,12 @@ type Props = {
   archivedCount: number;
 };
 
-function formatBalance(value: number) {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-}
-
 export default function TotalBalanceCard({
   balance,
   activeCount,
   archivedCount,
 }: Props) {
-  const formatted = formatBalance(balance);
-  const [whole, decimal] = formatted.split(".");
+  const [whole, decimal = "00"] = formatMoney(balance).split(".");
 
   return (
     <section className="mb-5 rounded-2xl bg-white p-5 shadow-sm">
@@ -45,11 +36,11 @@ export default function TotalBalanceCard({
       <div className="my-2">
         <div className="font-extrabold tracking-tight tabular-nums text-on-surface">
           <span className="text-[34px] leading-none">
-            {whole}
+            ₹{whole}
           </span>
 
           <span className="ml-0.5 text-xl font-bold text-on-surface-variant">
-            .{decimal}
+            .{decimal.padEnd(2, "0")}
           </span>
         </div>
       </div>

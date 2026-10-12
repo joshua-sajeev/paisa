@@ -46,7 +46,7 @@ export default function RecentActivity({
             </span>
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col divide-y divide-slate-100">
             {transactions.map((transaction) => (
               <TransactionRow
                 key={transaction.id}

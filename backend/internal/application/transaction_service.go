@@ -359,11 +359,12 @@ func (s *TransactionService) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-// List retrieves transactions with optional filtering and pagination.
+// List retrieves a page of transactions with optional filtering, together
+// with the total number of transactions matching the filters.
 func (s *TransactionService) List(
 	ctx context.Context,
 	params ports.ListParams,
-) ([]*ports.TransactionListItem, error) {
+) (*ports.ListResult, error) {
 	s.logger.DebugContext(
 		ctx,
 		"listing transactions",
@@ -371,7 +372,7 @@ func (s *TransactionService) List(
 		slog.Int("offset", params.Offset),
 	)
 
-	txns, err := s.transactionRepo.List(ctx, params)
+	result, err := s.transactionRepo.List(ctx, params)
 	if err != nil {
 		s.logger.ErrorContext(
 			ctx,
@@ -381,7 +382,7 @@ func (s *TransactionService) List(
 		return nil, err
 	}
 
-	return txns, nil
+	return result, nil
 }
 
 // ListByAccount retrieves transactions for a specific account with running balance.

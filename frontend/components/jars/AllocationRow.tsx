@@ -32,18 +32,18 @@ export function AllocationRow({ allocation, color }: Props) {
             {date.day}
           </span>
 
-          <span className="mt-0.5 text-[9px] font-bold uppercase leading-none">
+          <span className="mt-0.5 text-[10px] font-bold uppercase leading-none">
             {date.month}
           </span>
         </div>
 
         {/* Transaction + Jar */}
         <div className="min-w-0">
-          <div className="truncate text-xs font-bold text-slate-900">
+          <div className="truncate text-sm font-bold text-slate-900">
             {allocation.transaction_name}
           </div>
 
-          <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px] font-semibold text-slate-600">
+          <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs font-semibold text-slate-600">
             <span
               className="h-1.5 w-1.5 shrink-0 rounded-full"
               style={{ backgroundColor: color }}
@@ -59,13 +59,13 @@ export function AllocationRow({ allocation, color }: Props) {
       {/* Amount + allocation rule */}
       <div className="shrink-0 pl-2 text-right">
         <div
-          className="text-sm font-black"
+          className="text-base font-black"
           style={{ color }}
         >
           +₹{formatMoney(allocation.amount)}
         </div>
 
-        <div className="mt-0.5 text-[10px] font-bold text-slate-400">
+        <div className="mt-0.5 text-[11px] font-bold text-slate-500">
           {allocationTypeLabel[allocation.allocation_type]}
         </div>
       </div>

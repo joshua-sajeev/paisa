@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   ReceiptLong,
   Movie,
@@ -14,7 +13,6 @@ import {
 import Link from "next/link";
 
 import { formatMoney } from "@/lib/utils";
-import { usePrivacy } from "@/context/PrivacyContext";
 
 interface Jar {
   id: string;
@@ -80,40 +78,7 @@ function getStatus(jar: Jar) {
 }
 
 export default function JarsList({ jars }: JarsListProps) {
-  const { isPrivate } = usePrivacy();
-  const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
-
   if (!jars || jars.length === 0) return null;
-
-  const toggleReveal = (id: string) => {
-    if (!isPrivate) return;
-
-    setRevealedIds((prev) => {
-      const next = new Set(prev);
-
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-
-      return next;
-    });
-  };
-
-  const formatAmount = (amount: number, jarId: string) => {
-    const isRevealed = revealedIds.has(jarId);
-
-    if (isPrivate && !isRevealed) {
-      return (
-        <span className="inline-flex items-center rounded-md border border-slate-200/70 bg-slate-100/70 px-1.5 py-0.5 text-slate-400 backdrop-blur-sm">
-          ₹••••
-        </span>
-      );
-    }
-
-    return <>₹{formatMoney(amount)}</>;
-  };
 
   return (
     <section className="flex flex-col gap-2.5">
@@ -144,16 +109,10 @@ export default function JarsList({ jars }: JarsListProps) {
           const status = getStatus(jar);
 
           return (
-            <button
+            <Link
               key={jar.id}
-              type="button"
-              onClick={() => toggleReveal(jar.id)}
+              href={`/transactions?jar_id=${encodeURIComponent(jar.id)}`}
               className="flex flex-col gap-2 rounded-xl bg-white p-3 text-left shadow-sm transition-transform active:scale-[0.99]"
-              aria-label={
-                isPrivate
-                  ? `Toggle amount visibility for ${jar.name}`
-                  : `${jar.name} jar`
-              }
             >
               {/* Header */}
               <div className="flex items-center justify-between">
@@ -180,9 +139,9 @@ export default function JarsList({ jars }: JarsListProps) {
               {/* Progress */}
               <div className="flex flex-col gap-1">
                 <span className="flex items-center gap-1 text-[11px] font-medium text-slate-500">
-                  {formatAmount(jar.used, jar.id)}
+                  ₹{formatMoney(jar.used)}
                   <span>spent of</span>
-                  {formatAmount(jar.allocated, jar.id)}
+                  ₹{formatMoney(jar.allocated)}
                 </span>
 
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
@@ -199,13 +158,13 @@ export default function JarsList({ jars }: JarsListProps) {
               {/* Bottom */}
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1 text-xs font-bold text-on-surface">
-                  {formatAmount(jar.available, jar.id)}
+                  ₹{formatMoney(jar.available)}
                   <span>Available</span>
                 </span>
 
                 <span className={status.className}>{status.label}</span>
               </div>
-            </button>
+            </Link>
           );
         })}
       </div>
