@@ -212,6 +212,7 @@ func TestAuthHandler_Login(t *testing.T) {
 				bytes.NewBufferString(tt.body),
 			)
 			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("X-Forwarded-Proto", "https")
 
 			w := httptest.NewRecorder()
 
@@ -417,6 +418,7 @@ func TestAuthHandler_Logout(t *testing.T) {
 				"/auth/logout",
 				nil,
 			)
+			req.Header.Set("X-Forwarded-Proto", "https")
 
 			if tt.sessionID != "" {
 				req.AddCookie(&http.Cookie{

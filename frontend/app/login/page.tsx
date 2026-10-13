@@ -1,21 +1,21 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
 import { PinKeypad } from "@/components/ui/pin-keypad";
 
 export default function LoginPage() {
-  const router = useRouter();
-
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [shake, setShake] = useState(false);
+  const loginStarted = useRef(false);
+
   async function handleLogin() {
-    if (pin.length !== 6 || loading) {
+    if (pin.length !== 6 || loginStarted.current) {
       return;
     }
 
+    loginStarted.current = true;
     setLoading(true);
     setError("");
 
@@ -32,6 +32,7 @@ export default function LoginPage() {
       });
 
       if (response.status === 401 || response.status === 429) {
+        loginStarted.current = false;
         setError(
           response.status === 401
             ? "Invalid PIN"
@@ -48,15 +49,19 @@ export default function LoginPage() {
         return;
       }
       if (!response.ok) {
+        loginStarted.current = false;
         setError("Unable to log in");
         return;
       }
 
-      router.push("/dashboard");
+      window.location.replace("/dashboard");
     } catch {
+      loginStarted.current = false;
       setError("Unable to connect to server");
     } finally {
-      setLoading(false);
+      if (!loginStarted.current) {
+        setLoading(false);
+      }
     }
   }
 

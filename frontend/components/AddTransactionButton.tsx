@@ -8,7 +8,7 @@ export default function AddTransactionButton() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  if (pathname === '/transactions/add') {
+  if (pathname === '/login' || pathname === '/transactions/add') {
     return null;
   }
 

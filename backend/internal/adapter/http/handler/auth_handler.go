@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/joshu-sajeev/paisa/internal/application"
@@ -15,6 +16,15 @@ import (
 )
 
 const sessionCookieName = "session_id"
+
+func secureCookieForRequest(r *http.Request) bool {
+	if r.TLS != nil {
+		return true
+	}
+
+	forwardedProto := strings.TrimSpace(strings.Split(r.Header.Get("X-Forwarded-Proto"), ",")[0])
+	return strings.EqualFold(forwardedProto, "https")
+}
 
 // AuthService defines the authentication operations required by AuthHandler.
 type AuthService interface {
@@ -176,7 +186,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Value:    sess.ID,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   secureCookieForRequest(r),
 		SameSite: http.SameSiteStrictMode,
 		Expires:  sess.ExpiresAt,
 	})
@@ -208,7 +218,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   secureCookieForRequest(r),
 		SameSite: http.SameSiteStrictMode,
 		MaxAge:   -1,
 	})
