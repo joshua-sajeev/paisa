@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getDashboardData, DashboardData } from "@/lib/dashboard";
+import { getDashboardData, DashboardData, DashboardTransaction } from "@/lib/dashboard";
+import DeleteTransactionDialog from "@/components/transactions/DeleteTransactionDialog";
 import SummaryCard from "@/components/dashboard/SummmaryCard";
 import AccountsList from "@/components/dashboard/AccountsList";
 import JarsList from "@/components/dashboard/JarsList";
@@ -12,6 +13,7 @@ import RecentActivity from "@/components/dashboard/RecentActivity";
 export default function DashboardPage() {
   const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<DashboardTransaction | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -20,6 +22,10 @@ export default function DashboardPage() {
     }
     loadData();
   }, []);
+
+  async function refreshData() {
+    setData(await getDashboardData());
+  }
 
   return (
     <main className="min-h-full p-3 max-w-5xl mx-auto flex flex-col gap-3">
@@ -33,11 +39,15 @@ export default function DashboardPage() {
           onEditTransaction={(transaction) => {
             router.push(`/transactions/edit?id=${encodeURIComponent(transaction.id)}`);
           }}
-          onDeleteTransaction={(transaction) => {
-            console.log('Delete:', transaction);
-          }}
+          onDeleteTransaction={(transaction) => setPendingDelete(transaction)}
         />
       </div>
+
+      <DeleteTransactionDialog
+        transaction={pendingDelete}
+        onClose={() => setPendingDelete(null)}
+        onDeleted={refreshData}
+      />
     </main>
   );
 }

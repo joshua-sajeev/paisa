@@ -15,6 +15,7 @@ import type { Account } from "@/lib/accounts/accounts";
 import AccountIcon from "@/components/accounts/AccountIcon";
 import { getJarIcon } from "@/components/jars/jar-icons";
 import { formatMoney, formatRFC3339, type TransactionCategory, type TransactionType } from "@/components/transactions/transaction-utils";
+import DeleteTransactionDialog from "@/components/transactions/DeleteTransactionDialog";
 
 type TransactionDetails = {
   id: string;
@@ -56,7 +57,7 @@ function localParts(value: string) {
 }
 
 export default function EditTransactionPage() {
-  return <Suspense fallback={<div className="min-h-screen bg-[#f8f9ff] p-6 pt-24 text-sm text-slate-500">Loading transaction…</div>}><EditTransactionContent/></Suspense>;
+  return <Suspense fallback={<div className="min-h-screen bg-[#f8f9ff] p-6 pt-24 text-sm text-slate-500">Loading transaction…</div>}><EditTransactionContent /></Suspense>;
 }
 
 function EditTransactionContent() {
@@ -72,6 +73,7 @@ function EditTransactionContent() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(id ? "" : "Transaction ID is missing.");
   const [toast, setToast] = useState("");
+  const [pendingDelete, setPendingDelete] = useState<TransactionDetails | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -101,8 +103,6 @@ function EditTransactionContent() {
         jarId: txn.jar_id ?? "", date: parts.date, time: parts.time,
         isMasterIncome: txn.is_master_income,
       });
-      // The transaction is enough to show the editor; the option lists load
-      // independently and don't block the form.
       setLoading(false);
     }).catch((cause: unknown) => {
       if (active) setError(cause instanceof Error ? cause.message : "Unable to load this transaction.");
@@ -196,13 +196,6 @@ function EditTransactionContent() {
     } finally { setSaving(false); }
   }
 
-  async function remove() {
-    if (!window.confirm("Delete this transaction? This cannot be undone.")) return;
-    setSaving(true);
-    try { await apiFetch(`/api/v1/transactions/${id}`, { method: "DELETE" }); router.push("/transactions"); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Could not delete transaction."); setSaving(false); }
-  }
-
   if (loading) return <div className="min-h-screen bg-[#f8f9ff] p-6 pt-24 text-sm text-slate-500">Loading transaction…</div>;
   if (!transaction || !form) return <div className="min-h-screen bg-[#f8f9ff] p-6 pt-24"><p className="text-sm text-rose-700">{error || "Transaction not found."}</p><Link href="/transactions" className="mt-4 inline-block text-sm font-semibold text-blue-700">Back to transactions</Link></div>;
 
@@ -212,15 +205,12 @@ function EditTransactionContent() {
   return <div className="min-h-screen bg-[#f8f9ff] pb-28 text-[#0b1c30]">
     <header className="fixed inset-x-0 top-0 z-30 border-b border-slate-200/50 bg-[#f8f9ff]/90 pt-safe backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-xl items-center justify-between px-4">
-        <button aria-label="Go back" onClick={() => router.back()} className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-slate-100 text-slate-700"><ArrowBack size={24}/></button>
+        <button aria-label="Go back" onClick={() => router.back()} className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-slate-100 text-slate-700"><ArrowBack size={24} /></button>
         <h1 className="text-base font-semibold">Edit Transaction</h1>
         <div className="w-11" />
       </div>
     </header>
     <main className="mx-auto flex max-w-xl flex-col gap-4 px-4 pt-20">
-      <div className="flex items-center justify-end pt-1">
-        <button aria-label="Delete transaction" disabled={saving} onClick={remove} className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-50 text-rose-600 hover:bg-rose-100 transition"><Delete size={20}/></button>
-      </div>
       <div className="grid grid-cols-3 rounded-full bg-slate-100 p-1.5 shadow-sm">
         {(["expense", "income", "transfer"] as TransactionType[]).map((type) => (
           <button
@@ -230,7 +220,7 @@ function EditTransactionContent() {
             onClick={() => switchType(type)}
             className={`flex items-center justify-center gap-1 rounded-full py-2.5 text-sm font-semibold capitalize transition-colors ${form.type === type ? typeTheme.active : "text-slate-500"}`}
           >
-            {type === "expense" ? <ArrowOutward size={17}/> : type === "income" ? <ArrowDownward size={17}/> : <SwapHoriz size={17}/>} {type}
+            {type === "expense" ? <ArrowOutward size={17} /> : type === "income" ? <ArrowDownward size={17} /> : <SwapHoriz size={17} />} {type}
           </button>
         ))}
       </div>
@@ -295,7 +285,7 @@ function EditTransactionContent() {
             <span className="mt-0.5 block text-xs text-slate-500">Count this as recurring or primary income</span>
           </span>
           <span className={`relative h-6 w-11 rounded-full transition-colors ${form.isMasterIncome ? "bg-emerald-500" : "bg-slate-300"}`}>
-            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${form.isMasterIncome ? "translate-x-5" : "translate-x-0.5"}`}/>
+            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${form.isMasterIncome ? "translate-x-5" : "translate-x-0.5"}`} />
           </span>
         </button>
       )}
@@ -315,14 +305,13 @@ function EditTransactionContent() {
                 type="button"
                 key={account.id}
                 onClick={() => setField("accountId", account.id)}
-                className={`relative flex min-h-24 flex-col justify-between rounded-2xl border p-3 text-left transition active:scale-[.98] ${
-                  selected ? `${typeTheme.selected}` : "border-slate-200 bg-white hover:border-slate-300"
-                }`}
+                className={`relative flex min-h-24 flex-col justify-between rounded-2xl border p-3 text-left transition active:scale-[.98] ${selected ? `${typeTheme.selected}` : "border-slate-200 bg-white hover:border-slate-300"
+                  }`}
               >
                 <div className="mb-2 flex items-start justify-between">
-                  <AccountIcon iconKey={account.icon_key ?? ""} name={account.name} index={index} size="sm"/>
+                  <AccountIcon iconKey={account.icon_key ?? ""} name={account.name} index={index} size="sm" />
                   <span className={`flex h-5 w-5 items-center justify-center rounded-full ${selected ? `${typeTheme.check}` : "border border-slate-300"}`}>
-                    {selected && <Check size={13}/>}
+                    {selected && <Check size={13} />}
                   </span>
                 </div>
                 <span className="truncate text-xs font-bold">{account.name}</span>
@@ -348,14 +337,13 @@ function EditTransactionContent() {
                   type="button"
                   key={account.id}
                   onClick={() => setField("toAccountId", account.id)}
-                  className={`relative flex min-h-24 flex-col justify-between rounded-2xl border p-3 text-left transition active:scale-[.98] ${
-                    selected ? "border-2 border-blue-500 bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/40 shadow-md shadow-blue-500/10" : "border-slate-200 bg-white hover:border-slate-300"
-                  }`}
+                  className={`relative flex min-h-24 flex-col justify-between rounded-2xl border p-3 text-left transition active:scale-[.98] ${selected ? "border-2 border-blue-500 bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/40 shadow-md shadow-blue-500/10" : "border-slate-200 bg-white hover:border-slate-300"
+                    }`}
                 >
                   <div className="mb-2 flex items-start justify-between">
-                    <AccountIcon iconKey={account.icon_key ?? ""} name={account.name} index={index} size="sm"/>
+                    <AccountIcon iconKey={account.icon_key ?? ""} name={account.name} index={index} size="sm" />
                     <span className={`flex h-5 w-5 items-center justify-center rounded-full ${selected ? "bg-blue-600 text-white shadow-sm shadow-blue-500/30" : "border border-slate-300"}`}>
-                      {selected && <Check size={13}/>}
+                      {selected && <Check size={13} />}
                     </span>
                   </div>
                   <span className="truncate text-xs font-bold">{account.name}</span>
@@ -391,16 +379,15 @@ function EditTransactionContent() {
                 type="button"
                 key={jar.id}
                 onClick={() => setField("jarId", selected ? "" : jar.id)}
-                className={`relative flex min-h-24 flex-col justify-between rounded-2xl border p-3.5 text-left transition active:scale-[.98] ${
-                  selected ? typeTheme.jar : "border-slate-200 bg-white hover:border-slate-300"
-                }`}
+                className={`relative flex min-h-24 flex-col justify-between rounded-2xl border p-3.5 text-left transition active:scale-[.98] ${selected ? typeTheme.jar : "border-slate-200 bg-white hover:border-slate-300"
+                  }`}
               >
                 <div className="flex items-start justify-between">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${jarColor}18` }}>
-                    <Icon size={18} color={jarColor}/>
+                    <Icon size={18} color={jarColor} />
                   </span>
                   <span className={`flex h-5 w-5 items-center justify-center rounded-full ${selected ? `${typeTheme.check}` : "border border-slate-300"}`}>
-                    {selected && <Check size={13}/>}
+                    {selected && <Check size={13} />}
                   </span>
                 </div>
                 <div>
@@ -427,15 +414,13 @@ function EditTransactionContent() {
                 type="button"
                 key={value}
                 onClick={() => setField("category", value)}
-                className={`flex items-center gap-2.5 p-2.5 rounded-xl text-left transition-all active:scale-95 border ${
-                  isSelected
-                    ? typeTheme.categorySelected
-                    : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-slate-700"
-                }`}
+                className={`flex items-center gap-2.5 p-2.5 rounded-xl text-left transition-all active:scale-95 border ${isSelected
+                  ? typeTheme.categorySelected
+                  : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-slate-700"
+                  }`}
               >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-transform ${
-                  isSelected ? typeTheme.categoryIconSelected : "bg-slate-100 text-slate-600"
-                }`}>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-transform ${isSelected ? typeTheme.categoryIconSelected : "bg-slate-100 text-slate-600"
+                  }`}>
                   <Icon size={18} />
                 </div>
                 <span className="font-bold text-xs truncate flex-1">{label}</span>
@@ -447,34 +432,31 @@ function EditTransactionContent() {
       </section>
       <section className="grid grid-cols-2 gap-3">
         <label className="flex items-center gap-2 rounded-2xl bg-white p-3 shadow-sm">
-          <CalendarToday className="shrink-0 text-slate-500" size={20}/>
+          <CalendarToday className="shrink-0 text-slate-500" size={20} />
           <span className="min-w-0 flex-1">
             <span className="block text-xs text-slate-500">Date</span>
-            <input aria-label="Date" type="date" value={form.date} onChange={(e) => setField("date", e.target.value)} className="w-full bg-transparent text-sm font-bold outline-none"/>
+            <input aria-label="Date" type="date" value={form.date} onChange={(e) => setField("date", e.target.value)} className="w-full bg-transparent text-sm font-bold outline-none" />
           </span>
         </label>
         <label className="flex items-center gap-2 rounded-2xl bg-white p-3 shadow-sm">
-          <Schedule className="shrink-0 text-slate-500" size={20}/>
+          <Schedule className="shrink-0 text-slate-500" size={20} />
           <span className="min-w-0 flex-1">
             <span className="block text-xs text-slate-500">Time</span>
-            <input aria-label="Time" type="time" value={form.time} onChange={(e) => setField("time", e.target.value)} className="w-full bg-transparent text-sm font-bold outline-none"/>
+            <input aria-label="Time" type="time" value={form.time} onChange={(e) => setField("time", e.target.value)} className="w-full bg-transparent text-sm font-bold outline-none" />
           </span>
         </label>
       </section>
       {error && <p role="alert" className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
       <div className="flex flex-col gap-3 pt-1">
         <button disabled={saving || optionsLoading} onClick={save} className={`flex h-[52px] items-center justify-center rounded-full text-sm font-bold text-white shadow-md disabled:opacity-60 transition ${typeTheme.button}`}>
-          <Check size={20} className="mr-2"/>
+          <Check size={20} className="mr-2" />
           {saving ? "Saving…" : optionsLoading ? "Loading options…" : "Save Changes"}
         </button>
         <button disabled={saving} onClick={() => router.back()} className="h-11 rounded-full bg-slate-100 hover:bg-slate-200 text-sm font-semibold text-slate-700 transition">
           Discard Changes
         </button>
-        <button disabled={saving} onClick={remove} className="flex items-center justify-center gap-1 py-2 text-sm font-semibold text-rose-600 hover:text-rose-700 transition">
-          <Delete size={16}/>Delete this transaction
-        </button>
       </div>
     </main>
-    {toast && <div role="status" className="fixed inset-x-4 bottom-24 z-40 mx-auto flex max-w-lg items-center gap-3 rounded-2xl bg-[#213145] p-4 text-sm font-semibold text-white shadow-xl"><CheckCircle className="text-emerald-300" size={22}/>{toast}</div>}
+    {toast && <div role="status" className="fixed inset-x-4 bottom-24 z-40 mx-auto flex max-w-lg items-center gap-3 rounded-2xl bg-[#213145] p-4 text-sm font-semibold text-white shadow-xl"><CheckCircle className="text-emerald-300" size={22} />{toast}</div>}
   </div>;
 }

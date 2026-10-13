@@ -11,6 +11,7 @@ import TransactionGroup from "./TransactionGroup";
 import TransactionsPagination from "./TransactionsPagination";
 import TransactionsSkeleton from "./TransactionsSkeleton";
 import TransactionsEmpty from "./TransactionsEmpty";
+import DeleteTransactionDialog from "./DeleteTransactionDialog";
 
 import {
   groupTransactions,
@@ -36,6 +37,8 @@ export default function TransactionsList() {
   const [loading, setLoading] = useState(true);
   const [loadingFilters, setLoadingFilters] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [pendingDelete, setPendingDelete] = useState<Transaction | null>(null);
 
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [type, setType] =
@@ -155,23 +158,19 @@ export default function TransactionsList() {
     maxAmount,
   ]);
 
-  async function deleteTransaction(transaction: Transaction) {
-    if (!window.confirm(`Delete “${transaction.name}”? This cannot be undone.`)) return;
-    try {
-      await apiFetch<void>(`/api/v1/transactions/${transaction.id}`, { method: "DELETE" });
-      setTotal((current) => Math.max(0, current - 1));
-      if (transactions.length === 1 && page > 1) {
-        setPage((current) => current - 1);
-      } else {
-        await fetchTransactions();
-      }
-    } catch (err) {
-      console.error("Failed to delete transaction", err);
-      window.alert(err instanceof Error ? err.message : "Unable to delete transaction.");
+  // Runs after the backend confirms the delete. Steps back a page if this was
+  // the last row on it; otherwise reloads the current page.
+  async function handleDeleted() {
+    setTotal((current) => Math.max(0, current - 1));
+    if (transactions.length === 1 && page > 1) {
+      setPage((current) => current - 1);
+    } else {
+      await fetchTransactions();
     }
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchTransactions();
   }, [fetchTransactions]);
 
@@ -275,7 +274,7 @@ export default function TransactionsList() {
               key={group}
               group={group}
               transactions={items}
-              onDelete={deleteTransaction}
+              onDelete={(transaction) => setPendingDelete(transaction)}
             />
           ))}
 
@@ -294,6 +293,12 @@ export default function TransactionsList() {
           />
         </div>
       )}
+
+      <DeleteTransactionDialog
+        transaction={pendingDelete}
+        onClose={() => setPendingDelete(null)}
+        onDeleted={handleDeleted}
+      />
     </div>
   );
 }

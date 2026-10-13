@@ -1,11 +1,12 @@
 import { Suspense } from "react";
 import { PrivacyProvider } from "@/context/PrivacyContext";
+import { ToastProvider } from "@/context/ToastContext";
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { Navbar } from "@/components/Navbar";
 import { MainLayout } from "@/components/MainLayout";
-import  BottomNav  from "@/components/BottomNav";
-import  AddTransactionButton  from "@/components/AddTransactionButton";
+import BottomNav from "@/components/BottomNav";
+import AddTransactionButton from "@/components/AddTransactionButton";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -21,8 +22,8 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: {
-    children: React.ReactNode;
-  }) {
+  children: React.ReactNode;
+}) {
   return (
     <html
       lang="en"
@@ -30,13 +31,15 @@ export default function RootLayout({
     >
       <head />
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <PrivacyProvider>
-          <Navbar />
+        <ToastProvider>
+          <PrivacyProvider>
+            <Navbar />
 
-          <MainLayout>
-            {children}
-          </MainLayout>
-        </PrivacyProvider>
+            <MainLayout>
+              {children}
+            </MainLayout>
+          </PrivacyProvider>
+        </ToastProvider>
 
         <Suspense fallback={null}>
           <AddTransactionButton />
