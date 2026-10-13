@@ -20,7 +20,8 @@ type ListParams struct {
 	Type      *transaction.TransactionType
 	Category  *transaction.TransactionCategory
 	// JarID restricts results to transactions assigned to a single jar.
-	JarID *uuid.UUID
+	JarID   *uuid.UUID
+	JarName *string
 	// FromDate is an inclusive lower bound on occurred_at.
 	FromDate *time.Time
 	// ToDate is an exclusive upper bound on occurred_at.

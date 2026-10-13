@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import StatementHeader from "./StatementHeader";
 import StatementFilters, {
   type DateRange,
-  isInDateRange,
 } from "./StatementFilters";
 import StatementTransactionList from "./StatementTransactionList";
 import StatementPagination from "./StatementPagination";
@@ -35,9 +34,10 @@ type StatementResponse = {
   account: StatementAccount;
   transactions: StatementTransaction[];
   total: number;
+  summary: { inflow: number; outflow: number; net: number };
 };
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 20;
 
 export default function AccountStatement({
   accountId,
@@ -48,6 +48,8 @@ export default function AccountStatement({
   const [transactions, setTransactions] = useState<StatementTransaction[]>(
     [],
   );
+  const [total, setTotal] = useState(0);
+  const [summary, setSummary] = useState({ inflow: 0, outflow: 0, net: 0 });
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<
     "all" | "income" | "expense" | "transfer"
@@ -71,8 +73,26 @@ export default function AccountStatement({
       setError("");
 
       try {
+        const params = new URLSearchParams({
+          limit: String(PAGE_SIZE),
+          offset: String((page - 1) * PAGE_SIZE),
+        });
+        if (search.trim()) params.set("search", search.trim());
+        if (filter !== "all") params.set("type", filter);
+        if (categoryFilter !== "all") params.set("category", categoryFilter);
+        if (jarFilter !== "all") params.set("jar_name", jarFilter);
+        if (dateRange) {
+          params.set("from_date", dateRange.start);
+          params.set("to_date", dateRange.end);
+        }
+        if (minAmount && Number.isFinite(Number(minAmount))) {
+          params.set("min_amount", String(Math.round(Number(minAmount) * 100)));
+        }
+        if (maxAmount && Number.isFinite(Number(maxAmount))) {
+          params.set("max_amount", String(Math.round(Number(maxAmount) * 100)));
+        }
         const response = await fetch(
-          `/api/v1/accounts/${accountId}/statement`,
+          `/api/v1/accounts/${accountId}/statement?${params.toString()}`,
           {
             method: "GET",
             headers: {
@@ -96,7 +116,8 @@ export default function AccountStatement({
 
         setAccount(data.account);
         setTransactions(data.transactions ?? []);
-        setPage(1);
+        setTotal(data.total ?? 0);
+        setSummary(data.summary ?? { inflow: 0, outflow: 0, net: 0 });
       } catch (err) {
         if (cancelled) {
           return;
@@ -116,67 +137,7 @@ export default function AccountStatement({
     return () => {
       cancelled = true;
     };
-  }, [accountId]);
-
-  const filteredTransactions = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    const min = minAmount ? parseFloat(minAmount) : null;
-    const max = maxAmount ? parseFloat(maxAmount) : null;
-
-    return transactions
-      .filter((transaction) => {
-        if (filter !== "all" && transaction.type !== filter) {
-          return false;
-        }
-
-        if (jarFilter !== "all" && transaction.jar_name !== jarFilter) {
-          return false;
-        }
-
-        if (
-          categoryFilter !== "all" &&
-          transaction.category !== categoryFilter
-        ) {
-          return false;
-        }
-
-        const absAmount = Math.abs(transaction.amount);
-        if (min !== null && !isNaN(min) && absAmount < min) {
-          return false;
-        }
-        if (max !== null && !isNaN(max) && absAmount > max) {
-          return false;
-        }
-
-        if (!isInDateRange(transaction.occurred_at, dateRange)) {
-          return false;
-        }
-
-        if (!query) {
-          return true;
-        }
-
-        return (
-          transaction.name.toLowerCase().includes(query) ||
-          transaction.category.toLowerCase().includes(query) ||
-          transaction.jar_name?.toLowerCase().includes(query)
-        );
-      })
-      .sort(
-        (a, b) =>
-          new Date(b.occurred_at).getTime() -
-          new Date(a.occurred_at).getTime(),
-      );
-  }, [
-    transactions,
-    search,
-    filter,
-    jarFilter,
-    categoryFilter,
-    minAmount,
-    maxAmount,
-    dateRange,
-  ]);
+  }, [accountId, page, search, filter, jarFilter, categoryFilter, minAmount, maxAmount, dateRange]);
 
   function handleJarFilter(value: string) {
     setJarFilter(value);
@@ -198,45 +159,7 @@ export default function AccountStatement({
     setPage(1);
   }
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredTransactions.length / PAGE_SIZE),
-  );
-
-  const currentPage = Math.min(page, totalPages);
-  const paginatedTransactions = useMemo(() => {
-    const start = (currentPage - 1) * PAGE_SIZE;
-    return filteredTransactions.slice(start, start + PAGE_SIZE);
-  }, [filteredTransactions, currentPage]);
-
-  const summary = useMemo(() => {
-    let inflow = 0;
-    let outflow = 0;
-
-    for (const transaction of transactions) {
-      if (!isInDateRange(transaction.occurred_at, dateRange)) {
-        continue;
-      }
-
-      if (
-        transaction.type === "income" ||
-        (transaction.type === "transfer" && transaction.amount > 0)
-      ) {
-        inflow += Math.abs(transaction.amount);
-      } else if (
-        transaction.type === "expense" ||
-        (transaction.type === "transfer" && transaction.amount < 0)
-      ) {
-        outflow += Math.abs(transaction.amount);
-      }
-    }
-
-    return {
-      inflow,
-      outflow,
-      net: inflow - outflow,
-    };
-  }, [transactions, dateRange]);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   function handleSearch(value: string) {
     setSearch(value);
@@ -320,12 +243,12 @@ export default function AccountStatement({
           onDateRangeChange={handleDateRange}
         />
 
-        <StatementTransactionList transactions={paginatedTransactions} />
+        <StatementTransactionList transactions={transactions} />
 
         <StatementPagination
-          page={currentPage}
+          page={page}
           totalPages={totalPages}
-          total={filteredTransactions.length}
+          total={total}
           pageSize={PAGE_SIZE}
           onPageChange={setPage}
         />

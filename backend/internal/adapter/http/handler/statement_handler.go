@@ -72,6 +72,13 @@ type StatementResponse struct {
 	Account      StatementAccountResponse       `json:"account"`
 	Transactions []StatementTransactionResponse `json:"transactions"`
 	Total        int                            `json:"total"`
+	Summary      StatementSummaryResponse       `json:"summary"`
+}
+
+type StatementSummaryResponse struct {
+	Inflow  int64 `json:"inflow"`
+	Outflow int64 `json:"outflow"`
+	Net     int64 `json:"net"`
 }
 
 // HandleGet handles GET /accounts/{id}/statement.
@@ -85,6 +92,7 @@ type StatementResponse struct {
 //	category            transaction category
 //	jar_id              jar UUID
 //	search              case-insensitive substring of the transaction name
+//	min_amount, max_amount minimum and maximum amounts in paise
 //	limit               1..100, default 20
 //	offset              >= 0, default 0
 func (h *StatementHandler) HandleGet(
@@ -148,6 +156,11 @@ func (h *StatementHandler) HandleGet(
 		},
 		Transactions: rows,
 		Total:        stmt.Total,
+		Summary: StatementSummaryResponse{
+			Inflow:  stmt.Summary.Inflow,
+			Outflow: stmt.Summary.Outflow,
+			Net:     stmt.Summary.Net(),
+		},
 	})
 }
 
@@ -209,6 +222,25 @@ func parseStatementParams(
 		}
 
 		params.JarID = &id
+	}
+	if v := q.Get("jar_name"); v != "" {
+		params.JarName = &v
+	}
+
+	if v := q.Get("min_amount"); v != "" {
+		amount, err := strconv.ParseInt(v, 10, 64)
+		if err != nil || amount < 0 {
+			return params, "INVALID_MIN_AMOUNT", "min_amount must be a non-negative integer in paise"
+		}
+		params.MinAmount = &amount
+	}
+
+	if v := q.Get("max_amount"); v != "" {
+		amount, err := strconv.ParseInt(v, 10, 64)
+		if err != nil || amount < 0 {
+			return params, "INVALID_MAX_AMOUNT", "max_amount must be a non-negative integer in paise"
+		}
+		params.MaxAmount = &amount
 	}
 
 	if v := q.Get("from_date"); v != "" {
