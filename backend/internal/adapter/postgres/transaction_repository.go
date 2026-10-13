@@ -600,6 +600,11 @@ func appendAccountFilters(
 		add("jar_id =", *params.JarID)
 	}
 
+	if params.JarName != nil && *params.JarName != "" {
+		queryParams = append(queryParams, *params.JarName)
+		query.WriteString(" AND jar_id IN (SELECT id FROM jars WHERE name = $" + strconv.Itoa(len(queryParams)) + ")")
+	}
+
 	if params.FromDate != nil {
 		add("occurred_at >=", *params.FromDate)
 	}

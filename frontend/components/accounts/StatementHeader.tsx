@@ -22,6 +22,15 @@ function formatMoney(paise: number) {
   }).format(paise / 100);
 }
 
+function formatBalance(paise: number) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(paise / 100);
+}
+
 export default function StatementHeader({
   account,
   inflow,
@@ -60,7 +69,7 @@ export default function StatementHeader({
               </p>
 
               <p className="mt-1 text-3xl font-black tracking-tight">
-                {formatMoney(account.balance)}
+                {formatBalance(account.balance)}
               </p>
             </div>
 
