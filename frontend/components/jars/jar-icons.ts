@@ -15,5 +15,6 @@ export const JAR_ICONS = {
 } as const;
 
 export function getJarIcon(iconKey: string) {
-  return JAR_ICONS[iconKey as keyof typeof JAR_ICONS] ?? Savings;
+  const normalizedKey = iconKey.trim().toLowerCase();
+  return JAR_ICONS[normalizedKey as keyof typeof JAR_ICONS] ?? Savings;
 }

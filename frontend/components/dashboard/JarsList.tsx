@@ -1,22 +1,16 @@
 "use client";
 
-import {
-  ReceiptLong,
-  Movie,
-  TrendingUp,
-  VolunteerActivism,
-  ChevronRight,
-  Savings,
-  type MaterialSymbolsComponent,
-} from "@material-symbols-svg/react/w400";
+import { ChevronRight } from "@material-symbols-svg/react/w400";
 
 import Link from "next/link";
 
 import { formatMoney } from "@/lib/utils";
+import { getJarIcon } from "@/components/jars/jar-icons";
 
 interface Jar {
   id: string;
   name: string;
+  icon_key: string;
   allocation_type: "fixed" | "percentage" | "remainder";
   allocation_value: number;
   allocated: number;
@@ -36,17 +30,6 @@ const JAR_COLORS = [
   "#07B682",
   "#F6A723",
 ];
-
-const getJarIcon = (name: string): MaterialSymbolsComponent => {
-  const key = name.toLowerCase();
-
-  if (key.includes("necessit")) return ReceiptLong;
-  if (key.includes("leisure")) return Movie;
-  if (key.includes("invest")) return TrendingUp;
-  if (key.includes("giv")) return VolunteerActivism;
-
-  return Savings;
-};
 
 function getAllocationLabel(jar: Jar) {
   switch (jar.allocation_type) {
@@ -104,7 +87,7 @@ export default function JarsList({ jars }: JarsListProps) {
 
       <div className="flex flex-col gap-2">
         {jars.map((jar, index) => {
-          const Icon = getJarIcon(jar.name);
+          const Icon = getJarIcon(jar.icon_key);
           const color = JAR_COLORS[index % JAR_COLORS.length];
           const status = getStatus(jar);
 

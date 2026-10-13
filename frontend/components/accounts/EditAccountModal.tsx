@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 
-import { CloseFill } from "@material-symbols-svg/react/icons/close";
-
 import { updateAccount } from "@/lib/accounts/accounts";
 
 import { Account } from "./AccountsPage";
@@ -82,7 +80,7 @@ export default function EditAccountModal({
 
   return (
     <div
-      className="fixed inset-0 z-[110] flex items-end justify-center bg-black/30 backdrop-blur-sm"
+      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/30 px-4"
       onClick={() => {
         if (!submitting) {
           onCloseAction();
@@ -90,117 +88,81 @@ export default function EditAccountModal({
       }}
     >
       <div
-        className="w-full max-w-2xl rounded-t-3xl bg-white p-5 shadow-2xl"
-        onClick={(event) =>
-          event.stopPropagation()
-        }
+        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+        onClick={(event) => event.stopPropagation()}
       >
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-on-surface">
-            Edit Account
-          </h2>
-
-          <button
-            type="button"
-            disabled={submitting}
-            onClick={onCloseAction}
-            className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-surface-container disabled:opacity-50"
-            aria-label="Close"
-          >
-            <CloseFill
-              width={20}
-              height={20}
-            />
-          </button>
-        </div>
-
-        <label
-          htmlFor="edit-account-name"
-          className="mb-1 block text-sm font-semibold text-on-surface"
-        >
-          Account name
-        </label>
-
-        <input
-          id="edit-account-name"
-          value={name}
-          onChange={(event) =>
-            setName(event.target.value)
-          }
-          disabled={submitting}
-          className="mb-4 w-full rounded-xl bg-surface-container-lowest px-4 py-3 text-on-surface outline-none ring-1 ring-outline-variant/50 transition focus:ring-2 focus:ring-primary disabled:opacity-50"
-        />
-
-        <label
-          htmlFor="edit-account-icon-key"
-          className="mb-1 block text-sm font-semibold text-on-surface"
-        >
-          Icon key
-          <span className="ml-1 font-normal text-secondary">
-            Optional
-          </span>
-        </label>
-
-        <input
-          id="edit-account-icon-key"
-          type="text"
-          value={iconKey}
-          onChange={(event) =>
-            setIconKey(event.target.value)
-          }
-          disabled={submitting}
-          placeholder="e.g. hdfc"
-          className="mb-5 w-full rounded-xl bg-surface-container-lowest px-4 py-3 text-on-surface outline-none ring-1 ring-outline-variant/50 transition focus:ring-2 focus:ring-primary disabled:opacity-50"
-        />
-
-        <div className="space-y-3">
-          <label className="flex cursor-pointer items-center gap-3">
-            <input
-              type="checkbox"
-              checked={isPrimary}
-              onChange={(event) =>
-                setIsPrimary(event.target.checked)
-              }
-              disabled={submitting}
-              className="h-4 w-4 accent-[#2563eb]"
-            />
-
-            <span className="text-sm font-semibold text-on-surface">
-              Primary account
-            </span>
-          </label>
-
-          <label className="flex cursor-pointer items-center gap-3">
-            <input
-              type="checkbox"
-              checked={isArchived}
-              onChange={(event) =>
-                setIsArchived(event.target.checked)
-              }
-              disabled={submitting}
-              className="h-4 w-4 accent-[#2563eb]"
-            />
-
-            <span className="text-sm font-semibold text-on-surface">
-              Archived
-            </span>
-          </label>
-        </div>
+        <h2 className="text-lg font-bold text-slate-900">Edit Account</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Update the details for <span className="font-semibold text-slate-700">{account.name}</span>.
+        </p>
 
         {error && (
-          <p className="mt-4 text-sm font-medium text-error">
+          <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-600">
             {error}
-          </p>
+          </div>
         )}
 
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={!name.trim() || submitting}
-          className="mt-5 w-full rounded-xl bg-[#2563eb] py-3 font-semibold text-white transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {submitting ? "Saving..." : "Save Changes"}
-        </button>
+        <div className="mt-4 space-y-4">
+          <div>
+            <label htmlFor="edit-account-name" className="block text-sm font-semibold text-slate-700">
+              Account Name
+            </label>
+            <input
+              id="edit-account-name"
+              type="text"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              disabled={submitting}
+              className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 disabled:opacity-50"
+              placeholder="e.g. Savings Account"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="edit-account-icon-key" className="block text-sm font-semibold text-slate-700">
+              Icon Key <span className="font-normal text-slate-400">(Optional)</span>
+            </label>
+            <input
+              id="edit-account-icon-key"
+              type="text"
+              value={iconKey}
+              onChange={(event) => setIconKey(event.target.value)}
+              disabled={submitting}
+              placeholder="e.g. hdfc"
+              className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 disabled:opacity-50"
+            />
+          </div>
+
+          <div className="space-y-3 border-t border-slate-100 pt-4">
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-slate-700">
+              <input type="checkbox" checked={isPrimary} onChange={(event) => setIsPrimary(event.target.checked)} disabled={submitting} className="h-4 w-4 accent-slate-900" />
+              Primary account
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-slate-700">
+              <input type="checkbox" checked={isArchived} onChange={(event) => setIsArchived(event.target.checked)} disabled={submitting} className="h-4 w-4 accent-slate-900" />
+              Archived
+            </label>
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCloseAction}
+            disabled={submitting}
+            className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!name.trim() || submitting}
+            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {submitting ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
       </div>
     </div>
   );

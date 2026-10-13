@@ -82,7 +82,7 @@ function formatAllocation(jar: Jar) {
       return `${formatAmount(jar.allocation_value)} fixed`;
 
     case "remainder":
-      return "Remainder sweep";
+      return "Remainder";
 
     default:
       return "";
@@ -91,6 +91,20 @@ function formatAllocation(jar: Jar) {
 
 function getJarColor(index: number) {
   return JAR_COLORS[index % JAR_COLORS.length];
+}
+
+const ALLOCATION_ORDER: Record<AllocationType, number> = {
+  remainder: 0,
+  percentage: 1,
+  fixed: 2,
+};
+
+function sortByAllocationType(jars: Jar[]) {
+  return [...jars].sort(
+    (a, b) =>
+      ALLOCATION_ORDER[a.allocation_type] -
+      ALLOCATION_ORDER[b.allocation_type],
+  );
 }
 
 export default function JarsList({ dateRange }: Props) {
@@ -210,8 +224,12 @@ export default function JarsList({ dateRange }: Props) {
     }
   };
 
-  const activeJars = jars.filter((jar) => !jar.is_archived);
-  const archivedJars = jars.filter((jar) => jar.is_archived);
+  const activeJars = sortByAllocationType(
+    jars.filter((jar) => !jar.is_archived),
+  );
+  const archivedJars = sortByAllocationType(
+    jars.filter((jar) => jar.is_archived),
+  );
 
   const renderJar = (jar: Jar, index: number) => {
     const color = getJarColor(index);

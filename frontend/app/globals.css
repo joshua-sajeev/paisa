@@ -19,6 +19,15 @@ body {
   font-family: var(--font-jakarta);
 }
 
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 @keyframes floatSlow {
   0%,
   100% {

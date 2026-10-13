@@ -74,11 +74,13 @@ export default function TransactionsFilters({
   onReset,
 }: TransactionsFiltersProps) {
   const [draftCategory, setDraftCategory] = useState(category);
+  const [draftAccount, setDraftAccount] = useState(account);
   const [draftJar, setDraftJar] = useState(jar);
   const [draftDateRange, setDraftDateRange] = useState(dateRange);
   const [draftMinAmount, setDraftMinAmount] = useState(minAmount);
   const [draftMaxAmount, setDraftMaxAmount] = useState(maxAmount);
   const [categoryOpen, setCategoryOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const [jarOpen, setJarOpen] = useState(false);
   const filterPanelRef = useRef<HTMLDivElement>(null);
 
@@ -87,6 +89,7 @@ export default function TransactionsFilters({
       if (filterPanelRef.current && !filterPanelRef.current.contains(event.target as Node)) {
         if (filterOpen) onFilterToggle();
         setCategoryOpen(false);
+        setAccountOpen(false);
         setJarOpen(false);
       }
     }
@@ -101,14 +104,16 @@ export default function TransactionsFilters({
   useEffect(() => {
     if (!filterOpen) return;
     setDraftCategory(category);
+    setDraftAccount(account);
     setDraftJar(jar);
     setDraftDateRange(dateRange);
     setDraftMinAmount(minAmount);
     setDraftMaxAmount(maxAmount);
-  }, [filterOpen, category, jar, dateRange, minAmount, maxAmount]);
+  }, [filterOpen, category, account, jar, dateRange, minAmount, maxAmount]);
 
   function applyAdvancedFilters() {
     onCategoryChange(draftCategory);
+    onAccountChange(draftAccount);
     onJarChange(draftJar);
     onDateRangeChange(draftDateRange);
     onMinAmountChange(draftMinAmount);
@@ -153,7 +158,7 @@ export default function TransactionsFilters({
 
             <div className="relative">
               <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-black/40">Category</label>
-              <button type="button" onClick={() => { setCategoryOpen((open) => !open); setJarOpen(false); }} className="flex h-11 w-full items-center justify-between rounded-xl border border-black/10 bg-white px-3 text-xs font-bold text-black transition hover:border-black/30">
+              <button type="button" onClick={() => { setCategoryOpen((open) => !open); setAccountOpen(false); setJarOpen(false); }} className="flex h-11 w-full items-center justify-between rounded-xl border border-black/10 bg-white px-3 text-xs font-bold text-black transition hover:border-black/30">
                 <span className="truncate">{CATEGORIES.find((item) => item.value === draftCategory)?.label ?? "All categories"}</span>
                 <span className={`text-black/40 transition ${categoryOpen ? "rotate-180" : ""}`}>⌄</span>
               </button>
@@ -167,8 +172,26 @@ export default function TransactionsFilters({
             </div>
 
             <div className="relative">
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-black/40">Account</label>
+              <button type="button" disabled={loadingFilters} onClick={() => { setAccountOpen((open) => !open); setCategoryOpen(false); setJarOpen(false); }} className="flex h-11 w-full items-center justify-between rounded-xl border border-black/10 bg-white px-3 text-xs font-bold text-black transition hover:border-black/30 disabled:opacity-50">
+                <span className="truncate">{draftAccount === "all" ? "All accounts" : accounts.find((item) => item.id === draftAccount)?.name ?? "All accounts"}</span>
+                <span className={`text-black/40 transition ${accountOpen ? "rotate-180" : ""}`}>⌄</span>
+              </button>
+              {accountOpen && (
+                <div className="absolute left-0 right-0 z-40 mt-1 max-h-48 space-y-0.5 overflow-y-auto rounded-xl border border-black/10 bg-white p-1 shadow-lg">
+                  {[{ id: "all", name: "All accounts" }, ...accounts].map((item) => (
+                    <button key={item.id} type="button" onClick={() => { setDraftAccount(item.id); setAccountOpen(false); }} className={`flex w-full items-center justify-between truncate rounded-lg px-3 py-2 text-left text-xs font-bold transition ${draftAccount === item.id ? "bg-black text-white" : "text-black/75 hover:bg-black/5 hover:text-black"}`}>
+                      <span className="truncate">{item.name}</span>
+                      {"is_primary" in item && item.is_primary && <span className={`ml-2 shrink-0 text-[10px] ${draftAccount === item.id ? "text-white/70" : "text-black/40"}`}>Primary</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="relative">
               <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-black/40">Jar</label>
-              <button type="button" disabled={loadingFilters} onClick={() => { setJarOpen((open) => !open); setCategoryOpen(false); }} className="flex h-11 w-full items-center justify-between rounded-xl border border-black/10 bg-white px-3 text-xs font-bold text-black transition hover:border-black/30 disabled:opacity-50">
+              <button type="button" disabled={loadingFilters} onClick={() => { setJarOpen((open) => !open); setCategoryOpen(false); setAccountOpen(false); }} className="flex h-11 w-full items-center justify-between rounded-xl border border-black/10 bg-white px-3 text-xs font-bold text-black transition hover:border-black/30 disabled:opacity-50">
                 <span className="truncate">{draftJar === "all" ? "All jars" : jars.find((item) => item.id === draftJar)?.name ?? "All jars"}</span>
                 <span className={`text-black/40 transition ${jarOpen ? "rotate-180" : ""}`}>⌄</span>
               </button>
@@ -229,32 +252,6 @@ export default function TransactionsFilters({
           </div>
         </div>
 
-        {/* Account Pills */}
-        <div>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {[{ id: "all", name: "All accounts" }, ...accounts].map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                disabled={loadingFilters}
-                aria-pressed={account === item.id}
-                onClick={() => onAccountChange(item.id)}
-                className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold transition ${
-                  account === item.id
-                    ? "bg-black text-white"
-                    : "border border-black/10 bg-white text-black/60 hover:border-black/30"
-                }`}
-              >
-                {item.name}
-                {"is_primary" in item && item.is_primary && (
-                  <span className={`ml-1.5 text-[10px] ${account === item.id ? "text-white/70" : "text-black/40"}`}>
-                    Primary
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
     </section>

@@ -5,7 +5,6 @@ import { useState } from "react";
 
 import { ArchiveFillW700 } from "@material-symbols-svg/react/icons/archive";
 import { ChevronRight } from "@material-symbols-svg/react/icons/chevron-right";
-import { CloseFill } from "@material-symbols-svg/react/icons/close";
 
 import { updateAccount } from "@/lib/accounts/accounts";
 import { formatMoney } from "@/lib/utils";
@@ -167,6 +166,7 @@ export default function AccountCard({
       </article>
 
       <EditAccountModal
+        key={account.id}
         account={account}
         open={showEditModal}
         onCloseAction={() => setShowEditModal(false)}
@@ -177,7 +177,7 @@ export default function AccountCard({
 
       {showArchiveModal && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 px-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 px-4"
           onClick={() => {
             if (!archiving) {
               setShowArchiveModal(false);
@@ -185,33 +185,16 @@ export default function AccountCard({
           }}
         >
           <div
-            className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl"
+            className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl"
             onClick={(event) =>
               event.stopPropagation()
             }
           >
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-on-surface">
-                Archive account?
-              </h2>
+            <h2 className="text-sm font-bold text-slate-900">
+              Archive account?
+            </h2>
 
-              <button
-                type="button"
-                disabled={archiving}
-                onClick={() =>
-                  setShowArchiveModal(false)
-                }
-                className="flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-surface-container disabled:opacity-50"
-                aria-label="Close"
-              >
-                <CloseFill
-                  width={20}
-                  height={20}
-                />
-              </button>
-            </div>
-
-            <p className="text-sm leading-6 text-secondary">
+            <p className="mt-1.5 text-xs leading-5 text-slate-500">
               Are you sure you want to archive{" "}
               <span className="font-semibold text-on-surface">
                 {account.name}
@@ -226,14 +209,14 @@ export default function AccountCard({
               </p>
             )}
 
-            <div className="mt-5 flex gap-3">
+            <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
                 disabled={archiving}
                 onClick={() =>
                   setShowArchiveModal(false)
                 }
-                className="flex-1 rounded-xl bg-surface-container py-3 text-sm font-semibold text-on-surface transition hover:bg-surface-container-high disabled:opacity-50"
+                className="rounded-lg px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -242,7 +225,7 @@ export default function AccountCard({
                 type="button"
                 disabled={archiving}
                 onClick={handleArchive}
-                className="flex-1 rounded-xl bg-[#2563eb] py-3 text-sm font-semibold text-white transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {archiving
                   ? "Archiving..."

@@ -3,7 +3,6 @@
 import { useState } from "react";
 
 import { ChevronRight } from "@material-symbols-svg/react/icons/chevron-right";
-import { CloseFill } from "@material-symbols-svg/react/icons/close";
 import { ExpandCircleDown } from "@material-symbols-svg/react/icons/expand-circle-down";
 
 import { updateAccount } from "@/lib/accounts/accounts";
@@ -11,6 +10,7 @@ import { formatMoney } from "@/lib/utils";
 
 import { Account } from "./AccountsPage";
 import AccountIcon from "./AccountIcon";
+import EditAccountModal from "./EditAccountModal";
 
 type Props = {
   accounts: Account[];
@@ -82,6 +82,7 @@ function ArchivedAccountCard({
   useState(false);
   const [unarchiving, setUnarchiving] = useState(false);
   const [error, setError] = useState("");
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const formattedBalance = `₹${formatMoney(account.balance)}`;
 
@@ -155,14 +156,23 @@ account.balance < 0
         )}
 
         <div className="mt-3 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={openUnarchiveModal}
-            disabled={unarchiving}
-            className="rounded-lg px-2 py-1 text-xs font-semibold text-outline transition hover:bg-surface-container hover:text-on-surface disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Unarchive
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setShowEditModal(true)}
+              className="rounded-lg px-2 py-1 text-xs font-semibold text-outline transition hover:bg-surface-container hover:text-on-surface"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={openUnarchiveModal}
+              disabled={unarchiving}
+              className="rounded-lg px-2 py-1 text-xs font-semibold text-outline transition hover:bg-surface-container hover:text-on-surface disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Unarchive
+            </button>
+          </div>
 
           <button
             type="button"
@@ -177,37 +187,30 @@ account.balance < 0
         </div>
       </article>
 
+      <EditAccountModal
+        key={account.id}
+        account={account}
+        open={showEditModal}
+        onCloseAction={() => setShowEditModal(false)}
+        onUpdatedAction={() => onUpdatedAction?.()}
+      />
+
       {showUnarchiveModal && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 px-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 px-4"
           onClick={closeUnarchiveModal}
         >
           <div
-            className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl"
+            className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl"
             onClick={(event) =>
               event.stopPropagation()
             }
           >
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-on-surface">
-                Unarchive account?
-              </h2>
+            <h2 className="text-sm font-bold text-slate-900">
+              Unarchive account?
+            </h2>
 
-              <button
-                type="button"
-                disabled={unarchiving}
-                onClick={closeUnarchiveModal}
-                className="flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-surface-container disabled:opacity-50"
-                aria-label="Close"
-              >
-                <CloseFill
-                  width={20}
-                  height={20}
-                />
-              </button>
-            </div>
-
-            <p className="text-sm leading-6 text-secondary">
+            <p className="mt-1.5 text-xs leading-5 text-slate-500">
               Are you sure you want to unarchive{" "}
               <span className="font-semibold text-on-surface">
                 {account.name}
@@ -222,12 +225,12 @@ account.balance < 0
               </p>
             )}
 
-            <div className="mt-5 flex gap-3">
+            <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
                 disabled={unarchiving}
                 onClick={closeUnarchiveModal}
-                className="flex-1 rounded-xl bg-surface-container py-3 text-sm font-semibold text-on-surface transition hover:bg-surface-container-high disabled:opacity-50"
+                className="rounded-lg px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -236,7 +239,7 @@ account.balance < 0
                 type="button"
                 disabled={unarchiving}
                 onClick={handleUnarchive}
-                className="flex-1 rounded-xl bg-[#2563eb] py-3 text-sm font-semibold text-white transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {unarchiving
                   ? "Unarchiving..."

@@ -17,6 +17,7 @@ export interface DashboardAccount {
 export interface DashboardJar {
   id: string;
   name: string;
+  icon_key: string;
   allocation_type: "percentage" | "fixed" | "remainder";
   allocation_value: number;
   allocated: number;
