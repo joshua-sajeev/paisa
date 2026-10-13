@@ -49,9 +49,9 @@ export default function AddJarModal({
     let value = 0;
 
     if (allocationType !== "remainder") {
-      value = Number(allocationValue);
+      const enteredValue = Number(allocationValue);
 
-      if (!Number.isFinite(value) || value <= 0) {
+      if (!Number.isFinite(enteredValue) || enteredValue <= 0) {
         setError(
           allocationType === "percentage"
             ? "Enter a percentage greater than 0."
@@ -60,10 +60,14 @@ export default function AddJarModal({
         return;
       }
 
-      if (allocationType === "percentage" && value > 100) {
+      if (allocationType === "percentage" && enteredValue > 100) {
         setError("Percentage cannot be greater than 100.");
         return;
       }
+
+      value = allocationType === "fixed"
+        ? Math.round(enteredValue * 100)
+        : enteredValue;
     }
 
     setSubmitting(true);
@@ -204,7 +208,7 @@ export default function AddJarModal({
                 step={
                   allocationType === "percentage"
                     ? "0.01"
-                    : "1"
+                    : "0.01"
                 }
                 value={allocationValue}
                 onChange={(event) =>
