@@ -278,13 +278,11 @@ func seedDemoTransactions(
 		})
 	}
 
-	// Keep the sample cap at thirty without adding any current-month records
-	// dated after today. Previous-month transactions remain in the seed.
+	// Keep the sample cap at thirty without adding current-month records from
+	// later today or any future date. Previous-month transactions remain seeded.
 	currentMonthTransactions := transactions[:0]
 	for _, tx := range transactions {
-		if tx.occurredAt.Year() == now.Year() &&
-			tx.occurredAt.Month() == now.Month() &&
-			tx.occurredAt.Day() > now.Day() {
+		if tx.occurredAt.After(now) {
 			continue
 		}
 		currentMonthTransactions = append(currentMonthTransactions, tx)

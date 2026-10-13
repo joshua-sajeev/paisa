@@ -30,6 +30,16 @@ This project strictly adheres to **Hexagonal Architecture** (see [ADR-0001](docs
 - Go (Golang)
 - Docker and Docker Compose
 
+## Render Deployment
+
+The Render web service builds the frontend and backend from the repository root. Configure its build command as:
+
+```sh
+cd frontend && npm ci && npm run build && cd ../backend && go build -o paisa .
+```
+
+`npm ci` installs the frontend dependencies from `frontend/package-lock.json` before the Next.js build. When using a custom Render build command, include this install step; otherwise `next build` can fail with `next: not found`.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

@@ -16,6 +16,8 @@ export function Navbar() {
   const { isPrivate, togglePrivacy } = usePrivacy();
   const [demoMode, setDemoMode] = useState(false);
   const [resettingDemo, setResettingDemo] = useState(false);
+  const [showResetConfirmation, setShowResetConfirmation] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
 
   useEffect(() => {
     if (pathname === "/login" || pathname === "/transactions/add") return;
@@ -35,12 +37,8 @@ export function Navbar() {
   }, [pathname]);
 
   const resetDemo = async () => {
-    const confirmed = window.confirm(
-      "Reset demo data? This replaces the current accounts, jars, goals, and transactions with the seeded sample data.",
-    );
-    if (!confirmed) return;
-
     setResettingDemo(true);
+    setResetError(null);
     try {
       await apiFetch<{ message: string }>("/api/v1/demo/reset", {
         method: "POST",
@@ -50,7 +48,7 @@ export function Navbar() {
       const message = error instanceof ApiError
         ? error.message
         : "Could not reset demo data. Please try again.";
-      window.alert(message);
+      setResetError(message);
     } finally {
       setResettingDemo(false);
     }
@@ -82,7 +80,10 @@ export function Navbar() {
         <div className="flex items-center gap-2">
           {demoMode && (
             <button
-              onClick={resetDemo}
+              onClick={() => {
+                setResetError(null);
+                setShowResetConfirmation(true);
+              }}
               disabled={resettingDemo}
               className="inline-flex h-9 items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-100 px-3 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-200 disabled:cursor-wait disabled:opacity-60"
             >
@@ -106,6 +107,57 @@ export function Navbar() {
           )}
         </div>
       </div>
+      {showResetConfirmation && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-neutral-950/40 px-4 backdrop-blur-sm"
+          onClick={() => {
+            if (!resettingDemo) setShowResetConfirmation(false);
+          }}
+        >
+          <section
+            aria-labelledby="reset-demo-title"
+            aria-describedby="reset-demo-description"
+            aria-modal="true"
+            role="dialog"
+            className="w-full max-w-md rounded-3xl border border-amber-100 bg-[#FFFAF0] p-6 shadow-2xl shadow-neutral-950/20"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-800">
+              <RestartAlt width={24} height={24} />
+            </div>
+            <h2 id="reset-demo-title" className="mt-4 text-lg font-bold text-neutral-900">
+              Reset demo data?
+            </h2>
+            <p id="reset-demo-description" className="mt-2 text-sm leading-6 text-neutral-600">
+              This replaces your current demo accounts, jars, goals, and transactions with the sample data.
+            </p>
+            {resetError && (
+              <p role="alert" className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                {resetError}
+              </p>
+            )}
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={resettingDemo}
+                onClick={() => setShowResetConfirmation(false)}
+                className="rounded-xl px-4 py-2.5 text-sm font-semibold text-neutral-600 transition hover:bg-white disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={resettingDemo}
+                onClick={resetDemo}
+                className="inline-flex items-center gap-2 rounded-xl bg-amber-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-900 disabled:cursor-wait disabled:opacity-60"
+              >
+                <RestartAlt width={17} height={17} />
+                {resettingDemo ? "Resetting…" : "Reset demo"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </header>
   );
 }
