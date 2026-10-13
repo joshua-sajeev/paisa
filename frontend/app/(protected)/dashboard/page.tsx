@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { getDashboardData, DashboardData } from "@/lib/dashboard";
 import SummaryCard from "@/components/dashboard/SummmaryCard";
 import AccountsList from "@/components/dashboard/AccountsList";
@@ -9,6 +10,7 @@ import GoalsList from "@/components/dashboard/GoalsList";
 import RecentActivity from "@/components/dashboard/RecentActivity";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
 
   useEffect(() => {
@@ -29,7 +31,7 @@ export default function DashboardPage() {
         <RecentActivity
           transactions={data?.recent_transactions ?? []}
           onEditTransaction={(transaction) => {
-            console.log('Edit:', transaction);
+            router.push(`/transactions/edit?id=${encodeURIComponent(transaction.id)}`);
           }}
           onDeleteTransaction={(transaction) => {
             console.log('Delete:', transaction);

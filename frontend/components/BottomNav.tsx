@@ -52,7 +52,7 @@ const NAV_ITEMS = [
 export default function BottomNav() {
   const pathname = usePathname();
 
-  if (pathname === '/login' || pathname === '/transactions/add') {
+  if (pathname === '/login' || pathname === '/transactions/add' || pathname.endsWith('/edit')) {
     return null;
   }
 

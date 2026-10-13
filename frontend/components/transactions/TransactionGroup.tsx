@@ -4,11 +4,13 @@ import { formatMoney, type Transaction } from "./transaction-utils";
 type Props = {
   group: string;
   transactions: Transaction[];
+  onDelete: (transaction: Transaction) => void;
 };
 
 export default function TransactionGroup({
   group,
   transactions,
+  onDelete,
 }: Props) {
   const net = transactions.reduce((total, transaction) => {
     if (transaction.type === "income") return total + transaction.amount;
@@ -44,6 +46,7 @@ export default function TransactionGroup({
           <TransactionCard
             key={transaction.id}
             transaction={transaction}
+            onDelete={onDelete}
           />
         ))}
       </div>

@@ -34,20 +34,29 @@ export async function apiFetch<T>(
     let code = "ERR_UNKNOWN";
 
     try {
-      const body = await response.json();
-
-      if (body && typeof body.message === "string") {
-        message = body.message;
-      }
-
-      if (body && typeof body.code === "string") {
-        code = body.code;
+      const text = await response.text();
+      try {
+        const body = JSON.parse(text);
+        if (body && typeof body.message === "string") {
+          message = body.message;
+        }
+        if (body && typeof body.code === "string") {
+          code = body.code;
+        }
+      } catch {
+        if (text && text.trim()) {
+          message = text.trim();
+        }
       }
     } catch {
-      // Response body was not JSON — keep the generic message.
+      // Response body was not readable — keep the generic message.
     }
 
     throw new ApiError(response.status, message, code);
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
   }
 
   return response.json() as Promise<T>;

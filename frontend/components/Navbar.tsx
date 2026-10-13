@@ -20,7 +20,7 @@ export function Navbar() {
   const [resetError, setResetError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (pathname === "/login" || pathname === "/transactions/add") return;
+    if (pathname === "/login" || pathname === "/transactions/add" || pathname.endsWith("/edit")) return;
 
     let active = true;
     apiFetch<{ enabled: boolean }>("/api/v1/demo/mode")
@@ -54,7 +54,7 @@ export function Navbar() {
     }
   };
 
-  if (pathname === "/login" || pathname === "/transactions/add") {
+  if (pathname === "/login" || pathname === "/transactions/add" || pathname.endsWith("/edit")) {
     return null;
   }
 

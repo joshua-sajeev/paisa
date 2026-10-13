@@ -155,6 +155,22 @@ export default function TransactionsList() {
     maxAmount,
   ]);
 
+  async function deleteTransaction(transaction: Transaction) {
+    if (!window.confirm(`Delete “${transaction.name}”? This cannot be undone.`)) return;
+    try {
+      await apiFetch<void>(`/api/v1/transactions/${transaction.id}`, { method: "DELETE" });
+      setTotal((current) => Math.max(0, current - 1));
+      if (transactions.length === 1 && page > 1) {
+        setPage((current) => current - 1);
+      } else {
+        await fetchTransactions();
+      }
+    } catch (err) {
+      console.error("Failed to delete transaction", err);
+      window.alert(err instanceof Error ? err.message : "Unable to delete transaction.");
+    }
+  }
+
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
@@ -259,6 +275,7 @@ export default function TransactionsList() {
               key={group}
               group={group}
               transactions={items}
+              onDelete={deleteTransaction}
             />
           ))}
 
