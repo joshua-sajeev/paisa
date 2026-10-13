@@ -126,9 +126,12 @@ func (r *dashboardRepository) GetAccountBalances(ctx context.Context) ([]*ports.
 	return accounts, nil
 }
 
-// GetJarSummaries returns all active jars with allocation/spending state.
+// GetJarSummaries returns active jars with current-month allocation/spending state.
 func (r *dashboardRepository) GetJarSummaries(ctx context.Context) ([]*ports.JarSummary, error) {
 	db := dbExecutor(ctx, r.db)
+	now := time.Now().In(timeutil.IST)
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, timeutil.IST)
+	monthEnd := monthStart.AddDate(0, 1, 0)
 
 	const query = `
 		WITH active_jars AS (
@@ -144,10 +147,14 @@ func (r *dashboardRepository) GetJarSummaries(ctx context.Context) ([]*ports.Jar
 		),
 		allocation_totals AS (
 			SELECT
-				jar_id,
-				SUM(amount) AS allocated
-			FROM jar_allocations
-			GROUP BY jar_id
+				a.jar_id,
+				SUM(a.amount) AS allocated
+			FROM jar_allocations a
+			INNER JOIN transactions t
+				ON t.id = a.transaction_id
+			WHERE t.occurred_at >= $1
+			  AND t.occurred_at < $2
+			GROUP BY a.jar_id
 		),
 		expense_totals AS (
 			SELECT
@@ -156,6 +163,8 @@ func (r *dashboardRepository) GetJarSummaries(ctx context.Context) ([]*ports.Jar
 			FROM transactions
 			WHERE type = 'expense'
 			  AND jar_id IS NOT NULL
+			  AND occurred_at >= $1
+			  AND occurred_at < $2
 			GROUP BY jar_id
 		)
 		SELECT
@@ -195,7 +204,7 @@ func (r *dashboardRepository) GetJarSummaries(ctx context.Context) ([]*ports.Jar
 		ORDER BY j.created_at, j.id
 	`
 
-	rows, err := db.Query(ctx, query)
+	rows, err := db.Query(ctx, query, monthStart, monthEnd)
 	if err != nil {
 		return nil, err
 	}
