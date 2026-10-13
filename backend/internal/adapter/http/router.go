@@ -50,6 +50,9 @@ func NewRouter(h *HandlerRegistry, logger *slog.Logger) http.Handler {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("OK"))
 	})
+	r.Head("/health", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
 	// Authentication routes.
 	r.Route("/auth", func(r chi.Router) {
 		registerAuthRoutes(r, h.AuthHandler, loginLimiter, logger)

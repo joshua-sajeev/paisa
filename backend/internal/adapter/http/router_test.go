@@ -171,8 +171,14 @@ func TestNewRouter(t *testing.T) {
 		wantStatus int
 	}{
 		{
-			name:       "health check",
+			name:       "health check (GET)",
 			method:     http.MethodGet,
+			path:       "/health",
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:       "health check (HEAD)",
+			method:     http.MethodHead,
 			path:       "/health",
 			wantStatus: http.StatusOK,
 		},
