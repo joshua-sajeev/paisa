@@ -359,7 +359,7 @@ func TestJarServiceCreate(t *testing.T) {
 				CreateError: tt.createErr,
 			}
 
-			service := application.NewJarService(repo, slog.Default())
+			service := application.NewJarService(repo, nil, nil, slog.Default())
 
 			got, err := service.Create(
 				context.Background(),
@@ -611,6 +611,8 @@ func TestJarServiceUpdate(t *testing.T) {
 
 			service := application.NewJarService(
 				repo,
+				nil,
+				nil,
 				slog.Default(),
 			)
 
@@ -856,16 +858,16 @@ func TestJarServiceUpdateAllocations(t *testing.T) {
 				)
 
 				return []*jar.Jar{
-						needs,
-						insurance,
-						remainder,
-					}, []jar.JarAllocationUpdate{
-						{
-							ID:              insurance.ID,
-							AllocationType:  jar.AllocationTypeFixed,
-							AllocationValue: 600000,
-						},
-					}
+					needs,
+					insurance,
+					remainder,
+				}, []jar.JarAllocationUpdate{
+					{
+						ID:              insurance.ID,
+						AllocationType:  jar.AllocationTypeFixed,
+						AllocationValue: 600000,
+					},
+				}
 			},
 			wantCalls: 1,
 			wantType:  jar.AllocationTypeFixed,
@@ -900,22 +902,22 @@ func TestJarServiceUpdateAllocations(t *testing.T) {
 				)
 
 				return []*jar.Jar{
-						needs,
-						leisure,
-						insurance,
-						remainder,
-					}, []jar.JarAllocationUpdate{
-						{
-							ID:              needs.ID,
-							AllocationType:  jar.AllocationTypePercentage,
-							AllocationValue: 40,
-						},
-						{
-							ID:              insurance.ID,
-							AllocationType:  jar.AllocationTypeFixed,
-							AllocationValue: 700000,
-						},
-					}
+					needs,
+					leisure,
+					insurance,
+					remainder,
+				}, []jar.JarAllocationUpdate{
+					{
+						ID:              needs.ID,
+						AllocationType:  jar.AllocationTypePercentage,
+						AllocationValue: 40,
+					},
+					{
+						ID:              insurance.ID,
+						AllocationType:  jar.AllocationTypeFixed,
+						AllocationValue: 700000,
+					},
+				}
 			},
 			wantCalls: 1,
 		},
@@ -958,7 +960,7 @@ func TestJarServiceUpdateAllocations(t *testing.T) {
 				UpdateAllocationsError: tt.repoErr,
 			}
 
-			service := application.NewJarService(repo, slog.Default())
+			service := application.NewJarService(repo, nil, nil, slog.Default())
 
 			err := service.UpdateAllocations(
 				context.Background(),
@@ -1120,16 +1122,16 @@ func TestJarServiceAllocateIncome(t *testing.T) {
 				)
 
 				return []*jar.Jar{
-						needs,
-						leisure,
-						insurance,
-						remainder,
-					}, map[uuid.UUID]int64{
-						needs.ID:     500000,
-						leisure.ID:   200000,
-						insurance.ID: 100000,
-						remainder.ID: 200000,
-					}
+					needs,
+					leisure,
+					insurance,
+					remainder,
+				}, map[uuid.UUID]int64{
+					needs.ID:     500000,
+					leisure.ID:   200000,
+					insurance.ID: 100000,
+					remainder.ID: 200000,
+				}
 			},
 		},
 		{
@@ -1204,7 +1206,7 @@ func TestJarServiceAllocateIncome(t *testing.T) {
 				ListError: tt.repoErr,
 			}
 
-			service := application.NewJarService(repo, slog.Default())
+			service := application.NewJarService(repo, nil, nil, slog.Default())
 
 			got, err := service.AllocateIncome(
 				context.Background(),
@@ -1242,7 +1244,7 @@ func TestJarServiceIntegration_CreateAndAllocate(t *testing.T) {
 		jars: []*jar.Jar{},
 	}
 
-	service := application.NewJarService(repo, slog.Default())
+	service := application.NewJarService(repo, nil, nil, slog.Default())
 	ctx := context.Background()
 
 	remainder, err := service.Create(
@@ -1294,7 +1296,7 @@ func TestJarServiceIntegration_CreateUpdateAllocate(t *testing.T) {
 		jars: []*jar.Jar{},
 	}
 
-	service := application.NewJarService(repo, slog.Default())
+	service := application.NewJarService(repo, nil, nil, slog.Default())
 	ctx := context.Background()
 
 	remainder, err := service.Create(
@@ -1367,7 +1369,7 @@ func TestJarServiceCreate_IconKey(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := &MockJarRepository{}
-			service := application.NewJarService(repo, slog.Default())
+			service := application.NewJarService(repo, nil, nil, slog.Default())
 
 			got, err := service.Create(
 				context.Background(),
@@ -1416,7 +1418,7 @@ func TestJarServiceUpdate_IconKey(t *testing.T) {
 			}
 
 			repo := &MockJarRepository{jars: []*jar.Jar{j}}
-			service := application.NewJarService(repo, slog.Default())
+			service := application.NewJarService(repo, nil, nil, slog.Default())
 
 			if err := service.Update(
 				context.Background(),

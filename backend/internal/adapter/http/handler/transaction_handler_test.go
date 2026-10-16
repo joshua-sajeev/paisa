@@ -17,7 +17,7 @@ import (
 )
 
 type mockTransactionService struct {
-	listFn          func(context.Context, ports.ListParams) ([]*ports.TransactionListItem, error)
+	listFn          func(context.Context, ports.ListParams) (*ports.ListResult, error)
 	listByAccountFn func(context.Context, uuid.UUID, ports.ListParams) ([]*ports.TransactionListItem, error)
 }
 
@@ -58,7 +58,7 @@ func (m *mockTransactionService) Delete(context.Context, uuid.UUID) error {
 func (m *mockTransactionService) List(
 	ctx context.Context,
 	params ports.ListParams,
-) ([]*ports.TransactionListItem, error) {
+) (*ports.ListResult, error) {
 	return m.listFn(ctx, params)
 }
 
@@ -85,11 +85,11 @@ func TestTransactionHandler_HandleListReturnsDisplayFields(t *testing.T) {
 		listFn: func(
 			_ context.Context,
 			params ports.ListParams,
-		) ([]*ports.TransactionListItem, error) {
+		) (*ports.ListResult, error) {
 			require.Equal(t, 10, params.Limit)
 			require.Equal(t, 5, params.Offset)
 
-			return []*ports.TransactionListItem{
+			return &ports.ListResult{Transactions: []*ports.TransactionListItem{
 				{
 					ID:             itemID,
 					Name:           "Move to savings",
@@ -101,7 +101,7 @@ func TestTransactionHandler_HandleListReturnsDisplayFields(t *testing.T) {
 					Category:       transaction.TransactionCategoryTransfer,
 					OccurredAt:     time.Date(2026, 1, 3, 9, 0, 0, 0, time.UTC),
 				},
-			}, nil
+			}, Total: 1}, nil
 		},
 	}
 
@@ -204,9 +204,9 @@ func TestTransactionHandler_HandleListDateFiltersUseISTDays(t *testing.T) {
 		listFn: func(
 			_ context.Context,
 			params ports.ListParams,
-		) ([]*ports.TransactionListItem, error) {
+		) (*ports.ListResult, error) {
 			got = params
-			return nil, nil
+			return &ports.ListResult{}, nil
 		},
 	}
 
@@ -236,9 +236,9 @@ func TestTransactionHandler_HandleListDateFiltersAcceptTimestamps(t *testing.T) 
 		listFn: func(
 			_ context.Context,
 			params ports.ListParams,
-		) ([]*ports.TransactionListItem, error) {
+		) (*ports.ListResult, error) {
 			got = params
-			return nil, nil
+			return &ports.ListResult{}, nil
 		},
 	}
 
@@ -268,9 +268,9 @@ func TestTransactionHandler_HandleListAcceptsAccountFilterKeys(t *testing.T) {
 				listFn: func(
 					_ context.Context,
 					params ports.ListParams,
-				) ([]*ports.TransactionListItem, error) {
+				) (*ports.ListResult, error) {
 					got = params
-					return nil, nil
+					return &ports.ListResult{}, nil
 				},
 			}
 

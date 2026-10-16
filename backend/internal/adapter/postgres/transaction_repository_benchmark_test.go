@@ -22,7 +22,7 @@ func BenchmarkTransactionRepository_List(b *testing.B) {
 			if err != nil {
 				b.Fatalf("List error: %v", err)
 			}
-			if len(res) == 0 {
+			if len(res.Transactions) == 0 {
 				b.Fatal("expected transactions, got 0")
 			}
 		}
@@ -39,7 +39,7 @@ func BenchmarkTransactionRepository_List(b *testing.B) {
 			if err != nil {
 				b.Fatalf("List error: %v", err)
 			}
-			if len(res) == 0 {
+			if len(res.Transactions) == 0 {
 				b.Fatal("expected transactions, got 0")
 			}
 		}
@@ -58,7 +58,7 @@ func BenchmarkTransactionRepository_List(b *testing.B) {
 			if err != nil {
 				b.Fatalf("List error: %v", err)
 			}
-			if len(res) == 0 {
+			if len(res.Transactions) == 0 {
 				b.Fatal("expected transactions, got 0")
 			}
 		}
@@ -77,7 +77,7 @@ func BenchmarkTransactionRepository_List(b *testing.B) {
 			if err != nil {
 				b.Fatalf("List error: %v", err)
 			}
-			if len(res) == 0 {
+			if len(res.Transactions) == 0 {
 				b.Fatal("expected transactions, got 0")
 			}
 		}

@@ -60,6 +60,10 @@ func (m *mockAllocationRepository) GetMonthlySummary(
 	return 0, nil
 }
 
+func (m *mockAllocationRepository) SumByJar(context.Context, uuid.UUID, *time.Time, *time.Time) (int64, error) {
+	return 0, nil
+}
+
 func newDiscardLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, nil))
 }
