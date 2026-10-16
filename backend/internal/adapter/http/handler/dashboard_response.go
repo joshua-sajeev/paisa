@@ -29,6 +29,7 @@ type DashboardJarResponse struct {
 	IconKey             string    `json:"icon_key"`
 	AllocationType      string    `json:"allocation_type"`
 	AllocationValue     int64     `json:"allocation_value"`
+	CarryIn             int64     `json:"carry_in"`
 	Allocated           int64     `json:"allocated"`
 	Used                int64     `json:"used"`
 	Available           int64     `json:"available"`
@@ -86,6 +87,7 @@ func NewDashboardResponse(dash *application.DashboardResponse) *DashboardRespons
 			IconKey:             j.IconKey,
 			AllocationType:      j.AllocationType,
 			AllocationValue:     j.AllocationValue,
+			CarryIn:             j.CarryIn,
 			Allocated:           j.Allocated,
 			Used:                j.Used,
 			Available:           j.Available,

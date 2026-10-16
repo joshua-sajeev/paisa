@@ -32,6 +32,7 @@ type JarSummary struct {
 	IconKey             string
 	AllocationType      string
 	AllocationValue     int64
+	CarryIn             int64
 	Allocated           int64
 	Used                int64
 	Available           int64

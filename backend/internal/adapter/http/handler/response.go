@@ -34,6 +34,8 @@ type JarResponse struct {
 	IconKey             string             `json:"icon_key"`
 	AllocationType      jar.AllocationType `json:"allocation_type"`
 	AllocationValue     int64              `json:"allocation_value"`
+	Rollover            bool               `json:"rollover"`
+	CarryIn             int64              `json:"carry_in"`
 	AllocatedAmount     int64              `json:"allocated_amount"`
 	UsedAmount          int64              `json:"used_amount"`
 	AvailableAmount     int64              `json:"available_amount"`

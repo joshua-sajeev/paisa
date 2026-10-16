@@ -20,6 +20,7 @@ type Jar struct {
 	//   - remainder: must be 0 because the remainder is calculated dynamically.
 	AllocationValue int64
 	IsArchived      bool
+	Rollover        bool
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }
@@ -85,9 +86,19 @@ func NewJar(
 		AllocationType:  allocationType,
 		AllocationValue: allocationValue,
 		IsArchived:      false,
+		Rollover:        true,
 		CreatedAt:       now,
 		UpdatedAt:       now,
 	}, nil
+}
+
+// UpdateRollover controls whether an unused jar balance carries into later months.
+func (j *Jar) UpdateRollover(enabled bool) {
+	if j.Rollover == enabled {
+		return
+	}
+	j.Rollover = enabled
+	j.touch()
 }
 
 // Rename changes the jar name.

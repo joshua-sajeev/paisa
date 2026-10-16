@@ -25,6 +25,7 @@ func newTestJar(
 		IconKey:         jar.DefaultIconKey,
 		AllocationType:  allocationType,
 		AllocationValue: allocationValue,
+		Rollover:        true,
 		IsArchived:      false,
 		CreatedAt:       now,
 		UpdatedAt:       now,
@@ -69,6 +70,9 @@ func assertJar(t *testing.T, got, want *jar.Jar) {
 			want.IsArchived,
 		)
 	}
+	if got.Rollover != want.Rollover {
+		t.Errorf("Rollover = %v, want %v", got.Rollover, want.Rollover)
+	}
 
 	if got.CreatedAt.IsZero() {
 		t.Errorf("CreatedAt = %v, want non-zero time", got.CreatedAt)
@@ -96,6 +100,7 @@ func queryJar(t *testing.T, id uuid.UUID) *jar.Jar {
 			allocation_type,
 			allocation_value,
 			is_archived,
+			rollover,
 			created_at,
 			updated_at
 		FROM jars
@@ -109,6 +114,7 @@ func queryJar(t *testing.T, id uuid.UUID) *jar.Jar {
 		&j.AllocationType,
 		&j.AllocationValue,
 		&j.IsArchived,
+		&j.Rollover,
 		&j.CreatedAt,
 		&j.UpdatedAt,
 	)

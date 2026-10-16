@@ -1,15 +1,18 @@
 package postgres_test
 
 import (
+	"log/slog"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/joshu-sajeev/paisa/internal/application"
 	"github.com/joshu-sajeev/paisa/internal/domain/account"
 	"github.com/joshu-sajeev/paisa/internal/domain/jar"
 	"github.com/joshu-sajeev/paisa/internal/domain/transaction"
 	"github.com/joshu-sajeev/paisa/internal/ports"
 	"github.com/joshu-sajeev/paisa/internal/seed"
+	"github.com/joshu-sajeev/paisa/internal/timeutil"
 )
 
 func mustCreateTransaction(
@@ -210,6 +213,84 @@ func TestDashboardRecentTransactionsProjectsDisplayFields(t *testing.T) {
 			transferItem.Amount,
 			transfer.Amount,
 		)
+	}
+}
+
+func TestJarRolloverBalancesUseISTMonthBoundaries(t *testing.T) {
+	t.Cleanup(func() { truncateTables(t, ctx, db) })
+
+	account := newTestAccount("Rollover account")
+	if err := accountRepo.Create(ctx, account); err != nil {
+		t.Fatalf("create account: %v", err)
+	}
+
+	rolloverJar := newTestJar("Rollover", jar.AllocationTypePercentage, 50)
+	rolloverJar.Rollover = true
+	leisureJar := newTestJar("Leisure", jar.AllocationTypePercentage, 50)
+	leisureJar.Rollover = false
+	for _, j := range []*jar.Jar{rolloverJar, leisureJar} {
+		if err := jarRepo.Create(ctx, j); err != nil {
+			t.Fatalf("create jar: %v", err)
+		}
+	}
+
+	now := time.Now().In(timeutil.IST)
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, timeutil.IST)
+	monthEnd := monthStart.AddDate(0, 1, 0)
+	olderMonth := monthStart.AddDate(0, -2, 0)
+
+	addHistoricalAllocation := func(j *jar.Jar, name string, amount int64) {
+		t.Helper()
+		income := mustCreateTransaction(t, name, transaction.TransactionTypeIncome,
+			transaction.TransactionCategoryOther, nil, &account.ID, amount, olderMonth.Add(time.Hour))
+		if err := allocationRepo.Create(ctx, &transaction.Allocation{
+			ID: uuid.New(), TransactionID: income.ID, JarID: j.ID, Amount: amount,
+		}); err != nil {
+			t.Fatalf("create allocation: %v", err)
+		}
+	}
+	addHistoricalAllocation(rolloverJar, "Rollover allocation", 1000)
+	addHistoricalAllocation(leisureJar, "Leisure allocation", 700)
+
+	// Both jars have older activity, followed by a complete month with no activity.
+	mustCreateTransactionWithJar(t, "Rollover overspend", transaction.TransactionTypeExpense,
+		transaction.TransactionCategoryOther, &account.ID, nil, &rolloverJar.ID, 1200, olderMonth.Add(2*time.Hour))
+	mustCreateTransactionWithJar(t, "Leisure leftover", transaction.TransactionTypeExpense,
+		transaction.TransactionCategoryOther, &account.ID, nil, &leisureJar.ID, 200, olderMonth.Add(2*time.Hour))
+
+	// An expense exactly at 00:00 IST belongs to the new month.
+	mustCreateTransactionWithJar(t, "Boundary expense", transaction.TransactionTypeExpense,
+		transaction.TransactionCategoryOther, &account.ID, nil, &rolloverJar.ID, 50, monthStart)
+
+	dashboardJars, err := dashboardRepo.GetJarSummaries(ctx)
+	if err != nil {
+		t.Fatalf("GetJarSummaries() error = %v", err)
+	}
+	service := application.NewJarService(jarRepo, allocationRepo, transactionRepo, slog.Default())
+	listedJars, allocated, used, carry, err := service.ListWithStats(ctx, &monthStart, &monthEnd)
+	if err != nil {
+		t.Fatalf("ListWithStats() error = %v", err)
+	}
+
+	byID := make(map[uuid.UUID]*ports.JarSummary, len(dashboardJars))
+	for _, summary := range dashboardJars {
+		byID[summary.ID] = summary
+	}
+	for _, j := range listedJars {
+		summary := byID[j.ID]
+		if summary == nil {
+			t.Fatalf("dashboard summary missing jar %s", j.ID)
+		}
+		wantCarry, wantUsed, wantAvailable := int64(-200), int64(50), int64(-250)
+		if j.ID == leisureJar.ID {
+			wantCarry, wantUsed, wantAvailable = 0, 0, 0
+		}
+		if summary.CarryIn != wantCarry || carry[j.ID] != wantCarry {
+			t.Errorf("jar %q carry-in: dashboard=%d list=%d, want %d", j.Name, summary.CarryIn, carry[j.ID], wantCarry)
+		}
+		if summary.Allocated != allocated[j.ID] || summary.Used != wantUsed || summary.Used != used[j.ID] || summary.Available != wantAvailable {
+			t.Errorf("jar %q totals disagree or are incorrect: dashboard=(%d,%d,%d) list=(%d,%d), want available %d", j.Name, summary.Allocated, summary.Used, summary.Available, allocated[j.ID], used[j.ID], wantAvailable)
+		}
 	}
 }
 

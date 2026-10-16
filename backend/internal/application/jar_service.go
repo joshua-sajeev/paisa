@@ -35,7 +35,7 @@ func NewJarService(
 }
 
 // Create creates a new jar, validating that the resulting allocation configuration remains valid.
-func (s *JarService) Create(ctx context.Context, name string, allocationType jar.AllocationType, allocationValue int64, iconKey *string) (*jar.Jar, error) {
+func (s *JarService) Create(ctx context.Context, name string, allocationType jar.AllocationType, allocationValue int64, iconKey *string, rolloverOptions ...*bool) (*jar.Jar, error) {
 	s.logger.DebugContext(
 		ctx,
 		"creating new jar",
@@ -58,6 +58,9 @@ func (s *JarService) Create(ctx context.Context, name string, allocationType jar
 			slog.String("error", err.Error()),
 		)
 		return nil, err
+	}
+	if len(rolloverOptions) > 0 && rolloverOptions[0] != nil {
+		newJar.UpdateRollover(*rolloverOptions[0])
 	}
 
 	existingJars, err := s.repo.List(ctx)
@@ -154,7 +157,7 @@ func (s *JarService) ListWithStats(
 	ctx context.Context,
 	startDate *time.Time,
 	endDate *time.Time,
-) ([]*jar.Jar, map[uuid.UUID]int64, map[uuid.UUID]int64, error) {
+) ([]*jar.Jar, map[uuid.UUID]int64, map[uuid.UUID]int64, map[uuid.UUID]int64, error) {
 	s.logger.DebugContext(
 		ctx,
 		"listing jars with statistics",
@@ -169,11 +172,12 @@ func (s *JarService) ListWithStats(
 			"failed to fetch jars",
 			slog.String("error", err.Error()),
 		)
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	allocatedMap := make(map[uuid.UUID]int64, len(jars))
 	usedMap := make(map[uuid.UUID]int64, len(jars))
+	carryMap := make(map[uuid.UUID]int64, len(jars))
 
 	for _, j := range jars {
 		allocated, used, err := s.calculateJarStats(
@@ -190,7 +194,7 @@ func (s *JarService) ListWithStats(
 				slog.String("error", err.Error()),
 			)
 
-			return nil, nil, nil, fmt.Errorf(
+			return nil, nil, nil, nil, fmt.Errorf(
 				"calculate statistics for jar %s: %w",
 				j.ID,
 				err,
@@ -199,6 +203,17 @@ func (s *JarService) ListWithStats(
 
 		allocatedMap[j.ID] = allocated
 		usedMap[j.ID] = used
+		if j.Rollover && startDate != nil {
+			priorAllocated, err := s.allocationRepo.SumByJar(ctx, j.ID, nil, startDate)
+			if err != nil {
+				return nil, nil, nil, nil, fmt.Errorf("get prior allocated amount: %w", err)
+			}
+			priorUsed, err := s.transactionRepo.SumTransactionsByJarAndType(ctx, j.ID, "expense", nil, startDate)
+			if err != nil {
+				return nil, nil, nil, nil, fmt.Errorf("get prior used amount: %w", err)
+			}
+			carryMap[j.ID] = priorAllocated - priorUsed
+		}
 	}
 
 	s.logger.InfoContext(
@@ -207,7 +222,7 @@ func (s *JarService) ListWithStats(
 		slog.Int("count", len(jars)),
 	)
 
-	return jars, allocatedMap, usedMap, nil
+	return jars, allocatedMap, usedMap, carryMap, nil
 }
 
 // Update updates the name, icon and archive state of a jar.
@@ -217,6 +232,7 @@ func (s *JarService) Update(
 	name *string,
 	iconKey *string,
 	isArchived *bool,
+	rolloverOptions ...*bool,
 ) error {
 	s.logger.DebugContext(
 		ctx,
@@ -258,6 +274,10 @@ func (s *JarService) Update(
 		if j.IconKey != before {
 			changed = true
 		}
+	}
+	if len(rolloverOptions) > 0 && rolloverOptions[0] != nil && *rolloverOptions[0] != j.Rollover {
+		j.UpdateRollover(*rolloverOptions[0])
+		changed = true
 	}
 
 	if isArchived != nil && *isArchived != j.IsArchived {

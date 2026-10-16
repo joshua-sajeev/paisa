@@ -34,6 +34,7 @@ func jarValues(j *jar.Jar) []any {
 		j.AllocationType,
 		j.AllocationValue,
 		j.IsArchived,
+		j.Rollover,
 		j.CreatedAt,
 		j.UpdatedAt,
 	}
@@ -47,6 +48,7 @@ func jarSaveValues(j *jar.Jar) []any {
 		j.AllocationType,
 		j.AllocationValue,
 		j.IsArchived,
+		j.Rollover,
 		j.UpdatedAt,
 	}
 }
@@ -59,6 +61,7 @@ func jarScanArgs(j *jar.Jar) []any {
 		&j.AllocationType,
 		&j.AllocationValue,
 		&j.IsArchived,
+		&j.Rollover,
 		&j.CreatedAt,
 		&j.UpdatedAt,
 	}
@@ -73,10 +76,11 @@ const (
 			allocation_type,
 			allocation_value,
 			is_archived,
+			rollover,
 			created_at,
 			updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`
 
 	listJarsQuery = `
@@ -87,6 +91,7 @@ const (
 			allocation_type,
 			allocation_value,
 			is_archived,
+			rollover,
 			created_at,
 			updated_at
 		FROM jars
@@ -101,6 +106,7 @@ const (
 			allocation_type,
 			allocation_value,
 			is_archived,
+			rollover,
 			created_at,
 			updated_at
 		FROM jars
@@ -115,7 +121,8 @@ const (
 			allocation_type = $4,
 			allocation_value = $5,
 			is_archived = $6,
-			updated_at = $7
+			rollover = $7,
+			updated_at = $8
 		WHERE id = $1
 	`
 

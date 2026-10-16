@@ -31,7 +31,9 @@ type MockJarService struct {
 	UpdateAllocationsError error
 
 	CreatedIconKey     *string
+	CreatedRollover    *bool
 	UpdatedIconKey     *string
+	UpdatedRollover    *bool
 	CreatedJar         *jar.Jar
 	Jars               []*jar.Jar
 	UpdatedAllocations []jar.JarAllocationUpdate
@@ -43,9 +45,15 @@ func (m *MockJarService) Create(
 	allocationType jar.AllocationType,
 	allocationValue int64,
 	iconKey *string,
+	rolloverOptions ...*bool,
 ) (*jar.Jar, error) {
 	m.CreateCalls++
 	m.CreatedIconKey = iconKey
+	var rollover *bool
+	if len(rolloverOptions) > 0 {
+		rollover = rolloverOptions[0]
+	}
+	m.CreatedRollover = rollover
 
 	if m.CreateError != nil {
 		return nil, m.CreateError
@@ -68,9 +76,19 @@ func (m *MockJarService) Create(
 		IconKey:         icon,
 		AllocationType:  allocationType,
 		AllocationValue: allocationValue,
+		Rollover:        rollover == nil || *rollover,
 		CreatedAt:       now,
 		UpdatedAt:       now,
 	}, nil
+}
+
+func (m *MockJarService) ListWithStats(ctx context.Context, startDate, endDate *time.Time) ([]*jar.Jar, map[uuid.UUID]int64, map[uuid.UUID]int64, map[uuid.UUID]int64, error) {
+	m.ListCalls++
+	if m.ListError != nil {
+		return nil, nil, nil, nil, m.ListError
+	}
+	allocated, used, carry := map[uuid.UUID]int64{}, map[uuid.UUID]int64{}, map[uuid.UUID]int64{}
+	return m.Jars, allocated, used, carry, nil
 }
 
 func (m *MockJarService) List(ctx context.Context) ([]*jar.Jar, error) {
@@ -89,9 +107,13 @@ func (m *MockJarService) Update(
 	name *string,
 	iconKey *string,
 	isArchived *bool,
+	rolloverOptions ...*bool,
 ) error {
 	m.UpdateCalls++
 	m.UpdatedIconKey = iconKey
+	if len(rolloverOptions) > 0 {
+		m.UpdatedRollover = rolloverOptions[0]
+	}
 
 	return m.UpdateError
 }

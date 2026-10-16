@@ -15,18 +15,19 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/joshu-sajeev/paisa/internal/domain/jar"
+	"github.com/joshu-sajeev/paisa/internal/timeutil"
 )
 
 type JarService interface {
-	Create(ctx context.Context, name string, allocationType jar.AllocationType, allocationValue int64, iconKey *string) (*jar.Jar, error)
+	Create(ctx context.Context, name string, allocationType jar.AllocationType, allocationValue int64, iconKey *string, rollover ...*bool) (*jar.Jar, error)
 
 	ListWithStats(
 		ctx context.Context,
 		startDate *time.Time,
 		endDate *time.Time,
-	) ([]*jar.Jar, map[uuid.UUID]int64, map[uuid.UUID]int64, error)
+	) ([]*jar.Jar, map[uuid.UUID]int64, map[uuid.UUID]int64, map[uuid.UUID]int64, error)
 
-	Update(ctx context.Context, id uuid.UUID, name *string, iconKey *string, isArchived *bool) error
+	Update(ctx context.Context, id uuid.UUID, name *string, iconKey *string, isArchived *bool, rollover ...*bool) error
 
 	UpdateAllocations(ctx context.Context, updates []jar.JarAllocationUpdate) error
 }
@@ -50,12 +51,14 @@ type CreateJarRequest struct {
 	IconKey         *string            `json:"icon_key" validate:"omitempty,min=1,max=50"`
 	AllocationType  jar.AllocationType `json:"allocation_type" validate:"required"`
 	AllocationValue int64              `json:"allocation_value"`
+	Rollover        *bool              `json:"rollover"`
 }
 
 type PatchJarRequest struct {
 	Name       *string `json:"name" validate:"omitempty,min=1,max=100"`
 	IconKey    *string `json:"icon_key" validate:"omitempty,min=1,max=50"`
 	IsArchived *bool   `json:"is_archived"`
+	Rollover   *bool   `json:"rollover"`
 }
 
 type UpdateJarAllocationRequest struct {
@@ -75,6 +78,7 @@ func NewJarResponse(j *jar.Jar) JarResponse {
 		IconKey:         j.IconKey,
 		AllocationType:  j.AllocationType,
 		AllocationValue: j.AllocationValue,
+		Rollover:        j.Rollover,
 		IsArchived:      j.IsArchived,
 		CreatedAt:       j.CreatedAt,
 		UpdatedAt:       j.UpdatedAt,
@@ -151,6 +155,7 @@ func (h *JarHandler) Create(w http.ResponseWriter, r *http.Request) {
 		req.AllocationType,
 		req.AllocationValue,
 		req.IconKey,
+		req.Rollover,
 	)
 	if err != nil {
 		switch {
@@ -251,7 +256,8 @@ func parseDateRange(r *http.Request, now time.Time) (time.Time, time.Time, error
 
 	// no params: default to current month
 	if startStr == "" && endStr == "" {
-		start := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+		now = now.In(timeutil.IST)
+		start := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, timeutil.IST)
 		return start, start.AddDate(0, 1, 0), nil
 	}
 
@@ -259,12 +265,12 @@ func parseDateRange(r *http.Request, now time.Time) (time.Time, time.Time, error
 		return time.Time{}, time.Time{}, errors.New("start_date and end_date must be provided together")
 	}
 
-	start, err := time.ParseInLocation(dateLayout, startStr, now.Location())
+	start, err := time.ParseInLocation(dateLayout, startStr, timeutil.IST)
 	if err != nil {
 		return time.Time{}, time.Time{}, errors.New("start_date must be in YYYY-MM-DD format")
 	}
 
-	end, err := time.ParseInLocation(dateLayout, endStr, now.Location())
+	end, err := time.ParseInLocation(dateLayout, endStr, timeutil.IST)
 	if err != nil {
 		return time.Time{}, time.Time{}, errors.New("end_date must be in YYYY-MM-DD format")
 	}
@@ -296,7 +302,7 @@ func (h *JarHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jars, allocatedMap, usedMap, err := h.service.ListWithStats(
+	jars, allocatedMap, usedMap, carryMap, err := h.service.ListWithStats(
 		r.Context(),
 		&startDate,
 		&endDate,
@@ -325,7 +331,8 @@ func (h *JarHandler) List(w http.ResponseWriter, r *http.Request) {
 
 		jarResponse.AllocatedAmount = allocatedMap[j.ID]
 		jarResponse.UsedAmount = usedMap[j.ID]
-		jarResponse.AvailableAmount = jarResponse.AllocatedAmount - jarResponse.UsedAmount
+		jarResponse.CarryIn = carryMap[j.ID]
+		jarResponse.AvailableAmount = jarResponse.CarryIn + jarResponse.AllocatedAmount - jarResponse.UsedAmount
 
 		if jarResponse.AllocatedAmount > 0 {
 			jarResponse.UsedPercentage = float64(jarResponse.UsedAmount) /
@@ -369,7 +376,7 @@ func (h *JarHandler) Patch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Name == nil && req.IconKey == nil && req.IsArchived == nil {
+	if req.Name == nil && req.IconKey == nil && req.IsArchived == nil && req.Rollover == nil {
 		writeErrorJSON(
 			w,
 			http.StatusBadRequest,
@@ -413,6 +420,7 @@ func (h *JarHandler) Patch(w http.ResponseWriter, r *http.Request) {
 		req.Name,
 		req.IconKey,
 		req.IsArchived,
+		req.Rollover,
 	); err != nil {
 		switch {
 		case errors.Is(err, jar.ErrJarNotFound):

@@ -141,6 +141,7 @@ func (r *dashboardRepository) GetJarSummaries(ctx context.Context) ([]*ports.Jar
 				icon_key,
 				allocation_type,
 				allocation_value,
+				rollover,
 				created_at
 			FROM jars
 			WHERE is_archived = FALSE
@@ -155,6 +156,19 @@ func (r *dashboardRepository) GetJarSummaries(ctx context.Context) ([]*ports.Jar
 			WHERE t.occurred_at >= $1
 			  AND t.occurred_at < $2
 			GROUP BY a.jar_id
+		),
+		prior_allocation_totals AS (
+			SELECT a.jar_id, SUM(a.amount) AS allocated
+			FROM jar_allocations a
+			INNER JOIN transactions t ON t.id = a.transaction_id
+			WHERE t.occurred_at < $1
+			GROUP BY a.jar_id
+		),
+		prior_expense_totals AS (
+			SELECT jar_id, SUM(amount) AS used
+			FROM transactions
+			WHERE type = 'expense' AND jar_id IS NOT NULL AND occurred_at < $1
+			GROUP BY jar_id
 		),
 		expense_totals AS (
 			SELECT
@@ -173,12 +187,10 @@ func (r *dashboardRepository) GetJarSummaries(ctx context.Context) ([]*ports.Jar
 			j.icon_key,
 			j.allocation_type,
 			j.allocation_value,
+			CASE WHEN j.rollover THEN COALESCE(pa.allocated, 0) - COALESCE(pe.used, 0) ELSE 0 END AS carry_in,
 			COALESCE(a.allocated, 0) AS allocated,
 			COALESCE(e.used, 0) AS used,
-			GREATEST(
-				COALESCE(a.allocated, 0) - COALESCE(e.used, 0),
-				0
-			) AS available,
+			(CASE WHEN j.rollover THEN COALESCE(pa.allocated, 0) - COALESCE(pe.used, 0) ELSE 0 END) + COALESCE(a.allocated, 0) - COALESCE(e.used, 0) AS available,
 			CASE
 				WHEN COALESCE(a.allocated, 0) = 0 THEN 0.0
 				ELSE (
@@ -189,10 +201,7 @@ func (r *dashboardRepository) GetJarSummaries(ctx context.Context) ([]*ports.Jar
 			CASE
 				WHEN COALESCE(a.allocated, 0) = 0 THEN 0.0
 				ELSE (
-					GREATEST(
-						COALESCE(a.allocated, 0) - COALESCE(e.used, 0),
-						0
-					)::FLOAT /
+					((CASE WHEN j.rollover THEN COALESCE(pa.allocated, 0) - COALESCE(pe.used, 0) ELSE 0 END) + COALESCE(a.allocated, 0) - COALESCE(e.used, 0))::FLOAT /
 					COALESCE(a.allocated, 0) * 100
 				)
 			END AS available_percentage
@@ -201,6 +210,8 @@ func (r *dashboardRepository) GetJarSummaries(ctx context.Context) ([]*ports.Jar
 			ON j.id = a.jar_id
 		LEFT JOIN expense_totals e
 			ON j.id = e.jar_id
+		LEFT JOIN prior_allocation_totals pa ON j.id = pa.jar_id
+		LEFT JOIN prior_expense_totals pe ON j.id = pe.jar_id
 		ORDER BY j.created_at, j.id
 	`
 
@@ -221,6 +232,7 @@ func (r *dashboardRepository) GetJarSummaries(ctx context.Context) ([]*ports.Jar
 			&jar.IconKey,
 			&jar.AllocationType,
 			&jar.AllocationValue,
+			&jar.CarryIn,
 			&jar.Allocated,
 			&jar.Used,
 			&jar.Available,
