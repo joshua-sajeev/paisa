@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { ChevronRight } from "@material-symbols-svg/react/w400";
 
 import Link from "next/link";
@@ -13,6 +14,7 @@ interface Jar {
   icon_key: string;
   allocation_type: "fixed" | "percentage" | "remainder";
   allocation_value: number;
+  carry_in: number;
   allocated: number;
   used: number;
   available: number;
@@ -61,7 +63,13 @@ function getStatus(jar: Jar) {
 }
 
 export default function JarsList({ jars }: JarsListProps) {
+  const [selectedJarId, setSelectedJarId] = useState<string | null>(null);
+
   if (!jars || jars.length === 0) return null;
+
+  function toggleJar(jar: Jar) {
+    setSelectedJarId((currentId) => currentId === jar.id ? null : jar.id);
+  }
 
   return (
     <section className="flex flex-col gap-2.5">
@@ -87,15 +95,33 @@ export default function JarsList({ jars }: JarsListProps) {
 
       <div className="flex flex-col gap-2">
         {jars.map((jar, index) => {
+          const isSelected = selectedJarId === jar.id;
+          const displayAllocated = isSelected ? jar.allocated + jar.carry_in : jar.allocated;
+          const monthlyAvailable = jar.allocated - jar.used;
+          const available = isSelected ? jar.available : monthlyAvailable;
+          const usedPercentage = displayAllocated > 0
+            ? (jar.used / displayAllocated) * 100
+            : 0;
+          const displayJar = {
+            ...jar,
+            allocated: displayAllocated,
+            available,
+            used_percentage: usedPercentage,
+            available_percentage: displayAllocated > 0
+              ? (available / displayAllocated) * 100
+              : 0,
+          };
           const Icon = getJarIcon(jar.icon_key);
           const color = JAR_COLORS[index % JAR_COLORS.length];
-          const status = getStatus(jar);
+          const status = getStatus(displayJar);
 
           return (
-            <Link
+            <button
               key={jar.id}
-              href={`/transactions?jar_id=${encodeURIComponent(jar.id)}`}
-              className="flex flex-col gap-2 rounded-xl bg-white p-3 text-left shadow-sm transition-transform active:scale-[0.99]"
+              type="button"
+              onClick={() => void toggleJar(jar)}
+              aria-pressed={selectedJarId === jar.id}
+              className="flex w-full flex-col gap-2 rounded-xl bg-white p-3 text-left shadow-sm transition-transform active:scale-[0.99]"
             >
               {/* Header */}
               <div className="flex items-center justify-between">
@@ -122,16 +148,27 @@ export default function JarsList({ jars }: JarsListProps) {
               {/* Progress */}
               <div className="flex flex-col gap-1">
                 <span className="flex items-center gap-1 text-[11px] font-medium text-slate-500">
-                  ₹{formatMoney(jar.used)}
-                  <span>spent of</span>
-                  ₹{formatMoney(jar.allocated)}
+                  {selectedJarId === jar.id ? (
+                    <>
+                      ₹{formatMoney(jar.carry_in)}
+                      <span>carry in ·</span>
+                      ₹{formatMoney(displayAllocated)}
+                      <span>allocated</span>
+                    </>
+                  ) : (
+                    <>
+                      ₹{formatMoney(displayJar.used)}
+                      <span>spent of</span>
+                      ₹{formatMoney(displayJar.allocated)}
+                    </>
+                  )}
                 </span>
 
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                   <div
                     className="h-full rounded-full transition-all"
                     style={{
-                      width: `${Math.min(jar.used_percentage, 100)}%`,
+                      width: `${Math.min(displayJar.used_percentage, 100)}%`,
                       backgroundColor: color,
                     }}
                   />
@@ -141,13 +178,13 @@ export default function JarsList({ jars }: JarsListProps) {
               {/* Bottom */}
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1 text-xs font-bold text-on-surface">
-                  ₹{formatMoney(jar.available)}
+                  ₹{formatMoney(displayJar.available)}
                   <span>Available</span>
                 </span>
 
                 <span className={status.className}>{status.label}</span>
               </div>
-            </Link>
+            </button>
           );
         })}
       </div>

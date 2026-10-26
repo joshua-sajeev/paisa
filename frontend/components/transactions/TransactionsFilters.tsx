@@ -1,7 +1,7 @@
 "use client";
 
 import { Search, Tune } from "@material-symbols-svg/react/w400";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import DateRangePicker, { type DateRange } from "@/components/ui/DateRangePicker";
 import {
@@ -84,10 +84,22 @@ export default function TransactionsFilters({
   const [jarOpen, setJarOpen] = useState(false);
   const filterPanelRef = useRef<HTMLDivElement>(null);
 
+  const toggleFilters = useCallback(() => {
+    if (!filterOpen) {
+      setDraftCategory(category);
+      setDraftAccount(account);
+      setDraftJar(jar);
+      setDraftDateRange(dateRange);
+      setDraftMinAmount(minAmount);
+      setDraftMaxAmount(maxAmount);
+    }
+    onFilterToggle();
+  }, [filterOpen, category, account, jar, dateRange, minAmount, maxAmount, onFilterToggle]);
+
   useEffect(() => {
     function handleOutside(event: MouseEvent | TouchEvent) {
       if (filterPanelRef.current && !filterPanelRef.current.contains(event.target as Node)) {
-        if (filterOpen) onFilterToggle();
+        if (filterOpen) toggleFilters();
         setCategoryOpen(false);
         setAccountOpen(false);
         setJarOpen(false);
@@ -99,17 +111,7 @@ export default function TransactionsFilters({
       document.removeEventListener("mousedown", handleOutside);
       document.removeEventListener("touchstart", handleOutside);
     };
-  }, [filterOpen, onFilterToggle]);
-
-  useEffect(() => {
-    if (!filterOpen) return;
-    setDraftCategory(category);
-    setDraftAccount(account);
-    setDraftJar(jar);
-    setDraftDateRange(dateRange);
-    setDraftMinAmount(minAmount);
-    setDraftMaxAmount(maxAmount);
-  }, [filterOpen, category, account, jar, dateRange, minAmount, maxAmount]);
+  }, [filterOpen, toggleFilters]);
 
   function applyAdvancedFilters() {
     onCategoryChange(draftCategory);
@@ -139,7 +141,7 @@ export default function TransactionsFilters({
         <div className="relative" ref={filterPanelRef}>
         <button
           type="button"
-          onClick={onFilterToggle}
+          onClick={toggleFilters}
           aria-expanded={filterOpen}
           aria-label={filterOpen ? "Hide filters" : "Show filters"}
           className={`relative inline-flex h-12 shrink-0 items-center gap-2 rounded-2xl border px-4 text-sm font-semibold transition shadow-sm ${

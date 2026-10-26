@@ -20,6 +20,7 @@ export interface DashboardJar {
   icon_key: string;
   allocation_type: "percentage" | "fixed" | "remainder";
   allocation_value: number;
+  carry_in: number;
   allocated: number;
   used: number;
   available: number;

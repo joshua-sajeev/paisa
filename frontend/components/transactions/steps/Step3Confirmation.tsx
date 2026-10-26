@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { createElement, useState } from "react";
 import { 
   ArrowBack, 
   Close, 
@@ -186,7 +186,6 @@ export default function Step3Confirmation({ formData, updateFormData, onBack, on
         : jarNameLower.includes("giv")
           ? "giving"
           : formData.jarIconKey || "jar";
-  const JarIcon = getJarIcon(jarIconKey);
 
   const typeTheme = {
     expense: {
@@ -292,7 +291,7 @@ export default function Step3Confirmation({ formData, updateFormData, onBack, on
           <div className="flex items-center justify-between gap-3 py-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-purple-600">
-                <JarIcon size={20} color="currentColor" />
+                {createElement(getJarIcon(jarIconKey), { size: 20, color: "currentColor" })}
               </div>
               <div className="flex min-w-0 flex-col">
                 <span className="text-[10px] font-bold text-slate-400 uppercase">Vault / Jar</span>

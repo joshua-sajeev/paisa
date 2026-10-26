@@ -348,6 +348,51 @@ func (h *JarHandler) List(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, response)
 }
 
+// Details handles GET /jars/{id}/details using the current IST month.
+func (h *JarHandler) Details(w http.ResponseWriter, r *http.Request) {
+	rawID := chi.URLParam(r, "id")
+	id, err := uuid.Parse(rawID)
+	if err != nil {
+		writeErrorJSON(w, http.StatusBadRequest, "VALIDATION_ERROR", "Invalid jar ID", "ERR_INVALID_INPUT")
+		return
+	}
+
+	now := time.Now().In(timeutil.IST)
+	startDate := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, timeutil.IST)
+	endDate := startDate.AddDate(0, 1, 0)
+
+	jars, allocated, used, carry, err := h.service.ListWithStats(r.Context(), &startDate, &endDate)
+	if err != nil {
+		h.logger.ErrorContext(r.Context(), "failed to fetch jar details", slog.String("error", err.Error()))
+		writeErrorJSON(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to fetch jar details", "ERR_INTERNAL_SERVER")
+		return
+	}
+
+	for _, j := range jars {
+		if j.ID != id {
+			continue
+		}
+		allocatedAmount := allocated[id]
+		usedAmount := used[id]
+		carryIn := carry[id]
+		available := carryIn + allocatedAmount - usedAmount
+		usedPercentage, availablePercentage := 0.0, 0.0
+		if allocatedAmount > 0 {
+			usedPercentage = float64(usedAmount) / float64(allocatedAmount) * 100
+			availablePercentage = float64(available) / float64(allocatedAmount) * 100
+		}
+		writeJSON(w, http.StatusOK, DashboardJarResponse{
+			ID: j.ID, Name: j.Name, IconKey: j.IconKey,
+			AllocationType: string(j.AllocationType), AllocationValue: j.AllocationValue,
+			CarryIn: carryIn, Allocated: allocatedAmount, Used: usedAmount, Available: available,
+			UsedPercentage: usedPercentage, AvailablePercentage: availablePercentage,
+		})
+		return
+	}
+
+	writeErrorJSON(w, http.StatusNotFound, "NOT_FOUND", "Jar not found", "ERR_JAR_NOT_FOUND")
+}
+
 // Patch handles PATCH /jars/{id}.
 func (h *JarHandler) Patch(w http.ResponseWriter, r *http.Request) {
 	rawID := chi.URLParam(r, "id")

@@ -36,6 +36,9 @@ type MockJarService struct {
 	UpdatedRollover    *bool
 	CreatedJar         *jar.Jar
 	Jars               []*jar.Jar
+	ListAllocated      map[uuid.UUID]int64
+	ListUsed           map[uuid.UUID]int64
+	ListCarry          map[uuid.UUID]int64
 	UpdatedAllocations []jar.JarAllocationUpdate
 }
 
@@ -87,7 +90,16 @@ func (m *MockJarService) ListWithStats(ctx context.Context, startDate, endDate *
 	if m.ListError != nil {
 		return nil, nil, nil, nil, m.ListError
 	}
-	allocated, used, carry := map[uuid.UUID]int64{}, map[uuid.UUID]int64{}, map[uuid.UUID]int64{}
+	allocated, used, carry := m.ListAllocated, m.ListUsed, m.ListCarry
+	if allocated == nil {
+		allocated = map[uuid.UUID]int64{}
+	}
+	if used == nil {
+		used = map[uuid.UUID]int64{}
+	}
+	if carry == nil {
+		carry = map[uuid.UUID]int64{}
+	}
 	return m.Jars, allocated, used, carry, nil
 }
 
@@ -1207,3 +1219,66 @@ func TestJarHandler_Patch_IconKey(t *testing.T) {
 }
 
 func strPtr(s string) *string { return &s }
+
+func TestJarHandler_Details(t *testing.T) {
+	tests := []struct {
+		name       string
+		id         string
+		jars       []*jar.Jar
+		listError  error
+		wantStatus int
+		wantCode   string
+	}{
+		{name: "success", id: "valid", wantStatus: http.StatusOK},
+		{name: "invalid ID", id: "bad", wantStatus: http.StatusBadRequest, wantCode: "ERR_INVALID_INPUT"},
+		{name: "missing jar", id: "valid", wantStatus: http.StatusNotFound, wantCode: "ERR_JAR_NOT_FOUND"},
+		{name: "service failure", id: "valid", listError: errors.New("database unavailable"), wantStatus: http.StatusInternalServerError, wantCode: "ERR_INTERNAL_SERVER"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			id := uuid.New()
+			if tt.id == "valid" && tt.name == "success" {
+				tt.jars = []*jar.Jar{{ID: id, Name: "Needs", IconKey: "needs", AllocationType: jar.AllocationTypePercentage, AllocationValue: 50}}
+			}
+			service := &MockJarService{
+				Jars: tt.jars, ListError: tt.listError,
+				ListAllocated: map[uuid.UUID]int64{id: 1000},
+				ListUsed:      map[uuid.UUID]int64{id: 300},
+				ListCarry:     map[uuid.UUID]int64{id: 200},
+			}
+			pathID := id.String()
+			if tt.id == "bad" {
+				pathID = "invalid"
+			}
+			req := withChiURLParam(httptest.NewRequest(http.MethodGet, "/jars/"+pathID+"/details", nil), "id", pathID)
+			rec := httptest.NewRecorder()
+			newTestHandler(service).Details(rec, req)
+			if rec.Code != tt.wantStatus {
+				t.Fatalf("status = %d, want %d; body: %s", rec.Code, tt.wantStatus, rec.Body.String())
+			}
+			if tt.wantStatus == http.StatusOK {
+				var body map[string]any
+				if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+					t.Fatal(err)
+				}
+				for field, want := range map[string]float64{"carry_in": 200, "allocated": 1000, "used": 300, "available": 900, "used_percentage": 30, "available_percentage": 90} {
+					if got := body[field]; got != want {
+						t.Errorf("%s = %v, want %v", field, got, want)
+					}
+				}
+				if body["name"] != "Needs" {
+					t.Errorf("name = %v, want Needs", body["name"])
+				}
+			} else if tt.wantCode != "" {
+				var body handler.ErrorResponse
+				if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+					t.Fatal(err)
+				}
+				if body.Code != tt.wantCode {
+					t.Errorf("error code = %q, want %q", body.Code, tt.wantCode)
+				}
+			}
+		})
+	}
+}

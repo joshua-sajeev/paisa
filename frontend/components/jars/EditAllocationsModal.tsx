@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { ApiError } from "@/lib/api";
 import { getJarIcon } from "@/components/jars/jar-icons";
 
@@ -69,14 +69,6 @@ export const EditAllocationsModal: React.FC<
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    setJars(initialJars);
-    setServerError(null);
-    setToastMessage(null);
-  }, [initialJars, isOpen]);
 
   const stats = useMemo(() => {
     let totalPercent = 0;

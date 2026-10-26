@@ -10,6 +10,7 @@ func registerJarRoutes(r chi.Router, h *handler.JarHandler) {
 		sub.Post("/", h.Create)
 		sub.Get("/", h.List)
 		sub.Patch("/allocations", h.UpdateAllocations)
+		sub.Get("/{id}/details", h.Details)
 		sub.Patch("/{id}", h.Patch)
 	})
 }
