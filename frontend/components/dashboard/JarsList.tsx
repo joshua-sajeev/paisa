@@ -65,14 +65,19 @@ function getStatus(jar: Jar) {
 
 export default function JarsList({ jars }: JarsListProps) {
   const router = useRouter();
-  const [selectedJarId, setSelectedJarId] = useState<string | null>(null);
+  const [rolloverJarIds, setRolloverJarIds] = useState<Set<string>>(() => new Set());
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggered = useRef(false);
 
   if (!jars || jars.length === 0) return null;
 
   function toggleJar(jar: Jar) {
-    setSelectedJarId((currentId) => currentId === jar.id ? null : jar.id);
+    setRolloverJarIds((currentIds) => {
+      const nextIds = new Set(currentIds);
+      if (nextIds.has(jar.id)) nextIds.delete(jar.id);
+      else nextIds.add(jar.id);
+      return nextIds;
+    });
   }
 
   function startLongPress(jar: Jar, button: number) {
@@ -116,7 +121,7 @@ export default function JarsList({ jars }: JarsListProps) {
 
       <div className="flex flex-col gap-2">
         {jars.map((jar, index) => {
-          const isSelected = selectedJarId === jar.id;
+          const isSelected = rolloverJarIds.has(jar.id);
           const displayAllocated = isSelected ? jar.allocated + jar.carry_in : jar.allocated;
           const monthlyAvailable = jar.allocated - jar.used;
           const available = isSelected ? jar.available : monthlyAvailable;
@@ -151,7 +156,7 @@ export default function JarsList({ jars }: JarsListProps) {
                 }
                 toggleJar(jar);
               }}
-              aria-pressed={selectedJarId === jar.id}
+              aria-pressed={isSelected}
               className="flex w-full flex-col gap-2 rounded-xl bg-white p-3 text-left shadow-sm transition-transform active:scale-[0.99]"
             >
               {/* Header */}
@@ -179,7 +184,7 @@ export default function JarsList({ jars }: JarsListProps) {
               {/* Progress */}
               <div className="flex flex-col gap-1">
                 <span className="flex items-center gap-1 text-[11px] font-medium text-slate-500">
-                  {selectedJarId === jar.id ? (
+                  {isSelected ? (
                     <>
                       ₹{formatMoney(jar.carry_in)}
                       <span>carry in ·</span>
