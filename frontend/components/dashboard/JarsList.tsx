@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ChevronRight } from "@material-symbols-svg/react/w400";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { formatMoney } from "@/lib/utils";
 import { getJarIcon } from "@/components/jars/jar-icons";
@@ -63,12 +64,32 @@ function getStatus(jar: Jar) {
 }
 
 export default function JarsList({ jars }: JarsListProps) {
+  const router = useRouter();
   const [selectedJarId, setSelectedJarId] = useState<string | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTriggered = useRef(false);
 
   if (!jars || jars.length === 0) return null;
 
   function toggleJar(jar: Jar) {
     setSelectedJarId((currentId) => currentId === jar.id ? null : jar.id);
+  }
+
+  function startLongPress(jar: Jar, button: number) {
+    if (button !== 0) return;
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    longPressTriggered.current = false;
+    longPressTimer.current = setTimeout(() => {
+      longPressTriggered.current = true;
+      router.push(`/transactions?jar_id=${encodeURIComponent(jar.id)}`);
+    }, 600);
+  }
+
+  function cancelLongPress() {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
   }
 
   return (
@@ -119,7 +140,17 @@ export default function JarsList({ jars }: JarsListProps) {
             <button
               key={jar.id}
               type="button"
-              onClick={() => void toggleJar(jar)}
+              onPointerDown={(event) => startLongPress(jar, event.button)}
+              onPointerUp={cancelLongPress}
+              onPointerLeave={cancelLongPress}
+              onPointerCancel={cancelLongPress}
+              onClick={() => {
+                if (longPressTriggered.current) {
+                  longPressTriggered.current = false;
+                  return;
+                }
+                toggleJar(jar);
+              }}
               aria-pressed={selectedJarId === jar.id}
               className="flex w-full flex-col gap-2 rounded-xl bg-white p-3 text-left shadow-sm transition-transform active:scale-[0.99]"
             >
