@@ -22,6 +22,7 @@ type HandlerRegistry struct {
 	AccountHandler     *handler.AccountHandler
 	JarHandler         *handler.JarHandler
 	TransactionHandler *handler.TransactionHandler
+	TemplateHandler    *handler.TemplateHandler
 	StatementHandler   *handler.StatementHandler
 	AuthHandler        *handler.AuthHandler
 	GoalHandler        *handler.GoalHandler
@@ -82,6 +83,7 @@ func NewRouter(h *HandlerRegistry, logger *slog.Logger) http.Handler {
 			registerJarRoutes(r, h.JarHandler)
 			registerGoalRoutes(r, h.GoalHandler)
 			registerTransactionRoutes(r, h.TransactionHandler)
+			registerTemplateRoutes(r, h.TemplateHandler)
 			registerStatementRoutes(r, h.StatementHandler)
 			registerDashboardRoutes(r, h.DashboardHandler)
 			registerAllocationRoutes(r, h.AllocationHandler)

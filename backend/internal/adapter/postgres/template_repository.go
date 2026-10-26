@@ -1,4 +1,3 @@
-// Package postgres provides PostgreSQL-backed implementations of the application's persistence ports.
 package postgres
 
 import (
@@ -9,14 +8,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joshu-sajeev/paisa/internal/domain/transaction"
 	"github.com/joshu-sajeev/paisa/internal/ports"
 )
 
-type templateRepository struct {
-	db *pgxpool.Pool
-}
+type templateRepository struct{ db *pgxpool.Pool }
 
 func NewTemplateRepository(db *pgxpool.Pool) ports.TemplateRepository {
 	return &templateRepository{db: db}
@@ -25,108 +23,57 @@ func NewTemplateRepository(db *pgxpool.Pool) ports.TemplateRepository {
 var _ ports.TemplateRepository = (*templateRepository)(nil)
 
 func templateValues(t *transaction.Template) []any {
-	return []any{
-		t.ID,
-		t.Name,
-		t.Type,
-		t.FromAccountID,
-		t.ToAccountID,
-		t.JarID,
-		t.Amount,
-		t.IsArchived,
-		t.CreatedAt,
-		t.UpdatedAt,
-	}
+	return []any{t.ID, t.Name, t.Type, t.Category, t.FromAccountID, t.ToAccountID, t.JarID, t.Amount, t.IsArchived, t.CreatedAt, t.UpdatedAt}
 }
 
-func templateScanArgs(t *transaction.Template) []any {
-	return []any{
-		&t.ID,
-		&t.Name,
-		&t.Type,
-		&t.FromAccountID,
-		&t.ToAccountID,
-		&t.JarID,
-		&t.Amount,
-		&t.IsArchived,
-		&t.CreatedAt,
-		&t.UpdatedAt,
-	}
+type templateNullableIDs struct{ from, to, jar *uuid.UUID }
+
+func templateScanArgs(t *transaction.Template, n *templateNullableIDs) []any {
+	return []any{&t.ID, &t.Name, &t.Type, &t.Category, &n.from, &n.to, &n.jar, &t.Amount, &t.IsArchived, &t.CreatedAt, &t.UpdatedAt}
+}
+func applyTemplateScan(t *transaction.Template, n templateNullableIDs) {
+	t.FromAccountID, t.ToAccountID, t.JarID = n.from, n.to, n.jar
 }
 
-const (
-	insertTemplateQuery = `
-        INSERT INTO templates (
-            id, name, type, from_account_id, to_account_id, jar_id, amount, is_archived, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-    `
+const templateColumns = `id, name, type, category, from_account_id, to_account_id, jar_id, amount, is_archived, created_at, updated_at`
+const insertTemplateQuery = `INSERT INTO templates (` + templateColumns + `) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`
+const findTemplateByIDQuery = `SELECT ` + templateColumns + ` FROM templates WHERE id = $1`
+const updateTemplateQuery = `UPDATE templates SET name=$2, type=$3, category=$4, from_account_id=$5, to_account_id=$6, jar_id=$7, amount=$8, is_archived=$9, updated_at=$10 WHERE id=$1`
+const deleteTemplateQuery = `DELETE FROM templates WHERE id=$1`
+const listTemplatesQuery = `SELECT ` + templateColumns + ` FROM templates WHERE is_archived=$1 ORDER BY created_at DESC, id DESC LIMIT $2 OFFSET $3`
 
-	findTemplateByIDQuery = `
-        SELECT id, name, type, from_account_id, to_account_id, jar_id, amount, is_archived, created_at, updated_at
-        FROM templates WHERE id = $1
-    `
-
-	updateTemplateQuery = `
-        UPDATE templates SET
-            name = $2,
-            type = $3,
-            from_account_id = $4,
-            to_account_id = $5,
-            jar_id = $6,
-            amount = $7,
-            is_archived = $8,
-            updated_at = $9
-        WHERE id = $1
-    `
-
-	deleteTemplateQuery = `DELETE FROM templates WHERE id = $1`
-
-	listTemplatesQuery = `
-        SELECT id, name, type, from_account_id, to_account_id, jar_id, amount, is_archived, created_at, updated_at
-        FROM templates
-        ORDER BY created_at DESC, id DESC
-        LIMIT $1 OFFSET $2
-    `
-)
-
-func (r *templateRepository) Create(ctx context.Context, tmpl *transaction.Template) error {
-	exec := dbExecutor(ctx, r.db)
-	_, err := exec.Exec(ctx, insertTemplateQuery, templateValues(tmpl)...)
+func (r *templateRepository) Create(ctx context.Context, t *transaction.Template) error {
+	_, err := dbExecutor(ctx, r.db).Exec(ctx, insertTemplateQuery, templateValues(t)...)
 	if err != nil {
-		// No unique constraints on template currently, just wrap error
-		return fmt.Errorf("create template: %w", err)
+		return templateWriteError("create template", err)
 	}
 	return nil
 }
-
 func (r *templateRepository) GetByID(ctx context.Context, id uuid.UUID) (*transaction.Template, error) {
-	exec := dbExecutor(ctx, r.db)
 	var t transaction.Template
-	err := exec.QueryRow(ctx, findTemplateByIDQuery, id).Scan(templateScanArgs(&t)...)
+	var n templateNullableIDs
+	err := dbExecutor(ctx, r.db).QueryRow(ctx, findTemplateByIDQuery, id).Scan(templateScanArgs(&t, &n)...)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, fmt.Errorf("find template: %w", transaction.ErrTemplateNotFound)
 		}
 		return nil, fmt.Errorf("find template: %w", err)
 	}
+	applyTemplateScan(&t, n)
 	return &t, nil
 }
-
-func (r *templateRepository) Update(ctx context.Context, tmpl *transaction.Template) error {
-	exec := dbExecutor(ctx, r.db)
-	tag, err := exec.Exec(ctx, updateTemplateQuery, tmpl.ID, tmpl.Name, tmpl.Type, tmpl.FromAccountID, tmpl.ToAccountID, tmpl.JarID, tmpl.Amount, tmpl.IsArchived, time.Now().UTC().Truncate(time.Microsecond))
+func (r *templateRepository) Update(ctx context.Context, t *transaction.Template) error {
+	tag, err := dbExecutor(ctx, r.db).Exec(ctx, updateTemplateQuery, t.ID, t.Name, t.Type, t.Category, t.FromAccountID, t.ToAccountID, t.JarID, t.Amount, t.IsArchived, time.Now().UTC().Truncate(time.Microsecond))
 	if err != nil {
-		return fmt.Errorf("update template: %w", err)
+		return templateWriteError("update template", err)
 	}
 	if tag.RowsAffected() == 0 {
 		return fmt.Errorf("update template: %w", transaction.ErrTemplateNotFound)
 	}
 	return nil
 }
-
 func (r *templateRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	exec := dbExecutor(ctx, r.db)
-	tag, err := exec.Exec(ctx, deleteTemplateQuery, id)
+	tag, err := dbExecutor(ctx, r.db).Exec(ctx, deleteTemplateQuery, id)
 	if err != nil {
 		return fmt.Errorf("delete template: %w", err)
 	}
@@ -135,29 +82,38 @@ func (r *templateRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 	return nil
 }
-
 func (r *templateRepository) List(ctx context.Context, opts ports.ListOptions) ([]*transaction.Template, error) {
-	exec := dbExecutor(ctx, r.db)
 	limit := opts.Limit
 	if limit <= 0 {
 		limit = 100
 	}
-	offset := opts.Offset
-	rows, err := exec.Query(ctx, listTemplatesQuery, limit, offset)
+	if limit > 100 {
+		limit = 100
+	}
+	rows, err := dbExecutor(ctx, r.db).Query(ctx, listTemplatesQuery, opts.IsArchived, limit, max(0, opts.Offset))
 	if err != nil {
 		return nil, fmt.Errorf("list templates: %w", err)
 	}
 	defer rows.Close()
-	var results []*transaction.Template
+	results := make([]*transaction.Template, 0)
 	for rows.Next() {
 		var t transaction.Template
-		if err := rows.Scan(templateScanArgs(&t)...); err != nil {
+		var n templateNullableIDs
+		if err := rows.Scan(templateScanArgs(&t, &n)...); err != nil {
 			return nil, fmt.Errorf("scan template: %w", err)
 		}
+		applyTemplateScan(&t, n)
 		results = append(results, &t)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("list templates rows: %w", err)
 	}
 	return results, nil
+}
+func templateWriteError(operation string, err error) error {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		return fmt.Errorf("%s: %w", operation, transaction.ErrTemplateNameExists)
+	}
+	return fmt.Errorf("%s: %w", operation, err)
 }

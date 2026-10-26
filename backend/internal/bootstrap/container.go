@@ -22,6 +22,7 @@ type Container struct {
 	AccountHandler     *handler.AccountHandler
 	JarHandler         *handler.JarHandler
 	TransactionHandler *handler.TransactionHandler
+	TemplateHandler    *handler.TemplateHandler
 	StatementHandler   *handler.StatementHandler
 	AuthHandler        *handler.AuthHandler
 	GoalHandler        *handler.GoalHandler
@@ -41,6 +42,7 @@ type Container struct {
 	accountRepository     ports.AccountRepository
 	jarRepository         ports.JarRepository
 	transactionRepository ports.TransactionRepository
+	templateRepository    ports.TemplateRepository
 	allocationRepository  ports.AllocationRepository
 	goalRepository        ports.GoalRepository
 	txManager             ports.TxManager
@@ -50,6 +52,7 @@ type Container struct {
 	accountService     *application.AccountService
 	jarService         *application.JarService
 	transactionService *application.TransactionService
+	templateService    *application.TemplateService
 	statementService   *application.StatementService
 	allocationService  *application.AllocationService
 	authService        *application.AuthService
@@ -60,6 +63,7 @@ var (
 	_ handler.AccountService     = (*application.AccountService)(nil)
 	_ handler.JarService         = (*application.JarService)(nil)
 	_ handler.TransactionService = (*application.TransactionService)(nil)
+	_ handler.TemplateService    = (*application.TemplateService)(nil)
 	_ handler.StatementService   = (*application.StatementService)(nil)
 	_ handler.AllocationService  = (*application.AllocationService)(nil)
 )
@@ -119,6 +123,7 @@ func (c *Container) initRepositories() {
 	c.accountRepository = postgres.NewAccountRepository(c.db)
 	c.jarRepository = postgres.NewJarRepository(c.db)
 	c.transactionRepository = postgres.NewTransactionRepository(c.db)
+	c.templateRepository = postgres.NewTemplateRepository(c.db)
 	c.goalRepository = postgres.NewGoalRepository(c.db)
 
 	c.allocationRepository = postgres.NewAllocationRepository(c.db)
@@ -150,9 +155,9 @@ func (c *Container) initServices() {
 		c.jarRepository,
 		c.accountRepository,
 		c.txManager,
-
 		c.logger,
 	)
+	c.templateService = application.NewTemplateService(c.templateRepository, c.logger)
 	c.statementService = application.NewStatementService(
 		c.accountRepository,
 		c.transactionRepository,
@@ -193,6 +198,7 @@ func (c *Container) initHandlers() {
 		c.transactionService,
 		c.logger,
 	)
+	c.TemplateHandler = handler.NewTemplateHandler(c.templateService, c.logger)
 
 	c.StatementHandler = handler.NewStatementHandler(
 		c.statementService,

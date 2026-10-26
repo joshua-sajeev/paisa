@@ -18,4 +18,5 @@ var (
 	ErrTemplateInvalidName   = errors.New("template name cannot be empty")
 	ErrTemplateInvalidAmount = errors.New("template amount must be greater than zero")
 	ErrTemplateNotFound      = errors.New("template not found")
+	ErrTemplateNameExists    = errors.New("template name already exists")
 )
